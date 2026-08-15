@@ -11,13 +11,14 @@ initial-scale=1.0,
 maximum-scale=1.0,
 user-scalable=no">
 
-<title>Stickman Game</title>
+<title>Stickman World</title>
 
 <style>
 
 *{
     box-sizing:border-box;
     user-select:none;
+    -webkit-user-select:none;
 }
 
 html,
@@ -30,17 +31,8 @@ body{
 
     overflow:hidden;
 
-}
+    background:#7dd3fc;
 
-body{
-
-    background:
-    linear-gradient(
-        #38bdf8,
-        #dbeafe
-    );
-
-    font-family:Arial;
 }
 
 canvas{
@@ -51,19 +43,20 @@ canvas{
     height:100%;
 
     touch-action:none;
+
 }
 
 #info{
 
     position:fixed;
 
-    top:15px;
+    top:12px;
 
     left:50%;
 
     transform:translateX(-50%);
 
-    padding:10px 18px;
+    padding:9px 18px;
 
     border-radius:15px;
 
@@ -71,36 +64,43 @@ canvas{
 
     color:white;
 
+    font-family:Arial;
+
     text-align:center;
 
     z-index:10;
+
 }
 
 #controls{
 
     position:fixed;
 
-    bottom:25px;
-
     left:0;
-
     right:0;
+    bottom:20px;
 
     display:flex;
 
     justify-content:space-between;
 
-    padding:0 25px;
+    padding:0 20px;
 
     pointer-events:none;
+
 }
 
-button{
+.controlGroup{
 
-    pointer-events:auto;
+    display:flex;
+
+    gap:12px;
+
+}
+
+.control{
 
     width:70px;
-
     height:70px;
 
     border-radius:50%;
@@ -111,9 +111,21 @@ button{
 
     color:white;
 
-    font-size:30px;
+    font-size:28px;
+
+    pointer-events:auto;
 
     touch-action:none;
+
+}
+
+#jump{
+
+    width:80px;
+    height:80px;
+
+    background:#f59e0b;
+
 }
 
 </style>
@@ -123,6 +135,7 @@ button{
 <body>
 
 <canvas id="game"></canvas>
+
 
 <div id="info">
 
@@ -138,7 +151,10 @@ button{
 
 <div id="controls">
 
+<div class="controlGroup">
+
 <button
+class="control"
 id="left"
 type="button"
 >
@@ -146,10 +162,21 @@ type="button"
 </button>
 
 <button
+class="control"
 id="right"
 type="button"
 >
 ▶
+</button>
+
+</div>
+
+<button
+class="control"
+id="jump"
+type="button"
+>
+⬆
 </button>
 
 </div>
@@ -168,6 +195,10 @@ const ctx =
 canvas.getContext("2d");
 
 
+/* =========================
+   اطلاعات بازیکن
+========================= */
+
 const myName =
 localStorage.getItem("player")
 || "Player";
@@ -184,13 +215,17 @@ document.getElementById("room")
 .textContent = roomCode;
 
 
+/* =========================
+   اندازه صفحه
+========================= */
+
 function resize(){
 
     canvas.width =
-    window.innerWidth;
+        window.innerWidth;
 
     canvas.height =
-    window.innerHeight;
+        window.innerHeight;
 
 }
 
@@ -202,7 +237,18 @@ window.addEventListener(
 );
 
 
-/* بازیکن */
+/* =========================
+   دنیا
+========================= */
+
+const WORLD_WIDTH = 5000;
+
+const GROUND_Y = 520;
+
+
+/* =========================
+   بازیکن
+========================= */
 
 const me = {
 
@@ -212,9 +258,17 @@ const me = {
 
     x:300,
 
+    y:GROUND_Y,
+
+    vx:0,
+
+    vy:0,
+
     direction:1,
 
     walking:false,
+
+    jumping:false,
 
     frame:0
 
@@ -224,289 +278,876 @@ const me = {
 const others = {};
 
 
-/* کنترل */
+/* =========================
+   کنترل
+========================= */
 
 const keys = {
 
     left:false,
 
-    right:false
+    right:false,
+
+    jump:false
 
 };
 
 
-window.addEventListener(
-"keydown",
-(e)=>{
-
-    if(
-        e.key==="a" ||
-        e.key==="A" ||
-        e.key==="ش"
-    ){
-
-        keys.left=true;
-
-    }
-
-    if(
-        e.key==="d" ||
-        e.key==="D" ||
-        e.key==="ی"
-    ){
-
-        keys.right=true;
-
-    }
-
-});
-
+/* کیبورد */
 
 window.addEventListener(
-"keyup",
-(e)=>{
+    "keydown",
+    function(e){
 
-    if(
-        e.key==="a" ||
-        e.key==="A" ||
-        e.key==="ش"
-    ){
+        if(
+            e.key === "a" ||
+            e.key === "A" ||
+            e.key === "ش"
+        ){
 
-        keys.left=false;
+            keys.left = true;
+
+        }
+
+
+        if(
+            e.key === "d" ||
+            e.key === "D" ||
+            e.key === "ی"
+        ){
+
+            keys.right = true;
+
+        }
+
+
+        if(e.code === "Space"){
+
+            e.preventDefault();
+
+            keys.jump = true;
+
+        }
 
     }
+);
 
-    if(
-        e.key==="d" ||
-        e.key==="D" ||
-        e.key==="ی"
-    ){
 
-        keys.right=false;
+window.addEventListener(
+    "keyup",
+    function(e){
+
+        if(
+            e.key === "a" ||
+            e.key === "A" ||
+            e.key === "ش"
+        ){
+
+            keys.left = false;
+
+        }
+
+
+        if(
+            e.key === "d" ||
+            e.key === "D" ||
+            e.key === "ی"
+        ){
+
+            keys.right = false;
+
+        }
+
+
+        if(e.code === "Space"){
+
+            keys.jump = false;
+
+        }
 
     }
+);
 
-});
 
+/* =========================
+   کنترل موبایل
+========================= */
 
-function mobileButton(
+function mobileControl(
     id,
     key
 ){
 
-    const b =
-    document.getElementById(id);
+    const button =
+        document.getElementById(id);
 
-    b.addEventListener(
+
+    button.addEventListener(
         "pointerdown",
-        ()=>{
-            keys[key]=true;
+        function(e){
+
+            e.preventDefault();
+
+            keys[key] = true;
+
         }
     );
 
-    b.addEventListener(
+
+    button.addEventListener(
         "pointerup",
-        ()=>{
-            keys[key]=false;
+        function(e){
+
+            e.preventDefault();
+
+            keys[key] = false;
+
         }
     );
 
-    b.addEventListener(
+
+    button.addEventListener(
         "pointercancel",
-        ()=>{
-            keys[key]=false;
+        function(){
+
+            keys[key] = false;
+
+        }
+    );
+
+
+    button.addEventListener(
+        "pointerleave",
+        function(){
+
+            keys[key] = false;
+
         }
     );
 
 }
 
 
-mobileButton(
+mobileControl(
     "left",
     "left"
 );
 
-mobileButton(
+mobileControl(
     "right",
     "right"
 );
 
-
-/* اتصال */
-
-socket.on(
-"connect",
-()=>{
-
-    me.id =
-    socket.id;
-
-    socket.emit(
-        "gameJoin"
-    );
-
-});
+mobileControl(
+    "jump",
+    "jump"
+);
 
 
-/* بازیکنان */
+/* =========================
+   اتصال به اتاق
+========================= */
 
 socket.on(
-"gamePlayers",
-(list)=>{
+    "connect",
+    function(){
 
-    list.forEach(
-        p=>{
+        me.id =
+            socket.id;
 
-            if(
-                p.id === me.id
-            ){
 
-                me.x =
-                p.x;
+        socket.emit(
+            "gameJoin"
+        );
 
-                return;
+    }
+);
+
+
+/* =========================
+   بازیکن‌های موجود
+========================= */
+
+socket.on(
+    "gamePlayers",
+    function(list){
+
+        list.forEach(
+            function(p){
+
+                if(
+                    p.id === me.id
+                ){
+
+                    me.x =
+                        p.x || me.x;
+
+                    return;
+
+                }
+
+
+                others[p.id] = {
+
+                    ...p,
+
+                    y:
+                        GROUND_Y,
+
+                    frame:0
+
+                };
 
             }
+        );
 
-            others[p.id] = {
-                ...p,
-                frame:0
-            };
+    }
+);
 
-        }
-    );
 
-});
-
+/* =========================
+   بازیکن جدید
+========================= */
 
 socket.on(
-"playerMove",
-p=>{
+    "playerJoinedGame",
+    function(p){
 
-    if(
-        p.id !== me.id
-    ){
+        if(
+            p.id === me.id
+        ){
+
+            return;
+
+        }
+
 
         others[p.id] = {
 
-            ...others[p.id],
+            ...p,
 
-            ...p
+            y:GROUND_Y,
+
+            frame:0
 
         };
 
     }
+);
 
-});
 
+/* =========================
+   حرکت بازیکنان
+========================= */
 
 socket.on(
-"playerLeave",
-id=>{
+    "playerMove",
+    function(p){
 
-    delete others[id];
+        if(
+            p.id === me.id
+        ){
 
-});
+            return;
+
+        }
 
 
-/* آپدیت */
+        if(!others[p.id]){
 
-function update(){
+            others[p.id] = {
 
-    me.walking=false;
+                ...p,
+
+                frame:0
+
+            };
+
+        }
+        else{
+
+            others[p.id].x =
+                p.x;
+
+            others[p.id].y =
+                p.y;
+
+            others[p.id].direction =
+                p.direction;
+
+            others[p.id].walking =
+                p.walking;
+
+            others[p.id].jumping =
+                p.jumping;
+
+        }
+
+    }
+);
+
+
+/* =========================
+   خروج بازیکن
+========================= */
+
+socket.on(
+    "playerLeave",
+    function(id){
+
+        delete others[id];
+
+    }
+);
+
+
+/* =========================
+   فیزیک
+========================= */
+
+function updatePlayer(){
+
+    me.walking = false;
+
+
+    /* حرکت چپ */
 
     if(keys.left){
 
-        me.x -= 5;
+        me.vx = -5;
 
-        me.direction=-1;
+        me.direction = -1;
 
-        me.walking=true;
-
-    }
-
-    if(keys.right){
-
-        me.x += 5;
-
-        me.direction=1;
-
-        me.walking=true;
+        me.walking = true;
 
     }
 
-    if(me.x<30)
-        me.x=30;
+
+    /* حرکت راست */
+
+    else if(keys.right){
+
+        me.vx = 5;
+
+        me.direction = 1;
+
+        me.walking = true;
+
+    }
+
+
+    else{
+
+        me.vx *= .75;
+
+    }
+
+
+    me.x += me.vx;
+
+
+    /* پرش */
+
+    if(
+        keys.jump &&
+        !me.jumping
+    ){
+
+        me.vy = -13;
+
+        me.jumping = true;
+
+    }
+
+
+    me.vy += .6;
+
+    me.y += me.vy;
+
+
+    /* زمین */
+
+    if(
+        me.y >= GROUND_Y
+    ){
+
+        me.y = GROUND_Y;
+
+        me.vy = 0;
+
+        me.jumping = false;
+
+    }
+
+
+    /* محدودیت دنیا */
+
+    if(me.x < 50){
+
+        me.x = 50;
+
+    }
+
 
     if(
         me.x >
-        canvas.width-30
-    )
+        WORLD_WIDTH - 50
+    ){
+
         me.x =
-        canvas.width-30;
+            WORLD_WIDTH - 50;
+
+    }
+
 
     me.frame++;
+
+}
+
+
+/* =========================
+   ارسال حرکت
+========================= */
+
+let lastSend = 0;
+
+function sendPosition(){
+
+    const now =
+        Date.now();
+
+
+    if(now - lastSend < 30){
+
+        return;
+
+    }
+
+
+    lastSend = now;
+
 
     socket.emit(
         "playerMove",
         {
+
             x:me.x,
-            y:0,
-            direction:me.direction,
-            walking:me.walking
+
+            y:me.y,
+
+            direction:
+                me.direction,
+
+            walking:
+                me.walking,
+
+            jumping:
+                me.jumping
+
         }
     );
 
 }
 
 
-/* استیکمن */
+/* =========================
+   دوربین
+========================= */
 
-function drawPlayer(
+let cameraX = 0;
+
+function updateCamera(){
+
+    const target =
+        me.x -
+        canvas.width / 2;
+
+
+    cameraX +=
+        (target - cameraX) *
+        .1;
+
+
+    if(cameraX < 0){
+
+        cameraX = 0;
+
+    }
+
+
+    const maxCamera =
+        WORLD_WIDTH -
+        canvas.width;
+
+
+    if(cameraX > maxCamera){
+
+        cameraX =
+            maxCamera;
+
+    }
+
+}
+
+
+/* =========================
+   آسمان
+========================= */
+
+function drawSky(){
+
+    const gradient =
+        ctx.createLinearGradient(
+            0,
+            0,
+            0,
+            canvas.height
+        );
+
+
+    gradient.addColorStop(
+        0,
+        "#38bdf8"
+    );
+
+    gradient.addColorStop(
+        1,
+        "#dbeafe"
+    );
+
+
+    ctx.fillStyle =
+        gradient;
+
+
+    ctx.fillRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    /* خورشید */
+
+    ctx.fillStyle =
+        "#fde047";
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        canvas.width - 110,
+        90,
+        45,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+
+    /* ابرها */
+
+    drawCloud(
+        200 - cameraX * .15,
+        120,
+        1
+    );
+
+    drawCloud(
+        700 - cameraX * .15,
+        170,
+        .8
+    );
+
+    drawCloud(
+        1300 - cameraX * .15,
+        100,
+        1.1
+    );
+
+}
+
+
+/* =========================
+   ابر
+========================= */
+
+function drawCloud(
+    x,
+    y,
+    scale
+){
+
+    ctx.fillStyle =
+        "#ffffffcc";
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x,
+        y,
+        25 * scale,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.arc(
+        x + 35 * scale,
+        y - 12 * scale,
+        35 * scale,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.arc(
+        x + 70 * scale,
+        y,
+        25 * scale,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+}
+
+
+/* =========================
+   زمین
+========================= */
+
+function drawGround(){
+
+    const screenGround =
+        GROUND_Y;
+
+
+    ctx.fillStyle =
+        "#22c55e";
+
+
+    ctx.fillRect(
+        0,
+        screenGround,
+        canvas.width,
+        canvas.height
+    );
+
+
+    ctx.fillStyle =
+        "#15803d";
+
+
+    ctx.fillRect(
+        0,
+        screenGround,
+        canvas.width,
+        12
+    );
+
+
+    /* خطوط زمین */
+
+    ctx.fillStyle =
+        "#166534";
+
+
+    for(
+        let x =
+            -cameraX % 100;
+        x <
+            canvas.width;
+        x += 100
+    ){
+
+        ctx.fillRect(
+            x,
+            GROUND_Y + 40,
+            50,
+            4
+        );
+
+    }
+
+}
+
+
+/* =========================
+   درخت
+========================= */
+
+function drawTree(
+    x
+){
+
+    const screenX =
+        x - cameraX;
+
+
+    if(
+        screenX < -150 ||
+        screenX >
+        canvas.width + 150
+    ){
+
+        return;
+
+    }
+
+
+    ctx.fillStyle =
+        "#78350f";
+
+
+    ctx.fillRect(
+        screenX - 12,
+        GROUND_Y - 130,
+        24,
+        130
+    );
+
+
+    ctx.fillStyle =
+        "#166534";
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        screenX,
+        GROUND_Y - 155,
+        55,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        screenX - 40,
+        GROUND_Y - 130,
+        40,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        screenX + 40,
+        GROUND_Y - 130,
+        40,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+}
+
+
+/* =========================
+   استیکمن
+========================= */
+
+function drawStickman(
     p
 ){
 
-    const ground =
-    canvas.height*0.78;
+    const x =
+        p.x - cameraX;
 
-    const walk =
-    p.walking
-    ? Math.sin(p.frame*0.3)
-    : 0;
+
+    const y =
+        p.y;
+
+
+    if(
+        x < -100 ||
+        x >
+        canvas.width + 100
+    ){
+
+        return;
+
+    }
+
+
+    const walking =
+        p.walking
+        ? Math.sin(
+            p.frame * .3
+        )
+        : 0;
+
 
     ctx.save();
 
+
     ctx.translate(
-        p.x,
-        ground
+        x,
+        y
     );
+
 
     ctx.scale(
         p.direction || 1,
         1
     );
 
-    ctx.strokeStyle="#111827";
-
-    ctx.lineWidth=6;
-
-    ctx.lineCap="round";
 
     /* اسم */
 
-    ctx.font=
-    "bold 15px Arial";
+    ctx.font =
+        "bold 16px Arial";
 
-    ctx.textAlign=
-    "center";
+    ctx.textAlign =
+        "center";
 
-    ctx.fillStyle="white";
+    ctx.fillStyle =
+        "white";
+
+    ctx.strokeStyle =
+        "#111827";
+
+    ctx.lineWidth =
+        4;
+
+
+    ctx.strokeText(
+        p.name,
+        0,
+        -125
+    );
+
 
     ctx.fillText(
         p.name,
         0,
-        -110
+        -125
     );
+
+
+    /* بدن */
+
+    ctx.strokeStyle =
+        "#111827";
+
+    ctx.lineWidth =
+        6;
+
+    ctx.lineCap =
+        "round";
+
 
     /* سر */
 
@@ -514,17 +1155,38 @@ function drawPlayer(
 
     ctx.arc(
         0,
-        -85,
-        16,
+        -95,
+        17,
         0,
-        Math.PI*2
+        Math.PI * 2
     );
 
-    ctx.fillStyle="#f8fafc";
+    ctx.fillStyle =
+        "#f8fafc";
 
     ctx.fill();
 
     ctx.stroke();
+
+
+    /* چشم */
+
+    ctx.fillStyle =
+        "#111827";
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        6,
+        -98,
+        3,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
 
     /* بدن */
 
@@ -532,220 +1194,159 @@ function drawPlayer(
 
     ctx.moveTo(
         0,
-        -69
+        -78
     );
 
     ctx.lineTo(
         0,
-        -35
+        -40
     );
 
     ctx.stroke();
 
-    /* دست‌ها */
+
+    /* دست چپ */
 
     ctx.beginPath();
 
     ctx.moveTo(
         0,
-        -60
+        -70
     );
 
     ctx.lineTo(
-        -25,
-        -40 + walk*8
+        -27,
+        -45 + walking * 8
     );
 
     ctx.stroke();
+
+
+    /* دست راست */
 
     ctx.beginPath();
 
     ctx.moveTo(
         0,
-        -60
+        -70
     );
 
     ctx.lineTo(
-        25,
-        -40 - walk*8
+        27,
+        -45 - walking * 8
     );
 
     ctx.stroke();
 
-    /* پاها */
+
+    /* پای چپ */
 
     ctx.beginPath();
 
     ctx.moveTo(
         0,
-        -35
+        -40
     );
 
     ctx.lineTo(
-        -18 + walk*10,
+        -20 + walking * 12,
         0
     );
 
     ctx.stroke();
 
+
+    /* پای راست */
+
     ctx.beginPath();
 
     ctx.moveTo(
         0,
-        -35
+        -40
     );
 
     ctx.lineTo(
-        18 - walk*10,
+        20 - walking * 12,
         0
     );
 
     ctx.stroke();
+
 
     ctx.restore();
 
 }
 
 
-/* رسم */
+/* =========================
+   رسم دنیا
+========================= */
 
 function draw(){
 
-    const w =
-    canvas.width;
+    drawSky();
 
-    const h =
-    canvas.height;
-
-    /* آسمان */
-
-    const sky =
-    ctx.createLinearGradient(
-        0,
-        0,
-        0,
-        h
-    );
-
-    sky.addColorStop(
-        0,
-        "#38bdf8"
-    );
-
-    sky.addColorStop(
-        1,
-        "#dbeafe"
-    );
-
-    ctx.fillStyle=sky;
-
-    ctx.fillRect(
-        0,
-        0,
-        w,
-        h
-    );
+    drawGround();
 
 
-    /* خورشید */
-
-    ctx.fillStyle="#fde047";
-
-    ctx.beginPath();
-
-    ctx.arc(
-        w-100,
-        100,
-        45,
-        0,
-        Math.PI*2
-    );
-
-    ctx.fill();
-
-
-    /* زمین */
-
-    const ground =
-    h*0.78;
-
-    ctx.fillStyle="#22c55e";
-
-    ctx.fillRect(
-        0,
-        ground,
-        w,
-        h-ground
-    );
-
-
-    /* درخت */
+    /* درخت‌ها */
 
     for(
-        let x=80;
-        x<w;
-        x+=250
+        let x = 100;
+        x < WORLD_WIDTH;
+        x += 350
     ){
 
-        ctx.fillStyle="#78350f";
-
-        ctx.fillRect(
-            x,
-            ground-120,
-            25,
-            120
-        );
-
-        ctx.fillStyle="#166534";
-
-        ctx.beginPath();
-
-        ctx.arc(
-            x+12,
-            ground-140,
-            55,
-            0,
-            Math.PI*2
-        );
-
-        ctx.fill();
+        drawTree(x);
 
     }
 
 
-    /* دیگران */
+    /* بازیکنان دیگر */
 
     for(
         const id in others
     ){
 
-        drawPlayer(
-            others[id]
-        );
+        const p =
+            others[id];
+
+        p.frame++;
+
+        drawStickman(p);
 
     }
 
 
-    /* من */
+    /* خودمان */
 
-    drawPlayer(me);
+    drawStickman(me);
 
 }
 
 
-function loop(){
+/* =========================
+   بازی
+========================= */
 
-    update();
+function gameLoop(){
+
+    updatePlayer();
+
+    updateCamera();
+
+    sendPosition();
 
     draw();
 
     requestAnimationFrame(
-        loop
+        gameLoop
     );
 
 }
 
-loop();
+
+gameLoop();
 
 </script>
 
