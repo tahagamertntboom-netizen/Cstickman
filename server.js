@@ -13,20 +13,24 @@ app.use(express.static(__dirname));
 const rooms = {};
 
 function createRoomCode() {
+
     let code;
 
     do {
+
         code = Math.floor(
             100000 + Math.random() * 900000
         ).toString();
+
     } while (rooms[code]);
 
     return code;
 }
 
+
 io.on("connection", (socket) => {
 
-    console.log("Player connected:", socket.id);
+    console.log("Connected:", socket.id);
 
 
     // =========================
@@ -38,34 +42,43 @@ io.on("connection", (socket) => {
         name = String(name || "").trim();
 
         if (!name) {
+
             socket.emit(
                 "roomError",
                 "اسم وارد نشده!"
             );
+
             return;
         }
 
-        const code = createRoomCode();
+        const code =
+            createRoomCode();
 
         rooms[code] = {
             players: {}
         };
 
         rooms[code].players[socket.id] = {
+
             id: socket.id,
-            name: name
+
+            name: name,
+
+            x: 300,
+
+            y: 0,
+
+            direction: 1,
+
+            walking: false
+
         };
 
         socket.join(code);
 
         socket.roomCode = code;
-        socket.playerName = name;
 
-        console.log(
-            "Room created:",
-            code,
-            name
-        );
+        socket.playerName = name;
 
         socket.emit(
             "roomCreated",
@@ -78,6 +91,12 @@ io.on("connection", (socket) => {
                 rooms[code].players
             )
         );
+
+        console.log(
+            "Room created:",
+            code
+        );
+
     });
 
 
@@ -88,20 +107,26 @@ io.on("connection", (socket) => {
     socket.on("joinRoom", (data) => {
 
         const code =
-            String(data?.roomCode || "").trim();
+            String(
+                data?.roomCode || ""
+            ).trim();
 
         const name =
-            String(data?.playerName || "").trim();
+            String(
+                data?.playerName || ""
+            ).trim();
+
 
         if (!name) {
 
             socket.emit(
                 "roomError",
-                "اول اسم خودت را تأیید کن!"
+                "اول اسمت را تأیید کن!"
             );
 
             return;
         }
+
 
         if (!/^\d{6}$/.test(code)) {
 
@@ -113,6 +138,7 @@ io.on("connection", (socket) => {
             return;
         }
 
+
         if (!rooms[code]) {
 
             socket.emit(
@@ -123,29 +149,40 @@ io.on("connection", (socket) => {
             return;
         }
 
+
         rooms[code].players[socket.id] = {
 
             id: socket.id,
 
-            name: name
+            name: name,
+
+            x:
+                300 +
+                Object.keys(
+                    rooms[code].players
+                ).length * 100,
+
+            y: 0,
+
+            direction: 1,
+
+            walking: false
 
         };
+
 
         socket.join(code);
 
         socket.roomCode = code;
+
         socket.playerName = name;
 
-        console.log(
-            name,
-            "joined room",
-            code
-        );
 
         socket.emit(
             "joinedRoom",
             code
         );
+
 
         io.to(code).emit(
             "roomPlayers",
@@ -153,11 +190,120 @@ io.on("connection", (socket) => {
                 rooms[code].players
             )
         );
+
     });
 
 
     // =========================
-    // قطع بازیکن
+    // ورود به بازی
+    // =========================
+
+    socket.on(
+        "gameJoin",
+        (data) => {
+
+            const code =
+                String(
+                    data?.roomCode || ""
+                ).trim();
+
+            if (
+                !rooms[code] ||
+                !rooms[code].players[socket.id]
+            ) {
+
+                return;
+            }
+
+
+            socket.roomCode = code;
+
+
+            socket.emit(
+                "gamePlayers",
+                Object.values(
+                    rooms[code].players
+                )
+            );
+
+
+            socket.to(code).emit(
+                "playerJoinedGame",
+                rooms[code].players[socket.id]
+            );
+
+        }
+    );
+
+
+    // =========================
+    // حرکت بازیکن
+    // =========================
+
+    socket.on(
+        "playerMove",
+        (data) => {
+
+            const code =
+                socket.roomCode;
+
+            if (
+                !code ||
+                !rooms[code] ||
+                !rooms[code].players[socket.id]
+            ) {
+
+                return;
+            }
+
+
+            const p =
+                rooms[code].players[socket.id];
+
+
+            if (
+                typeof data.x === "number"
+            ) {
+
+                p.x = data.x;
+
+            }
+
+
+            if (
+                typeof data.y === "number"
+            ) {
+
+                p.y = data.y;
+
+            }
+
+
+            if (
+                typeof data.direction === "number"
+            ) {
+
+                p.direction =
+                    data.direction;
+
+            }
+
+
+            p.walking =
+                Boolean(data.walking);
+
+
+            socket.to(code).emit(
+                "playerMove",
+                p
+            );
+
+        }
+    );
+
+
+    // =========================
+    // قطع اتصال
     // =========================
 
     socket.on("disconnect", () => {
@@ -165,11 +311,19 @@ io.on("connection", (socket) => {
         const code =
             socket.roomCode;
 
-        if (!code || !rooms[code]) {
+
+        if (
+            !code ||
+            !rooms[code]
+        ) {
+
             return;
         }
 
-        delete rooms[code].players[socket.id];
+
+        delete rooms[code]
+            .players[socket.id];
+
 
         io.to(code).emit(
             "roomPlayers",
@@ -177,6 +331,13 @@ io.on("connection", (socket) => {
                 rooms[code].players
             )
         );
+
+
+        io.to(code).emit(
+            "playerLeave",
+            socket.id
+        );
+
 
         if (
             Object.keys(
@@ -186,11 +347,8 @@ io.on("connection", (socket) => {
 
             delete rooms[code];
 
-            console.log(
-                "Room deleted:",
-                code
-            );
         }
+
     });
 
 });
@@ -205,11 +363,14 @@ app.get("/", (req, res) => {
 });
 
 
-server.listen(PORT, () => {
+server.listen(
+    PORT,
+    () => {
 
-    console.log(
-        "Server running on port",
-        PORT
-    );
+        console.log(
+            "Server running on port " +
+            PORT
+        );
 
-});
+    }
+);
