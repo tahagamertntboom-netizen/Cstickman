@@ -12,29 +12,46 @@ app.use(express.static(__dirname));
 
 const rooms = {};
 
-function newCode() {
+function makeRoomCode() {
     let code;
 
     do {
-        code = Math.floor(
-            100000 + Math.random() * 900000
-        ).toString();
+        code = String(
+            Math.floor(100000 + Math.random() * 900000)
+        );
     } while (rooms[code]);
 
     return code;
 }
 
-function sendPlayers(code) {
-    if (!rooms[code]) return;
+function getPlayers(roomCode) {
+    if (!rooms[roomCode]) return [];
 
-    const list = Object.values(rooms[code]);
+    return Object.values(rooms[roomCode]).map(p => ({
+        id: p.id,
+        name: p.name,
+        admin: p.admin,
+        x: p.x,
+        y: p.y,
+        direction: p.direction,
+        walking: p.walking,
+        running: p.running,
+        jumping: p.jumping
+    }));
+}
 
-    io.to(code).emit("players", list);
+function updateRoom(roomCode) {
+    if (rooms[roomCode]) {
+        io.to(roomCode).emit(
+            "players",
+            getPlayers(roomCode)
+        );
+    }
 }
 
 io.on("connection", socket => {
 
-    console.log("CONNECTED", socket.id);
+    console.log("Player connected:", socket.id);
 
     // ساخت اتاق
     socket.on("createRoom", name => {
@@ -42,11 +59,14 @@ io.on("connection", socket => {
         name = String(name || "").trim();
 
         if (!name) {
-            socket.emit("errorMessage", "اسم را وارد کن!");
+            socket.emit(
+                "errorMessage",
+                "اسم وارد نشده!"
+            );
             return;
         }
 
-        const code = newCode();
+        const code = makeRoomCode();
 
         rooms[code] = {};
 
@@ -54,30 +74,39 @@ io.on("connection", socket => {
             id: socket.id,
             name: name,
             admin:
-                name.toLowerCase() === "tahagamertnt",
+                name.toLowerCase() ===
+                "tahagamertnt",
 
             x: 500,
             y: 0,
+
             direction: 1,
+
             walking: false,
             running: false,
-            jumping: false,
-            health: 100
+            jumping: false
         };
 
-        socket.room = code;
+        socket.roomCode = code;
 
         socket.join(code);
 
-        socket.emit("roomCreated", code);
+        socket.emit(
+            "roomCreated",
+            code
+        );
 
-        sendPlayers(code);
+        updateRoom(code);
 
-        console.log("ROOM", code);
+        console.log(
+            "Room created:",
+            code,
+            name
+        );
     });
 
 
-    // ورود
+    // ورود به اتاق
     socket.on("joinRoom", data => {
 
         const name =
@@ -87,7 +116,10 @@ io.on("connection", socket => {
             String(data?.code || "").trim();
 
         if (!name) {
-            socket.emit("errorMessage", "اسم را وارد کن!");
+            socket.emit(
+                "errorMessage",
+                "اسم وارد نشده!"
+            );
             return;
         }
 
@@ -111,74 +143,91 @@ io.on("connection", socket => {
             id: socket.id,
             name: name,
             admin:
-                name.toLowerCase() === "tahagamertnt",
+                name.toLowerCase() ===
+                "tahagamertnt",
 
             x: 500,
             y: 0,
+
             direction: 1,
+
             walking: false,
             running: false,
-            jumping: false,
-            health: 100
+            jumping: false
         };
 
-        socket.room = code;
+        socket.roomCode = code;
 
         socket.join(code);
 
-        socket.emit("roomJoined", code);
+        socket.emit(
+            "roomJoined",
+            code
+        );
 
-        sendPlayers(code);
+        updateRoom(code);
 
         console.log(
+            "Player joined:",
             name,
-            "JOIN",
             code
         );
     });
 
 
-    // حرکت بازیکن
+    // حرکت
     socket.on("move", data => {
 
-        const code = socket.room;
+        const code = socket.roomCode;
 
         if (!code || !rooms[code]) return;
 
-        const p =
+        const player =
             rooms[code][socket.id];
 
-        if (!p) return;
+        if (!player) return;
 
         if (typeof data.x === "number")
-            p.x = data.x;
+            player.x = data.x;
 
         if (typeof data.y === "number")
-            p.y = data.y;
+            player.y = data.y;
 
-        p.direction =
-            data.direction === -1
-                ? -1
-                : 1;
+        player.direction =
+            data.direction === -1 ? -1 : 1;
 
-        p.walking = !!data.walking;
-        p.running = !!data.running;
-        p.jumping = !!data.jumping;
+        player.walking =
+            Boolean(data.walking);
+
+        player.running =
+            Boolean(data.running);
+
+        player.jumping =
+            Boolean(data.jumping);
 
         socket.to(code).emit(
-            "move",
-            p
+            "playerMove",
+            {
+                id: player.id,
+                name: player.name,
+                admin: player.admin,
+                x: player.x,
+                y: player.y,
+                direction: player.direction,
+                walking: player.walking,
+                running: player.running,
+                jumping: player.jumping
+            }
         );
     });
 
 
-    // قطع شدن
+    // خروج
     socket.on("disconnect", () => {
 
-        const code = socket.room;
+        const code = socket.roomCode;
 
-        if (!code || !rooms[code])
-            return;
+        if (!code || !rooms[code]) return;
 
         delete rooms[code][socket.id];
 
@@ -187,18 +236,16 @@ io.on("connection", socket => {
             socket.id
         );
 
-        sendPlayers(code);
+        updateRoom(code);
 
         if (
-            Object.keys(
-                rooms[code]
-            ).length === 0
+            Object.keys(rooms[code]).length === 0
         ) {
             delete rooms[code];
         }
 
         console.log(
-            "LEFT",
+            "Player disconnected:",
             socket.id
         );
     });
@@ -214,12 +261,10 @@ app.get("/", (req, res) => {
 
 
 server.listen(PORT, () => {
-
     console.log("");
-    console.log("==============================");
-    console.log("STICKMAN SERVER");
-    console.log("PORT:", PORT);
-    console.log("==============================");
+    console.log("================================");
+    console.log(" STICKMAN SERVER IS RUNNING");
+    console.log(" http://localhost:" + PORT);
+    console.log("================================");
     console.log("");
-
 });
