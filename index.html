@@ -1,16 +1,73 @@
-<script>
-function go(){
+<!DOCTYPE html>
+<html>
+<head>
+<title>Stickman Login</title>
 
-let name = document.getElementById("name").value;
+<style>
+body{
+background:#111;
+color:white;
+font-family:Arial;
+text-align:center;
+padding-top:100px;
+}
+
+.box{
+background:#222;
+padding:30px;
+border-radius:20px;
+display:inline-block;
+}
+
+input,button{
+padding:12px;
+margin:10px;
+border-radius:10px;
+border:0;
+}
+
+button{
+background:#00aa55;
+color:white;
+cursor:pointer;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="box">
+
+<h1>STICKMAN</h1>
+
+<input id="name" placeholder="اسم بازیکن">
+
+<br>
+
+<button onclick="login()">ورود</button>
+
+</div>
+
+
+<script>
+
+function login(){
+
+let name=document.getElementById("name").value;
 
 if(name==""){
 alert("اسم بنویس");
 return;
 }
 
-localStorage.setItem("name", name);
+localStorage.setItem("player",name);
 
-location.href = "game.html";
+window.location.href="game.html";
 
 }
+
 </script>
+
+</body>
+</html>
