@@ -12,290 +12,238 @@ app.use(express.static(__dirname));
 
 const rooms = {};
 
-function createCode() {
-
+function makeRoomCode() {
     let code;
 
     do {
         code = String(
-            Math.floor(
-                100000 +
-                Math.random() * 900000
-            )
+            Math.floor(100000 + Math.random() * 900000)
         );
-    }
-
-    while (rooms[code]);
+    } while (rooms[code]);
 
     return code;
 }
 
-
-function playersInRoom(code) {
-
-    if (!rooms[code]) {
-        return [];
-    }
-
-    return Object.values(
-        rooms[code]
-    );
-
+function isAdmin(name) {
+    return String(name).trim().toLowerCase() === "tahagamertnt";
 }
 
+function sendPlayers(roomCode) {
+    if (!rooms[roomCode]) return;
 
-io.on("connection", socket => {
-
-    console.log(
-        "Connected:",
-        socket.id
+    io.to(roomCode).emit(
+        "players",
+        Object.values(rooms[roomCode].players)
     );
+}
 
+io.on("connection", (socket) => {
+
+    console.log("Connected:", socket.id);
 
     // =========================
     // ساخت اتاق
     // =========================
 
-    socket.on(
-        "createRoom",
-        name => {
+    socket.on("createRoom", (name) => {
 
-            name =
-                String(name || "").trim();
+        name = String(name || "").trim();
 
-            if (!name) {
-
-                socket.emit(
-                    "roomError",
-                    "اسم وارد نشده!"
-                );
-
-                return;
-            }
-
-
-            const code =
-                createCode();
-
-
-            rooms[code] = {};
-
-
-            rooms[code][socket.id] = {
-
-                id: socket.id,
-
-                name: name,
-
-                admin:
-                    name.toLowerCase()
-                    === "tahagamertnt"
-
-            };
-
-
-            socket.roomCode =
-                code;
-
-            socket.playerName =
-                name;
-
-
-            socket.join(code);
-
-
+        if (!name) {
             socket.emit(
-                "roomCreated",
-                code
+                "errorMessage",
+                "اول اسم خودت را وارد کن!"
             );
-
-
-            io.to(code).emit(
-                "roomPlayers",
-                playersInRoom(code)
-            );
-
-
-            console.log(
-                "ROOM:",
-                code
-            );
-
+            return;
         }
-    );
+
+        const code = makeRoomCode();
+
+        rooms[code] = {
+            players: {}
+        };
+
+        rooms[code].players[socket.id] = {
+            id: socket.id,
+            name: name,
+            admin: isAdmin(name),
+            x: 200,
+            y: 400,
+            vx: 0,
+            vy: 0
+        };
+
+        socket.roomCode = code;
+
+        socket.join(code);
+
+        socket.emit("roomCreated", code);
+
+        sendPlayers(code);
+
+        console.log(
+            "Room created:",
+            code,
+            "by",
+            name
+        );
+    });
 
 
     // =========================
     // ورود به اتاق
     // =========================
 
-    socket.on(
-        "joinRoom",
-        data => {
+    socket.on("joinRoom", ({ roomCode, playerName }) => {
 
-            const name =
-                String(
-                    data?.playerName || ""
-                ).trim();
+        const code = String(roomCode || "").trim();
+        const name = String(playerName || "").trim();
 
-            const code =
-                String(
-                    data?.roomCode || ""
-                ).trim();
-
-
-            if (!name) {
-
-                socket.emit(
-                    "roomError",
-                    "اسم وارد نشده!"
-                );
-
-                return;
-            }
-
-
-            if (!/^\d{6}$/.test(code)) {
-
-                socket.emit(
-                    "roomError",
-                    "کد باید ۶ رقمی باشد!"
-                );
-
-                return;
-            }
-
-
-            if (!rooms[code]) {
-
-                socket.emit(
-                    "roomError",
-                    "این اتاق وجود ندارد!"
-                );
-
-                return;
-            }
-
-
-            rooms[code][socket.id] = {
-
-                id: socket.id,
-
-                name: name,
-
-                admin:
-                    name.toLowerCase()
-                    === "tahagamertnt"
-
-            };
-
-
-            socket.roomCode =
-                code;
-
-            socket.playerName =
-                name;
-
-
-            socket.join(code);
-
-
+        if (!name) {
             socket.emit(
-                "joinedRoom",
-                code
+                "errorMessage",
+                "اول اسم خودت را وارد کن!"
             );
-
-
-            io.to(code).emit(
-                "roomPlayers",
-                playersInRoom(code)
-            );
-
+            return;
         }
-    );
+
+        if (!/^\d{6}$/.test(code)) {
+            socket.emit(
+                "errorMessage",
+                "کد اتاق باید ۶ رقمی باشد!"
+            );
+            return;
+        }
+
+        if (!rooms[code]) {
+            socket.emit(
+                "errorMessage",
+                "این اتاق وجود ندارد!"
+            );
+            return;
+        }
+
+        rooms[code].players[socket.id] = {
+            id: socket.id,
+            name: name,
+            admin: isAdmin(name),
+            x: 300 + Math.random() * 300,
+            y: 400,
+            vx: 0,
+            vy: 0
+        };
+
+        socket.roomCode = code;
+
+        socket.join(code);
+
+        socket.emit("joinedRoom", code);
+
+        sendPlayers(code);
+
+        console.log(
+            name,
+            "joined room",
+            code
+        );
+    });
 
 
     // =========================
-    // خروج
+    // حرکت بازیکن
     // =========================
 
-    socket.on(
-        "disconnect",
-        () => {
+    socket.on("move", (data) => {
 
-            const code =
-                socket.roomCode;
+        const code = socket.roomCode;
 
+        if (!code || !rooms[code]) return;
 
-            if (
-                !code ||
-                !rooms[code]
-            ) {
+        const player =
+            rooms[code].players[socket.id];
 
-                return;
+        if (!player) return;
+
+        if (typeof data.x === "number") {
+            player.x = data.x;
+        }
+
+        if (typeof data.y === "number") {
+            player.y = data.y;
+        }
+
+        if (typeof data.vx === "number") {
+            player.vx = data.vx;
+        }
+
+        if (typeof data.vy === "number") {
+            player.vy = data.vy;
+        }
+
+        socket.to(code).emit(
+            "playerMoved",
+            {
+                id: socket.id,
+                x: player.x,
+                y: player.y,
+                vx: player.vx,
+                vy: player.vy
             }
+        );
+    });
 
 
-            delete rooms[code][
-                socket.id
-            ];
+    // =========================
+    // قطع اتصال
+    // =========================
 
+    socket.on("disconnect", () => {
 
-            io.to(code).emit(
-                "roomPlayers",
-                playersInRoom(code)
-            );
+        const code = socket.roomCode;
 
+        if (!code || !rooms[code]) {
+            return;
+        }
 
-            if (
-                Object.keys(
-                    rooms[code]
-                ).length === 0
-            ) {
+        delete rooms[code].players[socket.id];
 
-                delete rooms[code];
+        if (
+            Object.keys(
+                rooms[code].players
+            ).length === 0
+        ) {
 
-            }
+            delete rooms[code];
+
+        } else {
+
+            sendPlayers(code);
 
         }
-    );
+
+        console.log(
+            "Disconnected:",
+            socket.id
+        );
+    });
 
 });
 
+app.get("/", (req, res) => {
+    res.sendFile(
+        __dirname + "/index.html"
+    );
+});
 
-app.get(
-    "/",
-    (req, res) => {
+server.listen(PORT, () => {
 
-        res.sendFile(
-            __dirname +
-            "/index.html"
-        );
+    console.log("");
+    console.log("==============================");
+    console.log("STICKMAN SERVER");
+    console.log(
+        "http://localhost:" + PORT
+    );
+    console.log("==============================");
+    console.log("");
 
-    }
-);
-
-
-server.listen(
-    PORT,
-    () => {
-
-        console.log(
-            "================================"
-        );
-
-        console.log(
-            "STICKMAN SERVER READY"
-        );
-
-        console.log(
-            "http://localhost:" +
-            PORT
-        );
-
-        console.log(
-            "================================"
-        );
-
-    }
-);
+});
