@@ -18,7 +18,6 @@ user-scalable=no">
 *{
     box-sizing:border-box;
     user-select:none;
-    -webkit-user-select:none;
 }
 
 html,
@@ -31,8 +30,17 @@ body{
 
     overflow:hidden;
 
-    background:#7dd3fc;
+}
 
+body{
+
+    background:
+    linear-gradient(
+        #38bdf8,
+        #dbeafe
+    );
+
+    font-family:Arial;
 }
 
 canvas{
@@ -43,10 +51,9 @@ canvas{
     height:100%;
 
     touch-action:none;
-
 }
 
-#top{
+#info{
 
     position:fixed;
 
@@ -64,15 +71,12 @@ canvas{
 
     color:white;
 
-    font-family:Arial;
-
-    z-index:5;
-
     text-align:center;
 
+    z-index:10;
 }
 
-#mobile{
+#controls{
 
     position:fixed;
 
@@ -89,28 +93,19 @@ canvas{
     padding:0 25px;
 
     pointer-events:none;
-
 }
 
-.group{
-
-    display:flex;
-
-    gap:15px;
+button{
 
     pointer-events:auto;
-
-}
-
-.control{
 
     width:70px;
 
     height:70px;
 
-    border:2px solid white;
-
     border-radius:50%;
+
+    border:2px solid white;
 
     background:#0008;
 
@@ -119,7 +114,6 @@ canvas{
     font-size:30px;
 
     touch-action:none;
-
 }
 
 </style>
@@ -130,45 +124,38 @@ canvas{
 
 <canvas id="game"></canvas>
 
-
-<div id="top">
+<div id="info">
 
 🎮 <span id="name"></span>
 
 <br>
 
-اتاق: <span id="room"></span>
+اتاق:
+<span id="room"></span>
 
 </div>
 
 
-<div id="mobile">
-
-<div class="group">
+<div id="controls">
 
 <button
-    class="control"
-    id="left"
-    type="button"
+id="left"
+type="button"
 >
 ◀
 </button>
 
 <button
-    class="control"
-    id="right"
-    type="button"
+id="right"
+type="button"
 >
 ▶
 </button>
 
 </div>
 
-</div>
-
 
 <script src="/socket.io/socket.io.js"></script>
-
 
 <script>
 
@@ -197,28 +184,13 @@ document.getElementById("room")
 .textContent = roomCode;
 
 
-/* =========================
-   صفحه
-========================= */
-
 function resize(){
 
     canvas.width =
-        window.innerWidth *
-        devicePixelRatio;
+    window.innerWidth;
 
     canvas.height =
-        window.innerHeight *
-        devicePixelRatio;
-
-    ctx.setTransform(
-        devicePixelRatio,
-        0,
-        0,
-        devicePixelRatio,
-        0,
-        0
-    );
+    window.innerHeight;
 
 }
 
@@ -230,37 +202,29 @@ window.addEventListener(
 );
 
 
-/* =========================
-   بازیکن من
-========================= */
+/* بازیکن */
 
 const me = {
 
-    id: "",
+    id:"",
 
-    name: myName,
+    name:myName,
 
-    x: 300,
+    x:300,
 
-    y: 0,
+    direction:1,
 
-    direction: 1,
+    walking:false,
 
-    walking: false,
-
-    frame: 0,
-
-    speed: 5
+    frame:0
 
 };
 
 
-const players = {};
+const others = {};
 
 
-/* =========================
-   کنترل
-========================= */
+/* کنترل */
 
 const keys = {
 
@@ -272,106 +236,85 @@ const keys = {
 
 
 window.addEventListener(
-    "keydown",
-    (e) => {
+"keydown",
+(e)=>{
 
-        if(
-            e.key === "a" ||
-            e.key === "A" ||
-            e.key === "ش"
-        ){
+    if(
+        e.key==="a" ||
+        e.key==="A" ||
+        e.key==="ش"
+    ){
 
-            keys.left = true;
-
-        }
-
-
-        if(
-            e.key === "d" ||
-            e.key === "D" ||
-            e.key === "ی"
-        ){
-
-            keys.right = true;
-
-        }
+        keys.left=true;
 
     }
-);
+
+    if(
+        e.key==="d" ||
+        e.key==="D" ||
+        e.key==="ی"
+    ){
+
+        keys.right=true;
+
+    }
+
+});
 
 
 window.addEventListener(
-    "keyup",
-    (e) => {
+"keyup",
+(e)=>{
 
-        if(
-            e.key === "a" ||
-            e.key === "A" ||
-            e.key === "ش"
-        ){
+    if(
+        e.key==="a" ||
+        e.key==="A" ||
+        e.key==="ش"
+    ){
 
-            keys.left = false;
-
-        }
-
-
-        if(
-            e.key === "d" ||
-            e.key === "D" ||
-            e.key === "ی"
-        ){
-
-            keys.right = false;
-
-        }
+        keys.left=false;
 
     }
-);
 
+    if(
+        e.key==="d" ||
+        e.key==="D" ||
+        e.key==="ی"
+    ){
 
-/* =========================
-   موبایل
-========================= */
+        keys.right=false;
+
+    }
+
+});
+
 
 function mobileButton(
     id,
     key
 ){
 
-    const button =
-        document.getElementById(id);
+    const b =
+    document.getElementById(id);
 
-
-    button.addEventListener(
+    b.addEventListener(
         "pointerdown",
-        (e) => {
-
-            e.preventDefault();
-
-            keys[key] = true;
-
+        ()=>{
+            keys[key]=true;
         }
     );
 
-
-    button.addEventListener(
+    b.addEventListener(
         "pointerup",
-        (e) => {
-
-            e.preventDefault();
-
-            keys[key] = false;
-
+        ()=>{
+            keys[key]=false;
         }
     );
 
-
-    button.addEventListener(
+    b.addEventListener(
         "pointercancel",
-        () => {
-
-            keys[key] = false;
-
+        ()=>{
+            keys[key]=false;
         }
     );
 
@@ -389,229 +332,300 @@ mobileButton(
 );
 
 
-/* =========================
-   اتصال
-========================= */
+/* اتصال */
 
 socket.on(
-    "connect",
-    () => {
+"connect",
+()=>{
 
-        me.id =
-            socket.id;
+    me.id =
+    socket.id;
 
+    socket.emit(
+        "gameJoin"
+    );
 
-        socket.emit(
-            "gameJoin",
-            {
-                roomCode:roomCode,
-                name:myName
-            }
-        );
-
-    }
-);
+});
 
 
-/* =========================
-   بازیکن‌های اتاق
-========================= */
+/* بازیکنان */
 
 socket.on(
-    "gamePlayers",
-    (list) => {
+"gamePlayers",
+(list)=>{
 
-        list.forEach(
-            (p) => {
+    list.forEach(
+        p=>{
 
-                if(
-                    p.id === socket.id
-                ){
+            if(
+                p.id === me.id
+            ){
 
-                    me.x = p.x;
+                me.x =
+                p.x;
 
-                    return;
-                }
-
-
-                players[p.id] = {
-                    ...p,
-                    frame:0
-                };
+                return;
 
             }
-        );
 
-    }
-);
-
-
-/* =========================
-   بازیکن جدید
-========================= */
-
-socket.on(
-    "playerJoinedGame",
-    (p) => {
-
-        if(
-            p.id !== socket.id
-        ){
-
-            players[p.id] = {
+            others[p.id] = {
                 ...p,
                 frame:0
             };
 
         }
+    );
 
-    }
-);
+});
 
-
-/* =========================
-   حرکت دیگران
-========================= */
 
 socket.on(
-    "playerMove",
-    (p) => {
+"playerMove",
+p=>{
 
-        if(
-            p.id === socket.id
-        ){
+    if(
+        p.id !== me.id
+    ){
 
-            return;
-        }
+        others[p.id] = {
 
-
-        players[p.id] = {
-
-            ...players[p.id],
+            ...others[p.id],
 
             ...p
 
         };
 
     }
-);
 
+});
 
-/* =========================
-   خروج
-========================= */
 
 socket.on(
-    "playerLeave",
-    (id) => {
+"playerLeave",
+id=>{
 
-        delete players[id];
+    delete others[id];
+
+});
+
+
+/* آپدیت */
+
+function update(){
+
+    me.walking=false;
+
+    if(keys.left){
+
+        me.x -= 5;
+
+        me.direction=-1;
+
+        me.walking=true;
 
     }
-);
 
+    if(keys.right){
 
-/* =========================
-   ارسال موقعیت
-========================= */
+        me.x += 5;
 
-function sendMove(){
+        me.direction=1;
+
+        me.walking=true;
+
+    }
+
+    if(me.x<30)
+        me.x=30;
+
+    if(
+        me.x >
+        canvas.width-30
+    )
+        me.x =
+        canvas.width-30;
+
+    me.frame++;
 
     socket.emit(
         "playerMove",
         {
-
             x:me.x,
-
-            y:me.y,
-
-            direction:
-                me.direction,
-
-            walking:
-                me.walking
-
+            y:0,
+            direction:me.direction,
+            walking:me.walking
         }
     );
 
 }
 
 
-/* =========================
-   آپدیت
-========================= */
+/* استیکمن */
 
-function update(){
+function drawPlayer(
+    p
+){
 
-    me.walking = false;
+    const ground =
+    canvas.height*0.78;
 
+    const walk =
+    p.walking
+    ? Math.sin(p.frame*0.3)
+    : 0;
 
-    if(keys.left){
+    ctx.save();
 
-        me.x -= me.speed;
+    ctx.translate(
+        p.x,
+        ground
+    );
 
-        me.direction = -1;
+    ctx.scale(
+        p.direction || 1,
+        1
+    );
 
-        me.walking = true;
+    ctx.strokeStyle="#111827";
 
-    }
+    ctx.lineWidth=6;
 
+    ctx.lineCap="round";
 
-    if(keys.right){
+    /* اسم */
 
-        me.x += me.speed;
+    ctx.font=
+    "bold 15px Arial";
 
-        me.direction = 1;
+    ctx.textAlign=
+    "center";
 
-        me.walking = true;
+    ctx.fillStyle="white";
 
-    }
+    ctx.fillText(
+        p.name,
+        0,
+        -110
+    );
 
+    /* سر */
 
-    if(me.x < 30){
+    ctx.beginPath();
 
-        me.x = 30;
+    ctx.arc(
+        0,
+        -85,
+        16,
+        0,
+        Math.PI*2
+    );
 
-    }
+    ctx.fillStyle="#f8fafc";
 
+    ctx.fill();
 
-    me.frame++;
+    ctx.stroke();
 
+    /* بدن */
 
-    for(
-        const id in players
-    ){
+    ctx.beginPath();
 
-        players[id].frame++;
+    ctx.moveTo(
+        0,
+        -69
+    );
 
-    }
+    ctx.lineTo(
+        0,
+        -35
+    );
 
+    ctx.stroke();
 
-    sendMove();
+    /* دست‌ها */
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        0,
+        -60
+    );
+
+    ctx.lineTo(
+        -25,
+        -40 + walk*8
+    );
+
+    ctx.stroke();
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        0,
+        -60
+    );
+
+    ctx.lineTo(
+        25,
+        -40 - walk*8
+    );
+
+    ctx.stroke();
+
+    /* پاها */
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        0,
+        -35
+    );
+
+    ctx.lineTo(
+        -18 + walk*10,
+        0
+    );
+
+    ctx.stroke();
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        0,
+        -35
+    );
+
+    ctx.lineTo(
+        18 - walk*10,
+        0
+    );
+
+    ctx.stroke();
+
+    ctx.restore();
 
 }
 
 
-/* =========================
-   پس‌زمینه
-========================= */
+/* رسم */
 
-function drawBackground(){
+function draw(){
 
     const w =
-        window.innerWidth;
+    canvas.width;
 
     const h =
-        window.innerHeight;
+    canvas.height;
 
+    /* آسمان */
 
     const sky =
-        ctx.createLinearGradient(
-            0,
-            0,
-            0,
-            h
-        );
+    ctx.createLinearGradient(
+        0,
+        0,
+        0,
+        h
+    );
 
     sky.addColorStop(
         0,
@@ -623,9 +637,7 @@ function drawBackground(){
         "#dbeafe"
     );
 
-
-    ctx.fillStyle =
-        sky;
+    ctx.fillStyle=sky;
 
     ctx.fillRect(
         0,
@@ -637,45 +649,27 @@ function drawBackground(){
 
     /* خورشید */
 
-    ctx.fillStyle =
-        "#fde047";
+    ctx.fillStyle="#fde047";
 
     ctx.beginPath();
 
     ctx.arc(
-        w - 100,
+        w-100,
         100,
         45,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fill();
 
 
-    /* ابر */
-
-    drawCloud(
-        130,
-        120,
-        1
-    );
-
-    drawCloud(
-        500,
-        170,
-        .8
-    );
-
-
     /* زمین */
 
     const ground =
-        h * .78;
+    h*0.78;
 
-
-    ctx.fillStyle =
-        "#22c55e";
+    ctx.fillStyle="#22c55e";
 
     ctx.fillRect(
         0,
@@ -685,366 +679,59 @@ function drawBackground(){
     );
 
 
-    ctx.fillStyle =
-        "#15803d";
-
-    ctx.fillRect(
-        0,
-        ground,
-        w,
-        12
-    );
-
-}
-
-
-/* =========================
-   ابر
-========================= */
-
-function drawCloud(
-    x,
-    y,
-    scale
-){
-
-    ctx.fillStyle =
-        "#ffffffcc";
-
-    ctx.beginPath();
-
-    ctx.arc(
-        x,
-        y,
-        25 * scale,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.arc(
-        x + 30 * scale,
-        y - 10 * scale,
-        35 * scale,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.arc(
-        x + 65 * scale,
-        y,
-        25 * scale,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-}
-
-
-/* =========================
-   درخت
-========================= */
-
-function drawTree(
-    x,
-    ground
-){
-
-    ctx.fillStyle =
-        "#78350f";
-
-    ctx.fillRect(
-        x - 12,
-        ground - 130,
-        24,
-        130
-    );
-
-
-    ctx.fillStyle =
-        "#166534";
-
-    ctx.beginPath();
-
-    ctx.arc(
-        x,
-        ground - 150,
-        55,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-
-    ctx.beginPath();
-
-    ctx.arc(
-        x - 40,
-        ground - 125,
-        40,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-
-    ctx.beginPath();
-
-    ctx.arc(
-        x + 40,
-        ground - 125,
-        40,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-}
-
-
-/* =========================
-   استیکمن
-========================= */
-
-function drawStickman(
-    p,
-    x,
-    ground
-){
-
-    const walk =
-        p.walking
-        ? Math.sin(
-            p.frame * .3
-        )
-        : 0;
-
-
-    ctx.save();
-
-    ctx.translate(
-        x,
-        ground
-    );
-
-    ctx.scale(
-        p.direction || 1,
-        1
-    );
-
-
-    /* اسم */
-
-    ctx.font =
-        "bold 15px Arial";
-
-    ctx.textAlign =
-        "center";
-
-    ctx.lineWidth = 4;
-
-    ctx.strokeStyle =
-        "#000";
-
-    ctx.fillStyle =
-        "#fff";
-
-    ctx.strokeText(
-        p.name,
-        0,
-        -105
-    );
-
-    ctx.fillText(
-        p.name,
-        0,
-        -105
-    );
-
-
-    /* بدن */
-
-    ctx.strokeStyle =
-        "#111827";
-
-    ctx.lineWidth = 6;
-
-    ctx.lineCap =
-        "round";
-
-
-    /* سر */
-
-    ctx.beginPath();
-
-    ctx.arc(
-        0,
-        -78,
-        15,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fillStyle =
-        "#f8fafc";
-
-    ctx.fill();
-
-    ctx.stroke();
-
-
-    /* بدن */
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        0,
-        -63
-    );
-
-    ctx.lineTo(
-        0,
-        -30
-    );
-
-    ctx.stroke();
-
-
-    /* دست */
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        0,
-        -55
-    );
-
-    ctx.lineTo(
-        -22,
-        -35 + walk * 8
-    );
-
-    ctx.stroke();
-
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        0,
-        -55
-    );
-
-    ctx.lineTo(
-        22,
-        -35 - walk * 8
-    );
-
-    ctx.stroke();
-
-
-    /* پا */
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        0,
-        -30
-    );
-
-    ctx.lineTo(
-        -17 + walk * 10,
-        0
-    );
-
-    ctx.stroke();
-
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        0,
-        -30
-    );
-
-    ctx.lineTo(
-        17 - walk * 10,
-        0
-    );
-
-    ctx.stroke();
-
-
-    ctx.restore();
-
-}
-
-
-/* =========================
-   رسم
-========================= */
-
-function draw(){
-
-    drawBackground();
-
-
-    const ground =
-        window.innerHeight * .78;
-
-
-    /* درخت‌ها */
+    /* درخت */
 
     for(
-        let x = -100;
-        x < window.innerWidth + 200;
-        x += 250
+        let x=80;
+        x<w;
+        x+=250
     ){
 
-        drawTree(
+        ctx.fillStyle="#78350f";
+
+        ctx.fillRect(
             x,
-            ground
+            ground-120,
+            25,
+            120
         );
+
+        ctx.fillStyle="#166534";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            x+12,
+            ground-140,
+            55,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
 
     }
 
 
-    /* بازیکنان دیگر */
+    /* دیگران */
 
     for(
-        const id in players
+        const id in others
     ){
 
-        const p =
-            players[id];
-
-
-        drawStickman(
-            p,
-            p.x,
-            ground
+        drawPlayer(
+            others[id]
         );
 
     }
 
 
-    /* خودم */
+    /* من */
 
-    drawStickman(
-        me,
-        me.x,
-        ground
-    );
+    drawPlayer(me);
 
 }
 
-
-/* =========================
-   حلقه بازی
-========================= */
 
 function loop(){
 
