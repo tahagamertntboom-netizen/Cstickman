@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="fa">
+
 <head>
+
 <meta charset="UTF-8">
 
 <meta name="viewport"
@@ -15,20 +17,18 @@ user-scalable=no">
 
 *{
     box-sizing:border-box;
-    margin:0;
-    padding:0;
-}
-
-html,body{
-    width:100%;
-    min-height:100%;
 }
 
 body{
+
+    margin:0;
+
     min-height:100vh;
 
     display:flex;
+
     justify-content:center;
+
     align-items:center;
 
     padding:20px;
@@ -49,6 +49,7 @@ body{
 .container{
 
     width:100%;
+
     max-width:450px;
 
     padding:30px;
@@ -59,19 +60,22 @@ body{
     rgba(15,23,42,.96);
 
     box-shadow:
-    0 20px 60px rgba(0,0,0,.5);
+    0 20px 60px #0008;
 
     text-align:center;
-
 }
 
 h1{
+
     font-size:40px;
-    margin-bottom:8px;
+
+    margin:0 0 10px;
 }
 
 .subtitle{
+
     color:#a5b4fc;
+
     margin-bottom:25px;
 }
 
@@ -90,7 +94,6 @@ input{
     font-size:17px;
 
     outline:none;
-
 }
 
 button{
@@ -110,42 +113,43 @@ button{
     font-weight:bold;
 
     cursor:pointer;
-
 }
 
 .create{
+
     background:#22c55e;
+
     color:white;
 }
 
 .join{
+
     background:#6366f1;
+
     color:white;
 }
 
 .start{
+
     background:#f59e0b;
+
     color:white;
 }
 
-#menu{
-    display:block;
-}
-
 #room{
+
     display:none;
 }
 
 #roomCode{
 
-    margin:15px 0;
+    font-size:38px;
 
-    font-size:36px;
-
-    letter-spacing:6px;
+    letter-spacing:7px;
 
     color:#22c55e;
 
+    margin:15px 0;
 }
 
 .players{
@@ -157,7 +161,6 @@ button{
     border-radius:15px;
 
     background:#0b1220;
-
 }
 
 .player{
@@ -169,15 +172,13 @@ button{
     border-radius:10px;
 
     background:#1e293b;
-
 }
 
 #error{
 
-    margin-top:12px;
-
     color:#f87171;
 
+    margin-top:12px;
 }
 
 </style>
@@ -190,90 +191,85 @@ button{
 
 <div class="container">
 
-    <h1>🎮 STICKMAN</h1>
+<h1>🎮 STICKMAN</h1>
 
-    <div class="subtitle">
-        Multiplayer Lobby
-    </div>
-
-
-    <!-- منوی اصلی -->
-
-    <div id="menu">
-
-        <input
-            id="name"
-            type="text"
-            maxlength="20"
-            autocomplete="off"
-            placeholder="اسم بازیکن"
-        >
+<div class="subtitle">
+Multiplayer Lobby
+</div>
 
 
-        <button
-            class="create"
-            id="createButton"
-        >
-            🏠 ساخت اتاق
-        </button>
+<div id="menu">
+
+<input
+    id="name"
+    maxlength="20"
+    autocomplete="off"
+    placeholder="اسم بازیکن"
+>
 
 
-        <input
-            id="roomInput"
-            type="text"
-            inputmode="numeric"
-            maxlength="6"
-            autocomplete="off"
-            placeholder="کد اتاق"
-        >
+<button
+    id="createButton"
+    class="create"
+>
+🏠 ساخت اتاق
+</button>
 
 
-        <button
-            class="join"
-            id="joinButton"
-        >
-            🚪 ورود به اتاق
-        </button>
+<input
+    id="roomInput"
+    inputmode="numeric"
+    maxlength="6"
+    autocomplete="off"
+    placeholder="کد ۶ رقمی اتاق"
+>
 
 
-        <div id="error"></div>
-
-    </div>
-
-
-    <!-- لابی -->
-
-    <div id="room">
-
-        <div>
-            کد اتاق
-        </div>
+<button
+    id="joinButton"
+    class="join"
+>
+🚪 ورود به اتاق
+</button>
 
 
-        <div id="roomCode">
-            ------
-        </div>
+<div id="error"></div>
+
+</div>
 
 
-        <div class="players">
+<div id="room">
 
-            <h3>
-                👥 بازیکنان
-            </h3>
-
-            <div id="playersList"></div>
-
-        </div>
+<div>
+کد اتاق شما:
+</div>
 
 
-        <button
-            class="start"
-            id="startButton"
-        >
-            🎮 ورود به بازی
-        </button>
+<div id="roomCode">
+------
+</div>
 
-    </div>
+
+<div class="players">
+
+<h3>
+👥 بازیکنان
+</h3>
+
+
+<div id="playersList"></div>
+
+</div>
+
+
+<button
+    id="startButton"
+    class="start"
+>
+🎮 ورود به بازی
+</button>
+
+</div>
 
 </div>
 
@@ -283,4 +279,5 @@ button{
 <script src="/lobby.js"></script>
 
 </body>
+
 </html>
