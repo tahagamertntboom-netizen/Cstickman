@@ -1,18 +1,10 @@
 const socket = io();
 
 
-/* =========================
-   متغیرها
-========================= */
-
 let myName = "";
 
 let currentRoom = "";
 
-
-/* =========================
-   عناصر صفحه
-========================= */
 
 const nameInput =
     document.getElementById("name");
@@ -45,11 +37,11 @@ const errorBox =
     document.getElementById("error");
 
 
-/* =========================
-   گرفتن اسم
-========================= */
+// =========================
+// اسم
+// =========================
 
-function getPlayerName(){
+function getName(){
 
     const name =
         nameInput.value.trim();
@@ -57,22 +49,15 @@ function getPlayerName(){
 
     if(!name){
 
-        showError(
-            "اول اسم خودت را بنویس!"
-        );
+        errorBox.textContent =
+            "اول اسمت را وارد کن!";
 
         return null;
-
     }
 
 
     myName = name;
 
-
-    /*
-       اسم واقعی بازیکن
-       ذخیره می‌شود
-    */
 
     localStorage.setItem(
         "player",
@@ -81,24 +66,25 @@ function getPlayerName(){
 
 
     return myName;
-
 }
 
 
-/* =========================
-   ساخت اتاق
-========================= */
+// =========================
+// ساخت اتاق
+// =========================
 
-createButton.onclick =
-function(){
+createButton.onclick = function(){
 
     const name =
-        getPlayerName();
+        getName();
 
 
     if(!name){
         return;
     }
+
+
+    errorBox.textContent = "";
 
 
     socket.emit(
@@ -109,15 +95,14 @@ function(){
 };
 
 
-/* =========================
-   ورود به اتاق
-========================= */
+// =========================
+// ورود به اتاق
+// =========================
 
-joinButton.onclick =
-function(){
+joinButton.onclick = function(){
 
     const name =
-        getPlayerName();
+        getName();
 
 
     if(!name){
@@ -129,15 +114,16 @@ function(){
         roomInput.value.trim();
 
 
-    if(code.length !== 6){
+    if(!/^\d{6}$/.test(code)){
 
-        showError(
-            "کد اتاق باید ۶ رقمی باشد!"
-        );
+        errorBox.textContent =
+            "کد باید دقیقاً ۶ رقمی باشد!";
 
         return;
-
     }
+
+
+    errorBox.textContent = "";
 
 
     socket.emit(
@@ -154,9 +140,9 @@ function(){
 };
 
 
-/* =========================
-   اتاق ساخته شد
-========================= */
+// =========================
+// اتاق ساخته شد
+// =========================
 
 socket.on(
     "roomCreated",
@@ -166,15 +152,21 @@ socket.on(
             String(code);
 
 
+        localStorage.setItem(
+            "room",
+            currentRoom
+        );
+
+
         openRoom();
 
     }
 );
 
 
-/* =========================
-   وارد اتاق شد
-========================= */
+// =========================
+// وارد اتاق شد
+// =========================
 
 socket.on(
     "joinedRoom",
@@ -184,46 +176,21 @@ socket.on(
             String(code);
 
 
+        localStorage.setItem(
+            "room",
+            currentRoom
+        );
+
+
         openRoom();
 
     }
 );
 
 
-/* =========================
-   نمایش لابی
-========================= */
-
-function openRoom(){
-
-    menu.style.display =
-        "none";
-
-
-    room.style.display =
-        "block";
-
-
-    roomCode.textContent =
-        currentRoom;
-
-
-    /*
-       اسم را دوباره ذخیره می‌کنیم
-       تا game.js همان اسم را بگیرد
-    */
-
-    localStorage.setItem(
-        "player",
-        myName
-    );
-
-}
-
-
-/* =========================
-   بازیکنان اتاق
-========================= */
+// =========================
+// بازیکنان
+// =========================
 
 socket.on(
     "roomPlayers",
@@ -262,46 +229,46 @@ socket.on(
 );
 
 
-/* =========================
-   خطای اتاق
-========================= */
+// =========================
+// خطا
+// =========================
 
 socket.on(
     "roomError",
     function(message){
 
-        showError(
-            message
-        );
+        errorBox.textContent =
+            message;
 
     }
 );
 
 
-/* =========================
-   نمایش خطا
-========================= */
+// =========================
+// نمایش اتاق
+// =========================
 
-function showError(message){
+function openRoom(){
 
-    errorBox.textContent =
-        message;
+    menu.style.display =
+        "none";
+
+
+    room.style.display =
+        "block";
+
+
+    roomCode.textContent =
+        currentRoom;
 
 }
 
 
-/* =========================
-   ورود به بازی
-========================= */
+// =========================
+// ورود به بازی
+// =========================
 
-startButton.onclick =
-function(){
-
-    /*
-       خیلی مهم:
-       قبل از ورود اسم فعلی
-       را دوباره ذخیره می‌کنیم.
-    */
+startButton.onclick = function(){
 
     localStorage.setItem(
         "player",
@@ -309,57 +276,13 @@ function(){
     );
 
 
-    /*
-       اتاق هم ذخیره می‌شود
-    */
-
     localStorage.setItem(
         "room",
         currentRoom
     );
 
 
-    /*
-       حالا وارد بازی می‌شویم
-    */
-
     window.location.href =
         "/game.html";
 
 };
-
-
-/* =========================
-   Enter برای اسم
-========================= */
-
-nameInput.addEventListener(
-    "keydown",
-    function(e){
-
-        if(e.key === "Enter"){
-
-            createButton.click();
-
-        }
-
-    }
-);
-
-
-/* =========================
-   Enter برای کد اتاق
-========================= */
-
-roomInput.addEventListener(
-    "keydown",
-    function(e){
-
-        if(e.key === "Enter"){
-
-            joinButton.click();
-
-        }
-
-    }
-);
