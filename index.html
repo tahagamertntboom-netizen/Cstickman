@@ -1,12 +1,289 @@
 <!DOCTYPE html>
-<html>
+<html lang="fa" dir="rtl">
+
+<head>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>Stickman</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    min-height:100vh;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    font-family:Arial,sans-serif;
+
+    background:
+    linear-gradient(135deg,#0f172a,#312e81);
+
+    color:white;
+}
+
+.box{
+    width:90%;
+    max-width:430px;
+
+    padding:30px;
+
+    border-radius:25px;
+
+    background:#111827;
+
+    text-align:center;
+
+    box-shadow:0 20px 60px #0008;
+}
+
+input{
+    width:100%;
+    padding:16px;
+
+    margin:10px 0;
+
+    border:0;
+    border-radius:12px;
+
+    font-size:18px;
+
+    text-align:center;
+}
+
+button{
+    width:100%;
+
+    padding:16px;
+
+    margin-top:10px;
+
+    border:0;
+    border-radius:12px;
+
+    font-size:18px;
+    font-weight:bold;
+
+    cursor:pointer;
+}
+
+#confirm{
+    background:#22c55e;
+    color:white;
+}
+
+#create{
+    background:#22c55e;
+    color:white;
+}
+
+#join{
+    background:#6366f1;
+    color:white;
+}
+
+#play{
+    background:#f59e0b;
+    color:white;
+}
+
+#lobby,
+#room{
+    display:none;
+}
+
+.code{
+    margin:20px 0;
+
+    padding:20px;
+
+    background:#020617;
+
+    border-radius:15px;
+
+    color:#22c55e;
+
+    font-size:40px;
+    font-weight:bold;
+
+    letter-spacing:8px;
+}
+
+#error{
+    color:#f87171;
+    margin-top:10px;
+}
+
+</style>
+</head>
+
 <body>
 
-<input id="name">
+<div class="box">
 
-<button onclick="alert('دکمه کار می‌کند')">
-تأیید
+<h1>🎮 STICKMAN</h1>
+
+
+<!-- اسم -->
+
+<div id="namePage">
+
+<input
+id="name"
+placeholder="اسم خودت را بنویس"
+maxlength="20"
+>
+
+<button id="confirm">
+✅ تأیید اسم
 </button>
+
+</div>
+
+
+<!-- لابی -->
+
+<div id="lobby">
+
+<h2>
+سلام <span id="player"></span> 👋
+</h2>
+
+<button id="create">
+🏠 ساخت اتاق
+</button>
+
+<input
+id="roomInput"
+placeholder="کد ۶ رقمی"
+maxlength="6"
+inputmode="numeric"
+>
+
+<button id="join">
+🚪 ورود به اتاق
+</button>
+
+<div id="error"></div>
+
+</div>
+
+
+<!-- اتاق -->
+
+<div id="room">
+
+<h2>
+🎉 اتاق ساخته شد
+</h2>
+
+<p>
+کد اتاق:
+</p>
+
+<div
+id="roomCode"
+class="code"
+>
+------
+</div>
+
+<div id="players"></div>
+
+<button id="play">
+🎮 ورود به بازی
+</button>
+
+</div>
+
+</div>
+
+
+<script>
+
+const namePage =
+document.getElementById("namePage");
+
+const lobby =
+document.getElementById("lobby");
+
+const room =
+document.getElementById("room");
+
+const nameInput =
+document.getElementById("name");
+
+const player =
+document.getElementById("player");
+
+const error =
+document.getElementById("error");
+
+
+let myName = "";
+
+
+/* تأیید اسم */
+
+document
+.getElementById("confirm")
+.onclick = function(){
+
+    const name =
+    nameInput.value.trim();
+
+    if(name === ""){
+
+        alert("اول اسمت را بنویس!");
+
+        return;
+    }
+
+    myName = name;
+
+    player.textContent =
+    myName;
+
+    namePage.style.display =
+    "none";
+
+    lobby.style.display =
+    "block";
+
+};
+
+
+/* تست ساخت اتاق */
+
+document
+.getElementById("create")
+.onclick = function(){
+
+    alert("دکمه ساخت اتاق کار می‌کند!");
+
+};
+
+
+/* تست ورود */
+
+document
+.getElementById("join")
+.onclick = function(){
+
+    alert("دکمه ورود کار می‌کند!");
+
+};
+
+</script>
 
 </body>
 </html>
