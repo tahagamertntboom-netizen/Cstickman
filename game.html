@@ -1,92 +1,137 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
+
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0,user-scalable=no">
+
 <title>Stickman World</title>
 
 <style>
+
 *{
     box-sizing:border-box;
     user-select:none;
-    -webkit-user-select:none;
 }
 
 html,body{
+
     margin:0;
+
     width:100%;
     height:100%;
+
     overflow:hidden;
+
     background:#60cfff;
-    font-family:Arial,sans-serif;
+
+    font-family:Arial;
 }
 
 canvas{
-    position:fixed;
-    inset:0;
+
+    display:block;
+
     width:100%;
     height:100%;
+
     touch-action:none;
 }
 
 #hud{
+
     position:fixed;
-    top:12px;
-    left:12px;
-    z-index:20;
+
+    top:10px;
+    left:10px;
+
+    z-index:10;
+
+    background:#000b;
+
     color:white;
-    background:rgba(0,0,0,.7);
-    padding:12px 16px;
-    border-radius:15px;
-    font-size:16px;
-    line-height:1.8;
+
+    padding:10px 15px;
+
+    border-radius:14px;
+
+    line-height:1.7;
 }
 
 #admin{
+
     color:#ffd700;
+
     font-weight:bold;
+
     display:none;
 }
 
 #players{
+
     position:fixed;
-    top:12px;
-    right:12px;
-    z-index:20;
+
+    top:10px;
+    right:10px;
+
+    z-index:10;
+
+    background:#000b;
+
     color:white;
-    background:rgba(0,0,0,.7);
-    padding:12px;
-    border-radius:15px;
+
+    padding:10px;
+
+    border-radius:14px;
+
     min-width:140px;
 }
 
 #controls{
+
     position:fixed;
-    bottom:20px;
+
+    bottom:18px;
+
     left:0;
     right:0;
-    z-index:30;
+
     display:flex;
+
     justify-content:space-between;
-    padding:0 20px;
+
+    padding:0 18px;
+
+    z-index:20;
+
     direction:ltr;
-    pointer-events:none;
 }
 
 .group{
+
     display:flex;
+
     gap:10px;
 }
 
-.control{
+button{
+
     width:68px;
     height:68px;
+
     border-radius:50%;
+
     border:2px solid white;
-    background:rgba(0,0,0,.65);
+
+    background:#000b;
+
     color:white;
-    font-size:26px;
-    pointer-events:auto;
+
+    font-size:25px;
+
     touch-action:none;
 }
 
@@ -97,134 +142,195 @@ canvas{
 #jump{
     background:#f59e0b;
 }
+
 </style>
+
 </head>
 
 <body>
 
 <canvas id="game"></canvas>
 
-<div id="hud">
-👤 <span id="name"></span><br>
-🏠 اتاق: <span id="room"></span><br>
-❤️ جان: <span id="health">100</span><br>
-⭐ امتیاز: <span id="score">0</span>
 
-<div id="admin">👑 ADMIN</div>
+<div id="hud">
+
+👤 <span id="myName"></span>
+
+<br>
+
+🏠 <span id="myRoom"></span>
+
+<br>
+
+❤️ <span id="health">100</span>
+
+<br>
+
+⭐ <span id="score">0</span>
+
+<div id="admin">
+👑 ADMIN
 </div>
+
+</div>
+
 
 <div id="players">
+
 👥 بازیکنان
-<div id="playerList"></div>
+
+<div id="list"></div>
+
 </div>
+
 
 <div id="controls">
 
 <div class="group">
-<button class="control" id="left">◀</button>
-<button class="control" id="right">▶</button>
-<button class="control" id="run">🏃</button>
+
+<button id="left">◀</button>
+
+<button id="right">▶</button>
+
+<button id="run">🏃</button>
+
 </div>
 
-<button class="control" id="jump">⬆</button>
+<button id="jump">⬆</button>
 
 </div>
+
 
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
 
-/* =========================
+/* =====================
    اطلاعات
-========================= */
+===================== */
 
 const socket = io();
 
 const myName =
-    localStorage.getItem("player") || "Player";
+    localStorage.getItem("player")
+    || "Player";
 
-const roomCode =
-    localStorage.getItem("room") || "------";
+const myRoom =
+    localStorage.getItem("room")
+    || "------";
 
-document.getElementById("name").textContent = myName;
-document.getElementById("room").textContent = roomCode;
+document.getElementById(
+    "myName"
+).textContent = myName;
 
-if(myName.toLowerCase() === "tahagamertnt"){
-    document.getElementById("admin").style.display = "block";
+document.getElementById(
+    "myRoom"
+).textContent = myRoom;
+
+if(
+    myName.toLowerCase()
+    === "tahagamertnt"
+){
+
+    document.getElementById(
+        "admin"
+    ).style.display = "block";
+
 }
 
 
-/* =========================
+/* =====================
    Canvas
-========================= */
+===================== */
 
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+const canvas =
+    document.getElementById("game");
+
+const ctx =
+    canvas.getContext("2d");
+
 
 function resize(){
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+
+    canvas.width =
+        window.innerWidth;
+
+    canvas.height =
+        window.innerHeight;
+
 }
 
 resize();
 
-window.addEventListener("resize",resize);
+window.addEventListener(
+    "resize",
+    resize
+);
 
 
-/* =========================
-   دنیای بازی
-========================= */
+/* =====================
+   دنیا
+===================== */
 
-const WORLD_WIDTH = 6000;
+const WORLD = 6000;
+
 const GROUND = 500;
 
 
-/* =========================
-   بازیکن من
-========================= */
+/* =====================
+   بازیکن
+===================== */
 
 const me = {
 
     id:"",
+
     x:500,
+
     y:0,
 
     vx:0,
+
     vy:0,
 
     direction:1,
 
-    jumping:false,
     walking:false,
+
     running:false,
 
+    jumping:false,
+
     health:100,
+
     score:0,
 
     frame:0
 };
 
 
-/* بازیکن‌های دیگر */
-
-const otherPlayers = {};
+const players = {};
 
 
-/* =========================
+/* =====================
    کنترل
-========================= */
+===================== */
 
 const keys = {
+
     left:false,
+
     right:false,
+
     run:false,
+
     jump:false
 };
 
 
-/* کیبورد */
-
-window.addEventListener("keydown",function(e){
+window.addEventListener(
+"keydown",
+e => {
 
     if(
         e.key === "ArrowLeft" ||
@@ -252,7 +358,9 @@ window.addEventListener("keydown",function(e){
 });
 
 
-window.addEventListener("keyup",function(e){
+window.addEventListener(
+"keyup",
+e => {
 
     if(
         e.key === "ArrowLeft" ||
@@ -279,176 +387,193 @@ window.addEventListener("keyup",function(e){
 });
 
 
-/* موبایل */
-
-function mobileControl(id,key){
+function touchButton(
+    id,
+    key
+){
 
     const button =
         document.getElementById(id);
 
     button.addEventListener(
         "pointerdown",
-        function(e){
+        e => {
+
             e.preventDefault();
+
             keys[key] = true;
+
         }
     );
 
     button.addEventListener(
         "pointerup",
-        function(e){
+        e => {
+
             e.preventDefault();
+
             keys[key] = false;
+
         }
     );
 
     button.addEventListener(
         "pointercancel",
-        function(){
+        () => {
+
             keys[key] = false;
+
         }
     );
 
-    button.addEventListener(
-        "pointerleave",
-        function(){
-            keys[key] = false;
-        }
-    );
 }
 
-mobileControl("left","left");
-mobileControl("right","right");
-mobileControl("run","run");
-mobileControl("jump","jump");
+touchButton("left","left");
+touchButton("right","right");
+touchButton("run","run");
+touchButton("jump","jump");
 
 
-/* =========================
-   اتصال
-========================= */
+/* =====================
+   Socket
+===================== */
 
-socket.on("connect",function(){
+socket.on(
+"connect",
+() => {
 
     me.id = socket.id;
 
-    socket.emit("gameJoin");
+    socket.emit("gameReady");
 
 });
 
 
-/* =========================
-   بازیکن‌ها
-========================= */
+/* =====================
+   همه بازیکنان
+===================== */
 
-socket.on("gamePlayers",function(list){
+socket.on(
+"players",
+list => {
 
-    list.forEach(function(p){
+    list.forEach(p => {
 
         if(p.id === me.id){
+
+            me.health =
+                p.health ?? 100;
+
+            me.score =
+                p.score ?? 0;
+
             return;
         }
 
-        otherPlayers[p.id] = {
+        players[p.id] = {
+
             id:p.id,
-            name:p.name || "Player",
-            admin:!!p.admin,
 
-            x:Number(p.x) || 500,
-            y:Number(p.y) || 0,
+            name:p.name,
 
-            direction:p.direction || 1,
+            admin:p.admin,
 
-            walking:!!p.walking,
-            running:!!p.running,
-            jumping:!!p.jumping,
+            x:p.x,
+
+            y:p.y,
+
+            direction:p.direction,
+
+            walking:p.walking,
+
+            running:p.running,
+
+            jumping:p.jumping,
 
             frame:0
         };
 
     });
 
-    updatePlayerList();
+    updateList();
 
 });
 
 
-socket.on("playerMove",function(p){
+/* =====================
+   حرکت دوستان
+===================== */
 
-    if(p.id === me.id){
+socket.on(
+"move",
+p => {
+
+    if(p.id === me.id)
         return;
-    }
 
-    if(!otherPlayers[p.id]){
+    if(!players[p.id]){
 
-        otherPlayers[p.id] = {
-            id:p.id,
-            name:p.name || "Player",
-            admin:!!p.admin,
-            x:500,
-            y:0,
-            direction:1,
-            walking:false,
-            running:false,
-            jumping:false,
+        players[p.id] = {
+            ...p,
             frame:0
         };
 
+        return;
     }
 
-    const player =
-        otherPlayers[p.id];
-
-    player.x = Number(p.x) || player.x;
-    player.y = Number(p.y) || 0;
-
-    player.direction =
-        p.direction || 1;
-
-    player.walking =
-        !!p.walking;
-
-    player.running =
-        !!p.running;
-
-    player.jumping =
-        !!p.jumping;
+    Object.assign(
+        players[p.id],
+        p
+    );
 
 });
 
 
-socket.on("playerLeave",function(id){
+/* =====================
+   خروج دوست
+===================== */
 
-    delete otherPlayers[id];
+socket.on(
+"playerLeft",
+id => {
 
-    updatePlayerList();
+    delete players[id];
+
+    updateList();
 
 });
 
 
-/* =========================
-   لیست بازیکنان
-========================= */
+/* =====================
+   لیست
+===================== */
 
-function updatePlayerList(){
+function updateList(){
 
     const list =
-        document.getElementById("playerList");
+        document.getElementById("list");
 
     list.innerHTML =
         "👤 " + myName;
 
-    if(myName.toLowerCase() === "tahagamertnt"){
-        list.innerHTML += " 👑";
+    if(
+        myName.toLowerCase()
+        === "tahagamertnt"
+    ){
+
+        list.innerHTML +=
+            " 👑";
+
     }
 
-    Object.values(otherPlayers).forEach(function(p){
+    Object.values(players)
+    .forEach(p => {
 
         list.innerHTML +=
             "<br>👤 " +
             p.name +
             (
-                p.name.toLowerCase() ===
-                "tahagamertnt"
+                p.admin
                 ? " 👑"
                 : ""
             );
@@ -458,45 +583,57 @@ function updatePlayerList(){
 }
 
 
-/* =========================
+/* =====================
    فیزیک
-========================= */
+===================== */
 
 function update(){
 
-    let speed = 4;
+    let speed =
+        keys.run ? 8 : 4;
 
     me.walking = false;
     me.running = false;
 
 
-    if(keys.run){
-        speed = 8;
-        me.running = true;
-    }
-
-
     if(keys.left){
 
         me.vx = -speed;
+
         me.direction = -1;
+
         me.walking = true;
 
     }
     else if(keys.right){
 
         me.vx = speed;
+
         me.direction = 1;
+
         me.walking = true;
 
     }
     else{
 
-        me.vx *= 0.75;
+        me.vx *= .75;
 
-        if(Math.abs(me.vx) < 0.1){
+        if(
+            Math.abs(me.vx)
+            < .1
+        ){
             me.vx = 0;
         }
+
+    }
+
+
+    if(
+        keys.run &&
+        me.walking
+    ){
+
+        me.running = true;
 
     }
 
@@ -512,12 +649,13 @@ function update(){
     ){
 
         me.vy = -14;
+
         me.jumping = true;
 
     }
 
 
-    me.vy += 0.7;
+    me.vy += .7;
 
     me.y += me.vy;
 
@@ -525,117 +663,113 @@ function update(){
     if(me.y >= 0){
 
         me.y = 0;
+
         me.vy = 0;
+
         me.jumping = false;
 
     }
 
 
-    /* مرز */
+    if(me.x < 30)
+        me.x = 30;
 
-    if(me.x < 40){
-        me.x = 40;
-    }
-
-    if(me.x > WORLD_WIDTH - 40){
-        me.x = WORLD_WIDTH - 40;
+    if(
+        me.x >
+        WORLD - 30
+    ){
+        me.x =
+            WORLD - 30;
     }
 
 
     me.frame++;
 
-
-    document.getElementById("health")
-        .textContent = me.health;
-
-    document.getElementById("score")
-        .textContent = me.score;
-
 }
 
 
-/* =========================
-   ارسال حرکت
-========================= */
+/* =====================
+   ارسال
+===================== */
 
 let lastSend = 0;
 
-function sendMovement(){
+function send(){
 
-    const now = Date.now();
+    const now =
+        Date.now();
 
-    if(now - lastSend < 40){
+    if(
+        now - lastSend < 40
+    ){
         return;
     }
 
     lastSend = now;
 
     socket.emit(
-        "playerMove",
+        "move",
         {
+
             x:me.x,
+
             y:me.y,
-            direction:me.direction,
-            walking:me.walking,
-            running:me.running,
-            jumping:me.jumping
+
+            direction:
+                me.direction,
+
+            walking:
+                me.walking,
+
+            running:
+                me.running,
+
+            jumping:
+                me.jumping
         }
     );
 
 }
 
 
-/* =========================
+/* =====================
    دوربین
-========================= */
+===================== */
 
-function getCamera(){
+function camera(){
 
-    let camera =
+    let x =
         me.x -
         canvas.width / 2;
 
-    if(camera < 0){
-        camera = 0;
+    if(x < 0)
+        x = 0;
+
+    if(
+        x >
+        WORLD -
+        canvas.width
+    ){
+
+        x =
+            WORLD -
+            canvas.width;
+
     }
 
-    const max =
-        WORLD_WIDTH -
-        canvas.width;
+    return x;
 
-    if(camera > max){
-        camera = max;
-    }
-
-    return camera;
 }
 
 
-/* =========================
-   پس‌زمینه
-========================= */
+/* =====================
+   پس زمینه
+===================== */
 
-function drawBackground(){
+function background(){
 
-    const sky =
-        ctx.createLinearGradient(
-            0,
-            0,
-            0,
-            canvas.height
-        );
-
-    sky.addColorStop(
-        0,
-        "#38bdf8"
-    );
-
-    sky.addColorStop(
-        1,
-        "#dbeafe"
-    );
-
-    ctx.fillStyle = sky;
+    ctx.fillStyle =
+        "#60cfff";
 
     ctx.fillRect(
         0,
@@ -647,7 +781,8 @@ function drawBackground(){
 
     /* خورشید */
 
-    ctx.fillStyle = "#fde047";
+    ctx.fillStyle =
+        "#fde047";
 
     ctx.beginPath();
 
@@ -662,40 +797,41 @@ function drawBackground(){
     ctx.fill();
 
 
-    /* ابر */
+    /* ابرها */
 
     for(
-        let x = -200;
-        x < canvas.width + 400;
-        x += 400
+        let x=-100;
+        x<canvas.width+400;
+        x+=350
     ){
 
-        ctx.fillStyle = "rgba(255,255,255,.8)";
+        ctx.fillStyle =
+            "#ffffffaa";
 
         ctx.beginPath();
 
         ctx.arc(
             x,
-            120,
+            100,
             30,
             0,
-            Math.PI * 2
+            Math.PI*2
         );
 
         ctx.arc(
-            x + 40,
-            105,
+            x+40,
+            90,
             40,
             0,
-            Math.PI * 2
+            Math.PI*2
         );
 
         ctx.arc(
-            x + 85,
-            120,
+            x+80,
+            105,
             30,
             0,
-            Math.PI * 2
+            Math.PI*2
         );
 
         ctx.fill();
@@ -705,13 +841,14 @@ function drawBackground(){
 }
 
 
-/* =========================
+/* =====================
    زمین
-========================= */
+===================== */
 
-function drawGround(){
+function ground(){
 
-    ctx.fillStyle = "#22c55e";
+    ctx.fillStyle =
+        "#22c55e";
 
     ctx.fillRect(
         0,
@@ -721,42 +858,30 @@ function drawGround(){
     );
 
 
-    ctx.fillStyle = "#15803d";
+    ctx.fillStyle =
+        "#15803d";
 
     ctx.fillRect(
         0,
         GROUND,
         canvas.width,
-        12
-    );
-
-
-    /* جاده */
-
-    ctx.fillStyle = "#64748b";
-
-    const camera = getCamera();
-
-    ctx.fillRect(
-        -camera,
-        GROUND + 50,
-        WORLD_WIDTH,
-        90
+        10
     );
 
 }
 
 
-/* =========================
+/* =====================
    درخت
-========================= */
+===================== */
 
-function drawTree(xWorld){
+function tree(worldX){
 
-    const camera = getCamera();
+    const cam =
+        camera();
 
     const x =
-        xWorld - camera;
+        worldX - cam;
 
     if(
         x < -100 ||
@@ -766,50 +891,28 @@ function drawTree(xWorld){
     }
 
 
-    ctx.fillStyle = "#78350f";
+    ctx.fillStyle =
+        "#78350f";
 
     ctx.fillRect(
-        x - 12,
-        GROUND - 100,
-        24,
+        x-10,
+        GROUND-100,
+        20,
         100
     );
 
 
-    ctx.fillStyle = "#166534";
+    ctx.fillStyle =
+        "#166534";
 
     ctx.beginPath();
 
     ctx.arc(
         x,
-        GROUND - 130,
-        48,
+        GROUND-125,
+        45,
         0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-    ctx.beginPath();
-
-    ctx.arc(
-        x - 35,
-        GROUND - 115,
-        35,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-    ctx.beginPath();
-
-    ctx.arc(
-        x + 35,
-        GROUND - 115,
-        35,
-        0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fill();
@@ -817,56 +920,55 @@ function drawTree(xWorld){
 }
 
 
-/* =========================
+/* =====================
    خانه
-========================= */
+===================== */
 
-function drawHouse(xWorld){
+function house(worldX){
 
-    const camera = getCamera();
+    const cam =
+        camera();
 
     const x =
-        xWorld - camera;
+        worldX - cam;
 
     if(
-        x < -250 ||
-        x > canvas.width + 250
+        x < -200 ||
+        x > canvas.width+200
     ){
         return;
     }
 
 
-    /* خانه */
-
-    ctx.fillStyle = "#fbbf24";
+    ctx.fillStyle =
+        "#fbbf24";
 
     ctx.fillRect(
-        x - 90,
-        GROUND - 130,
-        180,
-        130
+        x-80,
+        GROUND-120,
+        160,
+        120
     );
 
 
-    /* سقف */
-
-    ctx.fillStyle = "#dc2626";
+    ctx.fillStyle =
+        "#dc2626";
 
     ctx.beginPath();
 
     ctx.moveTo(
-        x - 115,
-        GROUND - 130
+        x-105,
+        GROUND-120
     );
 
     ctx.lineTo(
         x,
-        GROUND - 220
+        GROUND-200
     );
 
     ctx.lineTo(
-        x + 115,
-        GROUND - 130
+        x+105,
+        GROUND-120
     );
 
     ctx.closePath();
@@ -874,54 +976,34 @@ function drawHouse(xWorld){
     ctx.fill();
 
 
-    /* در */
-
-    ctx.fillStyle = "#78350f";
-
-    ctx.fillRect(
-        x - 22,
-        GROUND - 75,
-        44,
-        75
-    );
-
-
-    /* پنجره */
-
-    ctx.fillStyle = "#38bdf8";
+    ctx.fillStyle =
+        "#78350f";
 
     ctx.fillRect(
-        x - 70,
-        GROUND - 105,
-        35,
-        35
-    );
-
-    ctx.fillRect(
-        x + 35,
-        GROUND - 105,
-        35,
-        35
+        x-20,
+        GROUND-70,
+        40,
+        70
     );
 
 }
 
 
-/* =========================
-   استیکمن واقعی
-========================= */
+/* =====================
+   استیکمن
+===================== */
 
-function drawStickman(
+function stickman(
     p,
-    screenX,
-    screenY
+    x,
+    y
 ){
 
     ctx.save();
 
     ctx.translate(
-        screenX,
-        screenY
+        x,
+        y
     );
 
     ctx.scale(
@@ -930,14 +1012,15 @@ function drawStickman(
     );
 
 
-    let animation = 0;
+    const walking =
+        p.walking;
 
-    if(p.walking){
-        animation =
-            Math.sin(
-                (p.frame || 0) * 0.35
-            ) * 14;
-    }
+    const animation =
+        walking
+        ? Math.sin(
+            (p.frame || 0)*.3
+        )*15
+        : 0;
 
 
     /* اسم */
@@ -948,13 +1031,13 @@ function drawStickman(
     ctx.textAlign =
         "center";
 
-    ctx.fillStyle =
-        "white";
+    ctx.lineWidth = 4;
 
     ctx.strokeStyle =
-        "black";
+        "#000";
 
-    ctx.lineWidth = 4;
+    ctx.fillStyle =
+        "#fff";
 
     ctx.strokeText(
         p.name,
@@ -969,11 +1052,11 @@ function drawStickman(
     );
 
 
-    /* تاج */
+    /* تاج ادمین */
 
     if(
-        p.name.toLowerCase() ===
-        "tahagamertnt"
+        p.name.toLowerCase()
+        === "tahagamertnt"
     ){
 
         ctx.font =
@@ -991,12 +1074,11 @@ function drawStickman(
     }
 
 
-    /* استیکمن */
-
     ctx.strokeStyle =
-        "#111827";
+        "#111";
 
-    ctx.lineWidth = 7;
+    ctx.lineWidth =
+        7;
 
     ctx.lineCap =
         "round";
@@ -1011,7 +1093,7 @@ function drawStickman(
         -92,
         22,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fillStyle =
@@ -1022,31 +1104,13 @@ function drawStickman(
     ctx.stroke();
 
 
-    /* چشم */
-
-    ctx.fillStyle =
-        "#111827";
-
-    ctx.beginPath();
-
-    ctx.arc(
-        7,
-        -96,
-        3,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-
     /* بدن */
 
     ctx.beginPath();
 
     ctx.moveTo(
         0,
-        -69
+        -70
     );
 
     ctx.lineTo(
@@ -1057,7 +1121,7 @@ function drawStickman(
     ctx.stroke();
 
 
-    /* دست چپ */
+    /* دست‌ها */
 
     ctx.beginPath();
 
@@ -1068,13 +1132,11 @@ function drawStickman(
 
     ctx.lineTo(
         -32,
-        -32 + animation
+        -30+animation
     );
 
     ctx.stroke();
 
-
-    /* دست راست */
 
     ctx.beginPath();
 
@@ -1085,13 +1147,13 @@ function drawStickman(
 
     ctx.lineTo(
         32,
-        -32 - animation
+        -30-animation
     );
 
     ctx.stroke();
 
 
-    /* پای چپ */
+    /* پاها */
 
     ctx.beginPath();
 
@@ -1101,14 +1163,12 @@ function drawStickman(
     );
 
     ctx.lineTo(
-        -20 + animation,
-        18
+        -20+animation,
+        20
     );
 
     ctx.stroke();
 
-
-    /* پای راست */
 
     ctx.beginPath();
 
@@ -1118,105 +1178,104 @@ function drawStickman(
     );
 
     ctx.lineTo(
-        20 - animation,
-        18
+        20-animation,
+        20
     );
 
     ctx.stroke();
 
-
-    /* سایه */
 
     ctx.restore();
 
 }
 
 
-/* =========================
-   رسم همه چیز
-========================= */
+/* =====================
+   رسم بازی
+===================== */
 
 function draw(){
 
-    drawBackground();
+    background();
 
-    drawGround();
+    ground();
 
-
-    /* درخت‌ها */
 
     for(
-        let x = 250;
-        x < WORLD_WIDTH;
-        x += 430
+        let x=300;
+        x<WORLD;
+        x+=450
     ){
 
-        drawTree(x);
+        tree(x);
 
     }
 
 
-    /* خانه‌ها */
-
-    drawHouse(1100);
-    drawHouse(2800);
-    drawHouse(4500);
+    house(1200);
+    house(3000);
+    house(4800);
 
 
-    const camera =
-        getCamera();
+    const cam =
+        camera();
 
 
-    /* بازیکنان دیگر */
-
-    Object.values(
-        otherPlayers
-    ).forEach(function(p){
+    Object.values(players)
+    .forEach(p => {
 
         p.frame =
-            (p.frame || 0) + 1;
+            (p.frame || 0)+1;
 
-        drawStickman(
+        stickman(
             p,
-            p.x - camera,
-            GROUND + p.y
+            p.x-cam,
+            GROUND+p.y
         );
 
     });
 
 
-    /* خودم */
-
-    drawStickman(
+    stickman(
         me,
-        canvas.width / 2,
-        GROUND + me.y
+        canvas.width/2,
+        GROUND+me.y
     );
+
+
+    document.getElementById(
+        "health"
+    ).textContent =
+        me.health;
+
+    document.getElementById(
+        "score"
+    ).textContent =
+        me.score;
 
 }
 
 
-/* =========================
+/* =====================
    شروع
-========================= */
+===================== */
 
-function gameLoop(){
+function loop(){
 
     update();
 
-    sendMovement();
+    send();
 
     draw();
 
-    requestAnimationFrame(
-        gameLoop
-    );
+    requestAnimationFrame(loop);
 
 }
 
-gameLoop();
+loop();
 
 </script>
 
 </body>
+
 </html>
