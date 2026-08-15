@@ -1,109 +1,54 @@
 function drawStickman(x, y, name, admin, mine) {
 
     ctx.save();
-
     ctx.translate(x, y);
 
-    // رنگ اسکین
-    const skin = mine ? "#facc15" : "#f8fafc";
-    const shirt = admin ? "#ef4444" : "#2563eb";
+    // اگر اسم undefined بود، اسم خود بازیکن را نشان نده
+    const playerName =
+        name && name !== "undefined"
+            ? name
+            : (mine ? "Player" : "Stickman");
 
+    // =====================
     // سایه
-    ctx.beginPath();
-    ctx.ellipse(
-        0,
-        58,
-        24,
-        7,
-        0,
-        0,
-        Math.PI * 2
-    );
+    // =====================
 
-    ctx.fillStyle = "#0005";
+    ctx.beginPath();
+    ctx.ellipse(0, 58, 25, 7, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
     ctx.fill();
 
 
     // =====================
-    // سر
+    // سر استیکمن
     // =====================
 
     ctx.beginPath();
+    ctx.arc(0, -35, 18, 0, Math.PI * 2);
 
-    ctx.arc(
-        0,
-        -35,
-        18,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fillStyle = skin;
+    ctx.fillStyle = "#ffffff";
     ctx.fill();
 
-    ctx.lineWidth = 4;
     ctx.strokeStyle = "#111827";
+    ctx.lineWidth = 4;
     ctx.stroke();
 
 
-    // مو
-    ctx.beginPath();
-
-    ctx.arc(
-        0,
-        -43,
-        16,
-        Math.PI,
-        Math.PI * 2
-    );
+    // =====================
+    // صورت
+    // =====================
 
     ctx.fillStyle = "#111827";
-    ctx.fill();
-
 
     // چشم چپ
     ctx.beginPath();
-
-    ctx.arc(
-        -6,
-        -36,
-        2.5,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fillStyle = "#111827";
+    ctx.arc(-6, -37, 3, 0, Math.PI * 2);
     ctx.fill();
-
 
     // چشم راست
     ctx.beginPath();
-
-    ctx.arc(
-        6,
-        -36,
-        2.5,
-        0,
-        Math.PI * 2
-    );
-
+    ctx.arc(6, -37, 3, 0, Math.PI * 2);
     ctx.fill();
-
-
-    // لبخند
-    ctx.beginPath();
-
-    ctx.arc(
-        0,
-        -31,
-        7,
-        0,
-        Math.PI
-    );
-
-    ctx.strokeStyle = "#111827";
-    ctx.lineWidth = 2;
-    ctx.stroke();
 
 
     // =====================
@@ -111,20 +56,14 @@ function drawStickman(x, y, name, admin, mine) {
     // =====================
 
     ctx.beginPath();
+    ctx.moveTo(0, -17);
+    ctx.lineTo(0, 25);
 
-    ctx.roundRect(
-        -16,
-        -16,
-        32,
-        42,
-        8
-    );
+    ctx.strokeStyle =
+        mine ? "#2563eb" : "#ef4444";
 
-    ctx.fillStyle = shirt;
-    ctx.fill();
-
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = "#111827";
+    ctx.lineWidth = 9;
+    ctx.lineCap = "round";
     ctx.stroke();
 
 
@@ -133,25 +72,11 @@ function drawStickman(x, y, name, admin, mine) {
     // =====================
 
     ctx.beginPath();
-
-    ctx.moveTo(
-        -14,
-        -5
-    );
-
-    ctx.lineTo(
-        -31,
-        18
-    );
-
-    ctx.lineTo(
-        -36,
-        13
-    );
+    ctx.moveTo(0, -8);
+    ctx.lineTo(-27, 12);
 
     ctx.strokeStyle = "#111827";
     ctx.lineWidth = 7;
-    ctx.lineCap = "round";
     ctx.stroke();
 
 
@@ -160,103 +85,53 @@ function drawStickman(x, y, name, admin, mine) {
     // =====================
 
     ctx.beginPath();
-
-    ctx.moveTo(
-        14,
-        -5
-    );
-
-    ctx.lineTo(
-        31,
-        18
-    );
-
-    ctx.lineTo(
-        36,
-        13
-    );
-
+    ctx.moveTo(0, -8);
+    ctx.lineTo(27, 12);
     ctx.stroke();
 
 
     // =====================
-    // پا چپ
+    // پای چپ
     // =====================
 
     ctx.beginPath();
-
-    ctx.moveTo(
-        -8,
-        25
-    );
-
-    ctx.lineTo(
-        -20,
-        52
-    );
-
-    ctx.lineTo(
-        -27,
-        52
-    );
-
-    ctx.strokeStyle = "#111827";
-    ctx.lineWidth = 8;
+    ctx.moveTo(0, 25);
+    ctx.lineTo(-20, 55);
     ctx.stroke();
 
 
     // =====================
-    // پا راست
+    // پای راست
     // =====================
 
     ctx.beginPath();
-
-    ctx.moveTo(
-        8,
-        25
-    );
-
-    ctx.lineTo(
-        20,
-        52
-    );
-
-    ctx.lineTo(
-        27,
-        52
-    );
-
+    ctx.moveTo(0, 25);
+    ctx.lineTo(20, 55);
     ctx.stroke();
 
 
     // =====================
-    // اسم
+    // اسم بالای استیکمن
     // =====================
 
-    ctx.font =
-        "bold 16px Arial";
+    ctx.font = "bold 16px Arial";
+    ctx.textAlign = "center";
 
-    ctx.textAlign =
-        "center";
-
-    ctx.lineWidth = 3;
-
-    ctx.strokeStyle =
-        "#000";
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "#000";
 
     ctx.strokeText(
-        name + (admin ? " 👑" : ""),
+        playerName + (admin ? " 👑" : ""),
         0,
-        -65
+        -68
     );
 
-    ctx.fillStyle =
-        "#fff";
+    ctx.fillStyle = "#fff";
 
     ctx.fillText(
-        name + (admin ? " 👑" : ""),
+        playerName + (admin ? " 👑" : ""),
         0,
-        -65
+        -68
     );
 
 
