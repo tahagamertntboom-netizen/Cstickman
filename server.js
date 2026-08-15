@@ -10,23 +10,41 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.static(__dirname));
 
+
+// =========================
+// اتاق‌ها
+// =========================
+
 const rooms = {};
 
+
+// =========================
+// ساخت کد ۶ رقمی
+// =========================
+
 function createRoomCode() {
+
     let code;
 
     do {
+
         code = Math.floor(
             100000 + Math.random() * 900000
         ).toString();
+
     } while (rooms[code]);
 
     return code;
 }
 
+
+// =========================
+// اتصال بازیکن
+// =========================
+
 io.on("connection", (socket) => {
 
-    console.log("Connected:", socket.id);
+    console.log("بازیکن وصل شد:", socket.id);
 
 
     // =========================
@@ -38,33 +56,52 @@ io.on("connection", (socket) => {
         name = String(name || "").trim();
 
         if (!name) {
+
             socket.emit(
                 "roomError",
                 "اسم وارد نشده!"
             );
+
             return;
         }
 
+
         const code = createRoomCode();
 
+
         rooms[code] = {
+
             players: {}
+
         };
 
+
         rooms[code].players[socket.id] = {
+
             id: socket.id,
+
             name: name
+
         };
+
 
         socket.join(code);
 
+
         socket.roomCode = code;
+
         socket.playerName = name;
+
+
+        // فرستادن کد اتاق به سازنده
 
         socket.emit(
             "roomCreated",
             code
         );
+
+
+        // فرستادن لیست بازیکنان
 
         io.to(code).emit(
             "roomPlayers",
@@ -73,10 +110,12 @@ io.on("connection", (socket) => {
             )
         );
 
+
         console.log(
-            "Room created:",
+            "اتاق ساخته شد:",
             code
         );
+
     });
 
 
@@ -84,70 +123,97 @@ io.on("connection", (socket) => {
     // ورود به اتاق
     // =========================
 
-    socket.on(
-        "joinRoom",
-        ({ roomCode, playerName }) => {
+    socket.on("joinRoom", (data) => {
 
-            const code =
-                String(roomCode || "").trim();
+        const code =
+            String(
+                data?.roomCode || ""
+            ).trim();
 
-            const name =
-                String(playerName || "").trim();
-
-
-            if (!name) {
-
-                socket.emit(
-                    "roomError",
-                    "اسم وارد نشده!"
-                );
-
-                return;
-            }
+        const name =
+            String(
+                data?.playerName || ""
+            ).trim();
 
 
-            if (!rooms[code]) {
-
-                socket.emit(
-                    "roomError",
-                    "این اتاق وجود ندارد!"
-                );
-
-                return;
-            }
-
-
-            rooms[code].players[socket.id] = {
-
-                id: socket.id,
-
-                name: name
-
-            };
-
-
-            socket.join(code);
-
-            socket.roomCode = code;
-
-            socket.playerName = name;
-
+        if (!name) {
 
             socket.emit(
-                "joinedRoom",
-                code
+                "roomError",
+                "اسم وارد نشده!"
             );
 
-
-            io.to(code).emit(
-                "roomPlayers",
-                Object.values(
-                    rooms[code].players
-                )
-            );
-
+            return;
         }
-    );
+
+
+        if (!/^[0-9]{6}$/.test(code)) {
+
+            socket.emit(
+                "roomError",
+                "کد باید دقیقاً ۶ رقمی باشد!"
+            );
+
+            return;
+        }
+
+
+        if (!rooms[code]) {
+
+            socket.emit(
+                "roomError",
+                "این اتاق وجود ندارد!"
+            );
+
+            return;
+        }
+
+
+        // اضافه کردن بازیکن
+
+        rooms[code].players[socket.id] = {
+
+            id: socket.id,
+
+            name: name
+
+        };
+
+
+        socket.join(code);
+
+
+        socket.roomCode = code;
+
+        socket.playerName = name;
+
+
+        // اعلام ورود موفق
+
+        socket.emit(
+            "joinedRoom",
+            code
+        );
+
+
+        // بروزرسانی همه بازیکنان
+
+        io.to(code).emit(
+            "roomPlayers",
+            Object.values(
+                rooms[code].players
+            )
+        );
+
+
+        console.log(
+            name +
+            " وارد اتاق " +
+            code +
+            " شد"
+        );
+
+    });
 
 
     // =========================
@@ -161,31 +227,42 @@ io.on("connection", (socket) => {
 
 
         if (
-            code &&
-            rooms[code]
+            !code ||
+            !rooms[code]
         ) {
 
-            delete rooms[code]
-                .players[socket.id];
+            return;
+        }
 
 
-            io.to(code).emit(
-                "roomPlayers",
-                Object.values(
-                    rooms[code].players
-                )
+        delete rooms[code]
+            .players[socket.id];
+
+
+        // اطلاع به بقیه بازیکنان
+
+        io.to(code).emit(
+            "roomPlayers",
+            Object.values(
+                rooms[code].players
+            )
+        );
+
+
+        // اگر اتاق خالی شد حذف شود
+
+        if (
+            Object.keys(
+                rooms[code].players
+            ).length === 0
+        ) {
+
+            delete rooms[code];
+
+            console.log(
+                "اتاق حذف شد:",
+                code
             );
-
-
-            if (
-                Object.keys(
-                    rooms[code].players
-                ).length === 0
-            ) {
-
-                delete rooms[code];
-
-            }
 
         }
 
@@ -193,6 +270,10 @@ io.on("connection", (socket) => {
 
 });
 
+
+// =========================
+// صفحه اصلی
+// =========================
 
 app.get("/", (req, res) => {
 
@@ -202,6 +283,10 @@ app.get("/", (req, res) => {
 
 });
 
+
+// =========================
+// اجرای سرور
+// =========================
 
 server.listen(
     PORT,
