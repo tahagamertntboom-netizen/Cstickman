@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Stickman Game</title>
+<title>Stickman Online</title>
 
 <style>
 
@@ -18,7 +18,6 @@ html,body{
     height:100%;
     overflow:hidden;
     font-family:Arial,sans-serif;
-    background:#7dd3fc;
 }
 
 #game{
@@ -29,31 +28,26 @@ html,body{
     display:block;
 }
 
-
-/* =========================
-   اطلاعات
-========================= */
+/* اطلاعات */
 
 #info{
     position:fixed;
     top:15px;
     left:15px;
-    z-index:20;
+    z-index:50;
 
-    padding:10px 15px;
-
-    border-radius:12px;
-
-    background:rgba(0,0,0,.65);
-
+    background:rgba(0,0,0,.7);
     color:white;
+
+    padding:10px 16px;
+    border-radius:12px;
 
     font-size:16px;
 }
 
 
 /* =========================
-   دکمه ادمین
+   دکمه ADMIN
 ========================= */
 
 #adminButton{
@@ -65,25 +59,22 @@ html,body{
     top:15px;
     right:15px;
 
-    z-index:100;
+    z-index:9999;
 
     border:0;
+    border-radius:14px;
 
-    border-radius:12px;
+    padding:14px 22px;
 
-    padding:13px 20px;
-
-    background:#dc2626;
-
+    background:#ef4444;
     color:white;
 
-    font-size:17px;
-
+    font-size:18px;
     font-weight:bold;
 
     cursor:pointer;
 
-    box-shadow:0 5px 20px #0007;
+    box-shadow:0 5px 25px rgba(0,0,0,.5);
 }
 
 #adminButton:active{
@@ -92,7 +83,7 @@ html,body{
 
 
 /* =========================
-   صفحه ادمین
+   پنل
 ========================= */
 
 #adminOverlay{
@@ -100,22 +91,18 @@ html,body{
     display:none;
 
     position:fixed;
-
     inset:0;
 
-    z-index:200;
+    z-index:9998;
 
-    background:rgba(0,0,0,.72);
+    background:rgba(0,0,0,.75);
 
     align-items:center;
-
     justify-content:center;
 
     padding:20px;
 }
 
-
-/* پنل اصلی */
 
 #adminPanel{
 
@@ -129,45 +116,41 @@ html,body{
 
     color:white;
 
-    border-radius:25px;
+    border-radius:24px;
 
-    padding:25px;
+    padding:24px;
 
-    box-shadow:
-        0 20px 80px #000;
+    box-shadow:0 20px 80px #000;
 
 }
 
-
-/* عنوان */
 
 .adminHeader{
 
     display:flex;
 
-    align-items:center;
-
     justify-content:space-between;
 
-    margin-bottom:20px;
+    align-items:center;
 
+    margin-bottom:20px;
 }
+
 
 .adminTitle{
 
-    font-size:28px;
+    font-size:27px;
 
     font-weight:bold;
-
 }
+
 
 #closeAdmin{
 
-    border:0;
-
     width:45px;
-
     height:45px;
+
+    border:0;
 
     border-radius:50%;
 
@@ -178,25 +161,22 @@ html,body{
     font-size:22px;
 
     cursor:pointer;
-
 }
 
 
-/* =========================
-   بازیکنان
-========================= */
+/* بازیکنان */
 
 .section{
-
-    margin-top:18px;
-
-    padding:18px;
 
     background:#1f2937;
 
     border-radius:18px;
 
+    padding:17px;
+
+    margin-top:15px;
 }
+
 
 .sectionTitle{
 
@@ -205,19 +185,19 @@ html,body{
     font-weight:bold;
 
     margin-bottom:12px;
-
 }
+
 
 #playerList{
 
     display:grid;
 
     grid-template-columns:
-        repeat(auto-fit,minmax(150px,1fr));
+        repeat(auto-fit,minmax(140px,1fr));
 
     gap:10px;
-
 }
+
 
 .playerButton{
 
@@ -234,21 +214,18 @@ html,body{
     cursor:pointer;
 
     font-size:15px;
-
 }
+
 
 .playerButton.selected{
 
     outline:3px solid #facc15;
 
     background:#4b5563;
-
 }
 
 
-/* =========================
-   قابلیت‌ها
-========================= */
+/* قابلیت‌ها */
 
 .actions{
 
@@ -258,14 +235,14 @@ html,body{
         repeat(2,1fr);
 
     gap:12px;
-
 }
+
 
 .actionButton{
 
-    border:0;
-
     min-height:65px;
+
+    border:0;
 
     border-radius:15px;
 
@@ -276,13 +253,6 @@ html,body{
     font-weight:bold;
 
     cursor:pointer;
-
-}
-
-.actionButton:active{
-
-    transform:scale(.97);
-
 }
 
 
@@ -307,10 +277,6 @@ html,body{
 }
 
 
-/* =========================
-   وضعیت
-========================= */
-
 #adminStatus{
 
     margin-top:15px;
@@ -321,16 +287,13 @@ html,body{
 
     background:#0f172a;
 
-    color:#cbd5e1;
-
     text-align:center;
 
+    color:#cbd5e1;
 }
 
 
-/* =========================
-   کنترل‌ها
-========================= */
+/* کنترل‌ها */
 
 #controls{
 
@@ -340,25 +303,23 @@ html,body{
     right:0;
     bottom:20px;
 
-    z-index:50;
+    z-index:100;
 
     display:flex;
 
     justify-content:space-between;
 
     padding:0 20px;
-
-    pointer-events:none;
 }
+
 
 .controlGroup{
 
     display:flex;
 
     gap:12px;
-
-    pointer-events:auto;
 }
+
 
 .control{
 
@@ -369,7 +330,7 @@ html,body{
 
     border-radius:50%;
 
-    background:rgba(15,23,42,.8);
+    background:#111827cc;
 
     color:white;
 
@@ -377,10 +338,7 @@ html,body{
 
     font-weight:bold;
 
-    cursor:pointer;
-
     touch-action:none;
-
 }
 
 </style>
@@ -390,231 +348,199 @@ html,body{
 <body>
 
 
-<!-- =========================
-     بازی
-========================= -->
-
 <canvas id="game"></canvas>
 
 
-<!-- اطلاعات -->
-
 <div id="info">
-    🎮 Player
+🎮 Player
 </div>
 
 
-<!-- =========================
-     دکمه ADMIN
-========================= -->
+<!-- دکمه -->
 
 <button
     id="adminButton"
     type="button"
 >
-    👑 ADMIN
+👑 ADMIN
 </button>
 
 
-<!-- =========================
-     صفحه ADMIN
-========================= -->
+<!-- پنل -->
 
-<div id="adminOverlay">
+<div
+    id="adminOverlay"
+>
 
-    <div id="adminPanel">
+<div id="adminPanel">
 
-        <div class="adminHeader">
+<div class="adminHeader">
 
-            <div class="adminTitle">
-                👑 پنل مدیریت
-            </div>
+<div class="adminTitle">
+👑 پنل مدیریت
+</div>
 
-            <button
-                id="closeAdmin"
-                type="button"
-            >
-                ✕
-            </button>
-
-        </div>
-
-
-        <!-- بازیکنان -->
-
-        <div class="section">
-
-            <div class="sectionTitle">
-                👥 انتخاب بازیکن
-            </div>
-
-            <div id="playerList">
-                بازیکنی پیدا نشد
-            </div>
-
-        </div>
-
-
-        <!-- قابلیت‌ها -->
-
-        <div class="section">
-
-            <div class="sectionTitle">
-                ⚡ قابلیت‌های بازیکن
-            </div>
-
-            <div class="actions">
-
-                <button
-                    id="flyButton"
-                    class="actionButton fly"
-                    type="button"
-                >
-                    ✈️ پرواز
-                </button>
-
-                <button
-                    id="colorButton"
-                    class="actionButton color"
-                    type="button"
-                >
-                    🌈 رنگی شدن
-                </button>
-
-                <button
-                    id="killButton"
-                    class="actionButton kill"
-                    type="button"
-                >
-                    💀 کشتن
-                </button>
-
-                <button
-                    id="kickButton"
-                    class="actionButton kick"
-                    type="button"
-                >
-                    🚪 بیرون انداختن
-                </button>
-
-            </div>
-
-        </div>
-
-
-        <!-- همه بازیکنان -->
-
-        <div class="section">
-
-            <div class="sectionTitle">
-                👥 همه بازیکنان
-            </div>
-
-            <button
-                id="allColorButton"
-                class="actionButton allColor"
-                type="button"
-                style="width:100%;"
-            >
-                🌈 رنگی کردن همه
-            </button>
-
-        </div>
-
-
-        <div id="adminStatus">
-            بازیکنی انتخاب نشده
-        </div>
-
-    </div>
+<button
+    id="closeAdmin"
+    type="button"
+>
+✕
+</button>
 
 </div>
 
 
-<!-- =========================
-     کنترل بازی
-========================= -->
+<div class="section">
+
+<div class="sectionTitle">
+👥 انتخاب بازیکن
+</div>
+
+<div id="playerList">
+بازیکنی نیست
+</div>
+
+</div>
+
+
+<div class="section">
+
+<div class="sectionTitle">
+⚡ قابلیت‌ها
+</div>
+
+
+<div class="actions">
+
+<button
+    id="flyButton"
+    class="actionButton fly"
+>
+✈️ پرواز
+</button>
+
+
+<button
+    id="colorButton"
+    class="actionButton color"
+>
+🌈 رنگی شدن
+</button>
+
+
+<button
+    id="killButton"
+    class="actionButton kill"
+>
+💀 کشتن
+</button>
+
+
+<button
+    id="kickButton"
+    class="actionButton kick"
+>
+🚪 بیرون انداختن
+</button>
+
+</div>
+
+</div>
+
+
+<div class="section">
+
+<button
+    id="allColorButton"
+    class="actionButton allColor"
+    style="width:100%"
+>
+🌈 رنگی کردن همه
+</button>
+
+</div>
+
+
+<div id="adminStatus">
+اول یک بازیکن را انتخاب کن
+</div>
+
+
+</div>
+</div>
+
+
+<!-- کنترل -->
 
 <div id="controls">
 
-    <div class="controlGroup">
+<div class="controlGroup">
 
-        <button
-            id="left"
-            class="control"
-            type="button"
-        >
-            ◀
-        </button>
+<button
+    id="left"
+    class="control"
+>
+◀
+</button>
 
-        <button
-            id="right"
-            class="control"
-            type="button"
-        >
-            ▶
-        </button>
-
-    </div>
-
-
-    <div class="controlGroup">
-
-        <button
-            id="jump"
-            class="control"
-            type="button"
-        >
-            ⬆
-        </button>
-
-    </div>
+<button
+    id="right"
+    class="control"
+>
+▶
+</button>
 
 </div>
 
 
-<!-- Socket.IO -->
+<div class="controlGroup">
+
+<button
+    id="jump"
+    class="control"
+>
+⬆
+</button>
+
+</div>
+
+</div>
+
 
 <script src="/socket.io/socket.io.js"></script>
-
-<!-- بازی -->
 
 <script src="/game.js"></script>
 
 
 <script>
 
-const socket = io();
-
-
-/* =========================
-   اسم
-========================= */
+/* =================================
+   اسم بازیکن
+================================= */
 
 const storedName =
     localStorage.getItem("player");
 
-const playerName =
+const name =
     String(storedName || "")
         .trim();
 
-const safeName =
-    playerName ||
-    "Player";
+const finalName =
+    name || "Player";
 
 
 document.getElementById(
     "info"
 ).textContent =
-    "🎮 " + safeName;
+    "🎮 " + finalName;
 
 
-/* =========================
-   تشخیص ادمین
-========================= */
+/* =================================
+   ادمین
+================================= */
 
 const isAdmin =
-    safeName.toLowerCase() ===
+    finalName.toLowerCase() ===
     "tahagamertnt";
 
 
@@ -628,11 +554,17 @@ const overlay =
         "adminOverlay"
     );
 
-const closeButton =
+const closeAdmin =
     document.getElementById(
         "closeAdmin"
     );
 
+
+/*
+   این قسمت خیلی مهم است:
+   اگر اسم tahagamertnt باشد
+   دکمه حتماً نمایش داده می‌شود.
+*/
 
 if(isAdmin){
 
@@ -642,40 +574,48 @@ if(isAdmin){
 }
 
 
-/* =========================
-   باز کردن پنل
-========================= */
+/* =================================
+   باز کردن
+================================= */
 
-adminButton.onclick =
-function(){
+adminButton.addEventListener(
+    "click",
+    function(){
 
-    if(!isAdmin)
-        return;
+        if(!isAdmin)
+            return;
 
-    overlay.style.display =
-        "flex";
+        overlay.style.display =
+            "flex";
 
-};
+    }
+);
 
 
-/* =========================
-   بستن پنل
-========================= */
+/* =================================
+   بستن
+================================= */
 
-closeButton.onclick =
-function(){
+closeAdmin.addEventListener(
+    "click",
+    function(){
 
-    overlay.style.display =
-        "none";
+        overlay.style.display =
+            "none";
 
-};
+    }
+);
 
+
+/* کلیک بیرون پنل */
 
 overlay.addEventListener(
     "click",
-    function(e){
+    function(event){
 
-        if(e.target === overlay){
+        if(
+            event.target === overlay
+        ){
 
             overlay.style.display =
                 "none";
@@ -686,37 +626,39 @@ overlay.addEventListener(
 );
 
 
-/* =========================
-   بازیکن انتخاب شده
-========================= */
+/* =================================
+   بازیکن انتخاب‌شده
+================================= */
 
 let selectedPlayer = null;
 
 
-function selectPlayer(
+function choosePlayer(
     id,
     name
 ){
 
-    selectedPlayer =
-        id;
+    selectedPlayer = id;
 
-    document.querySelectorAll(
-        ".playerButton"
-    ).forEach(
-        button => {
 
-            button.classList.remove(
-                "selected"
-            );
+    document
+        .querySelectorAll(
+            ".playerButton"
+        )
+        .forEach(
+            button => {
 
-        }
-    );
+                button.classList.remove(
+                    "selected"
+                );
+
+            }
+        );
 
 
     const button =
         document.querySelector(
-            `[data-id="${id}"]`
+            `[data-player-id="${id}"]`
         );
 
 
@@ -732,102 +674,113 @@ function selectPlayer(
     document.getElementById(
         "adminStatus"
     ).textContent =
-        "🎯 انتخاب شد: " +
-        name;
+        "🎯 انتخاب: " + name;
 
 }
 
 
-/* =========================
+/* =================================
    لیست بازیکنان
-========================= */
+================================= */
 
-socket.on(
-    "players",
-    function(players){
+if(isAdmin){
 
-        if(!isAdmin)
-            return;
+    socket.on(
+        "players",
+        function(players){
 
-        const list =
-            document.getElementById(
-                "playerList"
-            );
-
-        list.innerHTML = "";
-
-
-        if(
-            !Array.isArray(players) ||
-            players.length === 0
-        ){
-
-            list.textContent =
-                "بازیکنی نیست";
-
-            return;
-
-        }
-
-
-        players.forEach(
-            player => {
-
-                if(
-                    !player ||
-                    player.id === socket.id
-                )
-                    return;
-
-
-                const button =
-                    document.createElement(
-                        "button"
-                    );
-
-
-                button.className =
-                    "playerButton";
-
-
-                button.dataset.id =
-                    player.id;
-
-
-                const name =
-                    player.name ||
-                    "Player";
-
-
-                button.textContent =
-                    "👤 " + name;
-
-
-                button.onclick =
-                    function(){
-
-                        selectPlayer(
-                            player.id,
-                            name
-                        );
-
-                    };
-
-
-                list.appendChild(
-                    button
+            const list =
+                document.getElementById(
+                    "playerList"
                 );
 
+
+            list.innerHTML = "";
+
+
+            if(
+                !Array.isArray(players)
+            ){
+
+                list.textContent =
+                    "بازیکنی نیست";
+
+                return;
+
             }
-        );
-
-    }
-);
 
 
-/* =========================
-   ارسال دستور
-========================= */
+            players.forEach(
+                player => {
+
+                    if(
+                        !player ||
+                        player.id === socket.id
+                    )
+                        return;
+
+
+                    const button =
+                        document.createElement(
+                            "button"
+                        );
+
+
+                    button.className =
+                        "playerButton";
+
+
+                    button.dataset.playerId =
+                        player.id;
+
+
+                    const playerName =
+                        player.name ||
+                        "Player";
+
+
+                    button.textContent =
+                        "👤 " +
+                        playerName;
+
+
+                    button.onclick =
+                        function(){
+
+                            choosePlayer(
+                                player.id,
+                                playerName
+                            );
+
+                        };
+
+
+                    list.appendChild(
+                        button
+                    );
+
+                }
+            );
+
+
+            if(
+                list.children.length === 0
+            ){
+
+                list.textContent =
+                    "بازیکن دیگری نیست";
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =================================
+   ارسال قابلیت
+================================= */
 
 function sendAdminAction(
     action
@@ -842,7 +795,7 @@ function sendAdminAction(
         document.getElementById(
             "adminStatus"
         ).textContent =
-            "⚠️ اول یک بازیکن را انتخاب کن";
+            "⚠️ اول بازیکن را انتخاب کن";
 
         return;
 
@@ -869,9 +822,9 @@ function sendAdminAction(
 }
 
 
-/* =========================
+/* =================================
    دکمه‌ها
-========================= */
+================================= */
 
 document.getElementById(
     "flyButton"
@@ -929,6 +882,7 @@ function(){
     if(!isAdmin)
         return;
 
+
     socket.emit(
         "adminAction",
         {
@@ -941,7 +895,7 @@ function(){
     document.getElementById(
         "adminStatus"
     ).textContent =
-        "🌈 برای همه فعال شد";
+        "🌈 دستور برای همه ارسال شد";
 
 };
 
