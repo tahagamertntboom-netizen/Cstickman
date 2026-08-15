@@ -1,15 +1,10 @@
 <!DOCTYPE html>
 <html lang="fa">
-
 <head>
-
 <meta charset="UTF-8">
 
 <meta name="viewport"
-content="width=device-width,
-initial-scale=1.0,
-maximum-scale=1.0,
-user-scalable=no">
+content="width=device-width, initial-scale=1.0">
 
 <title>Stickman Lobby</title>
 
@@ -20,18 +15,12 @@ user-scalable=no">
 }
 
 body{
-
     margin:0;
-
     min-height:100vh;
 
     display:flex;
-
     justify-content:center;
-
     align-items:center;
-
-    padding:20px;
 
     font-family:Arial,sans-serif;
 
@@ -39,65 +28,48 @@ body{
     linear-gradient(
         135deg,
         #0f172a,
-        #172554,
         #312e81
     );
 
     color:white;
 }
 
-.container{
-
-    width:100%;
-
-    max-width:450px;
+.box{
+    width:90%;
+    max-width:430px;
 
     padding:30px;
 
-    border-radius:25px;
+    text-align:center;
 
-    background:
-    rgba(15,23,42,.96);
+    background:#111827;
+
+    border-radius:25px;
 
     box-shadow:
     0 20px 60px #0008;
-
-    text-align:center;
 }
 
 h1{
-
-    font-size:40px;
-
-    margin:0 0 10px;
-}
-
-.subtitle{
-
-    color:#a5b4fc;
-
-    margin-bottom:25px;
+    font-size:38px;
 }
 
 input{
-
     width:100%;
 
     padding:15px;
 
-    margin:7px 0;
+    margin:10px 0;
 
     border:0;
+    border-radius:12px;
 
-    border-radius:13px;
+    font-size:18px;
 
-    font-size:17px;
-
-    outline:none;
+    text-align:center;
 }
 
 button{
-
     width:100%;
 
     padding:15px;
@@ -106,132 +78,72 @@ button{
 
     border:0;
 
-    border-radius:13px;
+    border-radius:12px;
 
-    font-size:17px;
+    font-size:18px;
 
     font-weight:bold;
 
     cursor:pointer;
 }
 
-.create{
-
+#createButton{
     background:#22c55e;
-
     color:white;
 }
 
-.join{
-
-    background:#6366f1;
-
-    color:white;
-}
-
-.start{
-
+#startButton{
     background:#f59e0b;
-
     color:white;
 }
 
 #room{
-
     display:none;
 }
 
-#roomCode{
+.code{
+    margin:20px 0;
 
-    font-size:38px;
+    padding:20px;
 
-    letter-spacing:7px;
-
-    color:#22c55e;
-
-    margin:15px 0;
-}
-
-.players{
-
-    margin-top:20px;
-
-    padding:15px;
+    background:#020617;
 
     border-radius:15px;
 
-    background:#0b1220;
-}
+    font-size:42px;
 
-.player{
+    font-weight:bold;
 
-    padding:10px;
+    letter-spacing:8px;
 
-    margin:6px 0;
-
-    border-radius:10px;
-
-    background:#1e293b;
+    color:#22c55e;
 }
 
 #error{
-
+    margin-top:15px;
     color:#f87171;
-
-    margin-top:12px;
 }
 
 </style>
-
 </head>
-
 
 <body>
 
-
-<div class="container">
+<div class="box">
 
 <h1>🎮 STICKMAN</h1>
-
-<div class="subtitle">
-Multiplayer Lobby
-</div>
-
 
 <div id="menu">
 
 <input
     id="name"
     maxlength="20"
-    autocomplete="off"
     placeholder="اسم بازیکن"
 >
 
-
-<button
-    id="createButton"
-    class="create"
->
+<button id="createButton">
 🏠 ساخت اتاق
 </button>
-
-
-<input
-    id="roomInput"
-    inputmode="numeric"
-    maxlength="6"
-    autocomplete="off"
-    placeholder="کد ۶ رقمی اتاق"
->
-
-
-<button
-    id="joinButton"
-    class="join"
->
-🚪 ورود به اتاق
-</button>
-
 
 <div id="error"></div>
 
@@ -240,32 +152,22 @@ Multiplayer Lobby
 
 <div id="room">
 
-<div>
-کد اتاق شما:
-</div>
+<h2>
+🎉 اتاق ساخته شد!
+</h2>
 
+<p>
+کد اتاق را به دوستت بده:
+</p>
 
-<div id="roomCode">
+<div
+    id="roomCode"
+    class="code"
+>
 ------
 </div>
 
-
-<div class="players">
-
-<h3>
-👥 بازیکنان
-</h3>
-
-
-<div id="playersList"></div>
-
-</div>
-
-
-<button
-    id="startButton"
-    class="start"
->
+<button id="startButton">
 🎮 ورود به بازی
 </button>
 
@@ -279,5 +181,4 @@ Multiplayer Lobby
 <script src="/lobby.js"></script>
 
 </body>
-
 </html>
