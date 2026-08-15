@@ -1,273 +1,180 @@
 <!DOCTYPE html>
 <html lang="fa">
+
 <head>
+
 <meta charset="UTF-8">
 
 <meta name="viewport"
 content="width=device-width,
 initial-scale=1.0,
 maximum-scale=1.0,
-user-scalable=no,
-viewport-fit=cover">
+user-scalable=no">
 
-<title>Stickman Forest</title>
+<title>Stickman Game</title>
 
 <style>
 
 *{
-    margin:0;
-    padding:0;
     box-sizing:border-box;
-    -webkit-user-select:none;
     user-select:none;
-    -webkit-touch-callout:none;
+    -webkit-user-select:none;
 }
 
 html,body{
+
+    margin:0;
+
     width:100%;
     height:100%;
-    overflow:hidden;
-    position:fixed;
-    inset:0;
-    background:#75d7ff;
-    touch-action:none;
-    overscroll-behavior:none;
-}
 
-body{
-    font-family:Arial,sans-serif;
+    overflow:hidden;
+
+    background:#87ceeb;
+
 }
 
 canvas{
+
     display:block;
-    width:100vw;
-    height:100vh;
+
+    width:100%;
+    height:100%;
+
     touch-action:none;
+
 }
 
 
-/* =========================
-   کنترل موبایل
-========================= */
+/* کنترل موبایل */
 
-.controls{
+#mobileControls{
+
     position:fixed;
+
     left:0;
     right:0;
-    bottom:max(18px,env(safe-area-inset-bottom));
+    bottom:20px;
+
     display:flex;
-    justify-content:flex-start;
-    padding-left:20px;
-    z-index:50;
+
+    justify-content:space-between;
+
+    padding:0 25px;
+
     pointer-events:none;
+
 }
 
-.control-group{
+.controlGroup{
+
     display:flex;
-    gap:12px;
+
+    gap:15px;
+
     pointer-events:auto;
+
 }
 
 .control{
-    width:68px;
-    height:68px;
-    border:0;
-    border-radius:20px;
-    background:rgba(20,20,20,.65);
+
+    width:70px;
+    height:70px;
+
+    border-radius:50%;
+
+    border:2px solid white;
+
+    background:#0008;
+
     color:white;
-    font-size:28px;
+
+    font-size:30px;
+
+    display:flex;
+
+    align-items:center;
+    justify-content:center;
 
     touch-action:none;
-    -webkit-user-select:none;
-    user-select:none;
-    -webkit-touch-callout:none;
-    -webkit-tap-highlight-color:transparent;
+
 }
 
 .control:active{
-    transform:scale(.94);
+
+    background:#ffffff55;
+
 }
 
-
-/* =========================
-   ADMIN
-========================= */
-
-#adminButton{
-    display:none;
+#hint{
 
     position:fixed;
 
-    top:max(15px,env(safe-area-inset-top));
-    right:15px;
+    top:15px;
 
-    z-index:100;
+    left:50%;
 
-    padding:12px 18px;
+    transform:translateX(-50%);
 
-    border:0;
-    border-radius:14px;
+    padding:10px 18px;
 
-    background:#7c3aed;
-    color:white;
+    border-radius:15px;
 
-    font-size:16px;
-    font-weight:bold;
-
-    touch-action:manipulation;
-}
-
-#adminPanel{
-    display:none;
-
-    position:fixed;
-
-    top:70px;
-    right:15px;
-
-    width:280px;
-    max-width:calc(100vw - 30px);
-
-    z-index:90;
-
-    padding:18px;
-
-    border-radius:18px;
-
-    background:rgba(20,20,25,.96);
-    color:white;
-
-    text-align:center;
-
-    box-shadow:0 10px 35px #0008;
-}
-
-.adminBtn{
-    width:100%;
-
-    padding:12px;
-    margin:5px 0;
-
-    border:0;
-    border-radius:10px;
-
-    background:#333;
+    background:#0008;
 
     color:white;
 
-    font-size:15px;
+    font-family:Arial;
 
-    touch-action:manipulation;
-}
+    font-size:14px;
 
-.close{
-    background:#b91c1c;
-}
-
-
-/* =========================
-   موبایل
-========================= */
-
-@media(max-width:700px){
-
-    .control{
-        width:64px;
-        height:64px;
-        font-size:27px;
-    }
-
-    #adminButton{
-        font-size:14px;
-        padding:10px 14px;
-    }
-
-}
-
-
-/* =========================
-   کامپیوتر
-========================= */
-
-@media(min-width:701px){
-
-    .controls{
-        display:none;
-    }
+    pointer-events:none;
 
 }
 
 </style>
+
 </head>
 
-
 <body>
+
 
 <canvas id="game"></canvas>
 
 
-<button id="adminButton">
-⚡ ADMIN
+<div id="hint">
+A / D یا ش / ی برای حرکت
+</div>
+
+
+<div id="mobileControls">
+
+<div class="controlGroup">
+
+<button
+    class="control"
+    id="left"
+>
+◀
 </button>
 
+<button
+    class="control"
+    id="right"
+>
+▶
+</button>
 
-<div id="adminPanel">
-
-    <h2>⚡ ADMIN PANEL</h2>
-
-    <p id="adminName"></p>
-
-    <button class="adminBtn" onclick="adminMessage()">
-        📢 پیام
-    </button>
-
-    <button class="adminBtn" onclick="changeSpeed()">
-        🏃 تغییر سرعت
-    </button>
-
-    <button class="adminBtn" onclick="giveCoins()">
-        🪙 دادن سکه
-    </button>
-
-    <button class="adminBtn" onclick="teleport()">
-        📍 تلپورت
-    </button>
-
-    <button class="adminBtn" onclick="nightMode()">
-        🌙 شب
-    </button>
-
-    <button class="adminBtn close" onclick="closeAdmin()">
-        ❌ بستن
-    </button>
+</div>
 
 </div>
 
 
-<div class="controls">
+<script src="/socket.io/socket.io.js"></script>
 
-    <div class="control-group">
+<script src="./game.js"></script>
 
-        <button
-            class="control"
-            id="left"
-            type="button">
-            ⬅️
-        </button>
-
-        <button
-            class="control"
-            id="right"
-            type="button">
-            ➡️
-        </button>
-
-    </div>
-
-</div>
-
-
-<script src="/game.js"></script>
 
 </body>
+
 </html>
