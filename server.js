@@ -12,10 +12,6 @@ app.use(express.static(__dirname));
 
 const rooms = {};
 
-// ==================================================
-// ساخت کد ۶ رقمی اتاق
-// ==================================================
-
 function makeRoomCode() {
     let code;
 
@@ -28,126 +24,58 @@ function makeRoomCode() {
     return code;
 }
 
-
-// ==================================================
-// تشخیص ادمین
-// ==================================================
-
 function isAdmin(name) {
-    return String(name || "")
-        .trim()
-        .toLowerCase() === "tahagamertnt";
+    return String(name).trim().toLowerCase() === "tahagamertnt";
 }
 
-
-// ==================================================
-// فرستادن لیست بازیکنان
-// ==================================================
-
 function sendPlayers(roomCode) {
-
     if (!rooms[roomCode]) return;
 
     io.to(roomCode).emit(
         "players",
-        Object.values(
-            rooms[roomCode].players
-        )
+        Object.values(rooms[roomCode].players)
     );
 }
 
-
-// ==================================================
-// اتصال بازیکن
-// ==================================================
-
 io.on("connection", (socket) => {
 
-    console.log(
-        "Connected:",
-        socket.id
-    );
-
-
-    // ==================================================
-    // ساخت اتاق
-    // ==================================================
+    console.log("Connected:", socket.id);
 
     socket.on("createRoom", (name) => {
 
-        name = String(
-            name || ""
-        ).trim();
-
+        name = String(name || "").trim();
 
         if (!name) {
-
             socket.emit(
                 "errorMessage",
                 "اول اسم خودت را وارد کن!"
             );
-
             return;
         }
 
-
-        const code =
-            makeRoomCode();
-
+        const code = makeRoomCode();
 
         rooms[code] = {
-
             players: {}
-
         };
 
-
-        rooms[code].players[
-            socket.id
-        ] = {
-
+        rooms[code].players[socket.id] = {
             id: socket.id,
-
             name: name,
-
             admin: isAdmin(name),
-
-            x: 250,
-
+            x: 200,
             y: 400,
-
             vx: 0,
-
-            vy: 0,
-
-            health: 100,
-
-            flying: false,
-
-            rainbow: isAdmin(name)
-
+            vy: 0
         };
 
-
-        socket.roomCode =
-            code;
-
-
-        socket.playerName =
-            name;
-
+        socket.roomCode = code;
 
         socket.join(code);
 
-
-        socket.emit(
-            "roomCreated",
-            code
-        );
-
+        socket.emit("roomCreated", code);
 
         sendPlayers(code);
-
 
         console.log(
             "Room created:",
@@ -155,649 +83,148 @@ io.on("connection", (socket) => {
             "by",
             name
         );
-
     });
 
+    socket.on("joinRoom", ({ roomCode, playerName }) => {
 
-    // ==================================================
-    // ورود به اتاق
-    // ==================================================
+        const code = String(roomCode || "").trim();
+        const name = String(playerName || "").trim();
 
-    socket.on(
-        "joinRoom",
-        ({ roomCode, playerName }) => {
-
-            const code =
-                String(
-                    roomCode || ""
-                ).trim();
-
-
-            const name =
-                String(
-                    playerName || ""
-                ).trim();
-
-
-            if (!name) {
-
-                socket.emit(
-                    "errorMessage",
-                    "اول اسم خودت را وارد کن!"
-                );
-
-                return;
-            }
-
-
-            if (!/^\d{6}$/.test(code)) {
-
-                socket.emit(
-                    "errorMessage",
-                    "کد اتاق باید ۶ رقمی باشد!"
-                );
-
-                return;
-            }
-
-
-            if (!rooms[code]) {
-
-                socket.emit(
-                    "errorMessage",
-                    "این اتاق وجود ندارد!"
-                );
-
-                return;
-            }
-
-
-            // محل شروع تصادفی
-            const startX =
-                150 +
-                Math.random() *
-                Math.max(
-                    300,
-                    700
-                );
-
-
-            rooms[code].players[
-                socket.id
-            ] = {
-
-                id: socket.id,
-
-                name: name,
-
-                admin: isAdmin(name),
-
-                x: startX,
-
-                y: 400,
-
-                vx: 0,
-
-                vy: 0,
-
-                health: 100,
-
-                flying: false,
-
-                rainbow: isAdmin(name)
-
-            };
-
-
-            socket.roomCode =
-                code;
-
-
-            socket.playerName =
-                name;
-
-
-            socket.join(code);
-
-
+        if (!name) {
             socket.emit(
-                "joinedRoom",
-                code
+                "errorMessage",
+                "اول اسم خودت را وارد کن!"
             );
-
-
-            sendPlayers(code);
-
-
-            console.log(
-                name,
-                "joined room",
-                code
-            );
-
-        }
-    );
-
-
-    // ==================================================
-    // حرکت بازیکن
-    // ==================================================
-
-    socket.on("move", (data) => {
-
-        const code =
-            socket.roomCode;
-
-
-        if (
-            !code ||
-            !rooms[code]
-        ) {
             return;
         }
 
+        if (!/^\d{6}$/.test(code)) {
+            socket.emit(
+                "errorMessage",
+                "کد اتاق باید ۶ رقمی باشد!"
+            );
+            return;
+        }
+
+        if (!rooms[code]) {
+            socket.emit(
+                "errorMessage",
+                "این اتاق وجود ندارد!"
+            );
+            return;
+        }
+
+        rooms[code].players[socket.id] = {
+            id: socket.id,
+            name: name,
+            admin: isAdmin(name),
+            x: 300 + Math.random() * 300,
+            y: 400,
+            vx: 0,
+            vy: 0
+        };
+
+        socket.roomCode = code;
+
+        socket.join(code);
+
+        socket.emit("joinedRoom", code);
+
+        sendPlayers(code);
+
+        console.log(
+            name,
+            "joined room",
+            code
+        );
+    });
+
+    socket.on("move", (data) => {
+
+        const code = socket.roomCode;
+
+        if (!code || !rooms[code]) return;
 
         const player =
-            rooms[code].players[
-                socket.id
-            ];
-
+            rooms[code].players[socket.id];
 
         if (!player) return;
 
-
-        if (
-            typeof data?.x ===
-            "number"
-        ) {
-
-            player.x =
-                data.x;
-
+        if (typeof data.x === "number") {
+            player.x = data.x;
         }
 
-
-        if (
-            typeof data?.y ===
-            "number"
-        ) {
-
-            player.y =
-                data.y;
-
+        if (typeof data.y === "number") {
+            player.y = data.y;
         }
 
-
-        if (
-            typeof data?.vx ===
-            "number"
-        ) {
-
-            player.vx =
-                data.vx;
-
+        if (typeof data.vx === "number") {
+            player.vx = data.vx;
         }
 
-
-        if (
-            typeof data?.vy ===
-            "number"
-        ) {
-
-            player.vy =
-                data.vy;
-
+        if (typeof data.vy === "number") {
+            player.vy = data.vy;
         }
 
-
-        // حرکت به همه بازیکنان دیگر
         socket.to(code).emit(
             "playerMoved",
             {
-
                 id: socket.id,
-
                 x: player.x,
-
                 y: player.y,
-
                 vx: player.vx,
-
                 vy: player.vy
-
             }
         );
-
     });
 
+    socket.on("disconnect", () => {
 
-    // ==================================================
-    // دستورهای ADMIN
-    // ==================================================
+        const code = socket.roomCode;
 
-    socket.on(
-        "adminAction",
-        (data) => {
+        if (!code || !rooms[code]) {
+            return;
+        }
 
-            const code =
-                socket.roomCode;
+        delete rooms[code].players[socket.id];
 
+        if (
+            Object.keys(
+                rooms[code].players
+            ).length === 0
+        ) {
 
-            if (
-                !code ||
-                !rooms[code]
-            ) {
-                return;
-            }
+            delete rooms[code];
 
+        } else {
 
-            const room =
-                rooms[code];
-
-
-            // بازیکنی که دستور را می‌دهد
-            const adminPlayer =
-                room.players[
-                    socket.id
-                ];
-
-
-            if (!adminPlayer) {
-                return;
-            }
-
-
-            // فقط اسم مخصوص ادمین
-            if (
-                !isAdmin(
-                    adminPlayer.name
-                )
-            ) {
-
-                socket.emit(
-                    "adminError",
-                    "شما ادمین نیستید!"
-                );
-
-                return;
-            }
-
-
-            const action =
-                String(
-                    data?.action || ""
-                );
-
-
-            // ==================================================
-            // رنگی کردن همه
-            // ==================================================
-
-            if (
-                action ===
-                "allColor"
-            ) {
-
-                Object.values(
-                    room.players
-                ).forEach(
-                    player => {
-
-                        player.rainbow =
-                            true;
-
-                    }
-                );
-
-
-                io.to(code).emit(
-                    "adminEffect",
-                    {
-
-                        action:
-                            "allColor"
-
-                    }
-                );
-
-
-                sendPlayers(code);
-
-                return;
-            }
-
-
-            // ==================================================
-            // بازیکن هدف
-            // ==================================================
-
-            const targetId =
-                String(
-                    data?.targetId || ""
-                );
-
-
-            const target =
-                room.players[
-                    targetId
-                ];
-
-
-            if (!target) {
-
-                socket.emit(
-                    "adminError",
-                    "بازیکن پیدا نشد!"
-                );
-
-                return;
-            }
-
-
-            // ==================================================
-            // پرواز
-            // ==================================================
-
-            if (
-                action ===
-                "fly"
-            ) {
-
-                target.flying =
-                    !target.flying;
-
-
-                io.to(code).emit(
-                    "adminEffect",
-                    {
-
-                        action:
-                            "fly",
-
-                        targetId:
-                            targetId,
-
-                        value:
-                            target.flying
-
-                    }
-                );
-
-
-                sendPlayers(code);
-
-                return;
-            }
-
-
-            // ==================================================
-            // رنگی شدن
-            // ==================================================
-
-            if (
-                action ===
-                "color"
-            ) {
-
-                target.rainbow =
-                    !target.rainbow;
-
-
-                io.to(code).emit(
-                    "adminEffect",
-                    {
-
-                        action:
-                            "color",
-
-                        targetId:
-                            targetId,
-
-                        value:
-                            target.rainbow
-
-                    }
-                );
-
-
-                sendPlayers(code);
-
-                return;
-            }
-
-
-            // ==================================================
-            // کشتن
-            // ==================================================
-
-            if (
-                action ===
-                "kill"
-            ) {
-
-                target.health =
-                    0;
-
-
-                io.to(code).emit(
-                    "adminEffect",
-                    {
-
-                        action:
-                            "kill",
-
-                        targetId:
-                            targetId
-
-                    }
-                );
-
-
-                sendPlayers(code);
-
-                return;
-            }
-
-
-            // ==================================================
-            // KICK
-            // ==================================================
-
-            if (
-                action ===
-                "kick"
-            ) {
-
-                const targetSocket =
-                    io.sockets.sockets.get(
-                        targetId
-                    );
-
-
-                if (!targetSocket) {
-                    return;
-                }
-
-
-                targetSocket.emit(
-                    "kicked",
-                    {
-
-                        reason:
-                            "توسط ادمین از بازی خارج شدید."
-
-                    }
-                );
-
-
-                targetSocket.leave(code);
-
-
-                delete room.players[
-                    targetId
-                ];
-
-
-                sendPlayers(code);
-
-
-                console.log(
-                    "KICK:",
-                    target.name,
-                    "by",
-                    adminPlayer.name
-                );
-
-
-                setTimeout(
-                    () => {
-
-                        try {
-
-                            targetSocket.disconnect(
-                                true
-                            );
-
-                        } catch (error) {
-
-                            console.log(
-                                "Kick disconnect error:",
-                                error
-                            );
-
-                        }
-
-                    },
-                    100
-                );
-
-
-                return;
-            }
+            sendPlayers(code);
 
         }
-    );
 
-
-    // ==================================================
-    // قطع اتصال
-    // ==================================================
-
-    socket.on(
-        "disconnect",
-        () => {
-
-            const code =
-                socket.roomCode;
-
-
-            if (
-                !code ||
-                !rooms[code]
-            ) {
-                return;
-            }
-
-
-            delete rooms[
-                code
-            ].players[
-                socket.id
-            ];
-
-
-            // اگر اتاق خالی شد
-            if (
-                Object.keys(
-                    rooms[code].players
-                ).length === 0
-            ) {
-
-                delete rooms[
-                    code
-                ];
-
-                console.log(
-                    "Room deleted:",
-                    code
-                );
-
-            }
-
-            else {
-
-                // اطلاع به بقیه
-                sendPlayers(
-                    code
-                );
-
-            }
-
-
-            console.log(
-                "Disconnected:",
-                socket.id
-            );
-
-        }
-    );
+        console.log(
+            "Disconnected:",
+            socket.id
+        );
+    });
 
 });
 
+app.get("/", (req, res) => {
+    res.sendFile(
+        __dirname + "/index.html"
+    );
+});
 
-// ==================================================
-// صفحه اصلی
-// ==================================================
+server.listen(PORT, () => {
 
-app.get(
-    "/",
-    (req, res) => {
+    console.log("");
+    console.log("==============================");
+    console.log("STICKMAN SERVER");
+    console.log(
+        "http://localhost:" + PORT
+    );
+    console.log("==============================");
+    console.log("");
 
-        res.sendFile(
-            __dirname +
-            "/index.html"
-        );
-
-    }
-);
-
-
-// ==================================================
-// شروع سرور
-// ==================================================
-
-server.listen(
-    PORT,
-    () => {
-
-        console.log("");
-        console.log(
-            "=============================="
-        );
-
-        console.log(
-            "       STICKMAN SERVER"
-        );
-
-        console.log(
-            "=============================="
-        );
-
-        console.log(
-            "PORT:",
-            PORT
-        );
-
-        console.log(
-            "http://localhost:" +
-            PORT
-        );
-
-        console.log(
-            "=============================="
-        );
-
-        console.log("");
-
-    }
-);
+});
