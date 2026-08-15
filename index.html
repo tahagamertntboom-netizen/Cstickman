@@ -1,166 +1,38 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
-
+<html>
 <head>
 <meta charset="UTF-8">
-
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0">
-
-<title>Stickman</title>
-
-<style>
-
-body{
-    margin:0;
-    min-height:100vh;
-
-    display:flex;
-    justify-content:center;
-    align-items:center;
-
-    font-family:Arial;
-
-    background:#111827;
-    color:white;
-}
-
-.box{
-    width:90%;
-    max-width:400px;
-
-    padding:30px;
-
-    background:#1f2937;
-
-    border-radius:20px;
-
-    text-align:center;
-}
-
-input{
-    width:100%;
-    padding:15px;
-
-    margin:10px 0;
-
-    box-sizing:border-box;
-
-    font-size:18px;
-}
-
-button{
-    width:100%;
-
-    padding:15px;
-
-    margin-top:10px;
-
-    border:0;
-
-    border-radius:10px;
-
-    background:#22c55e;
-
-    color:white;
-
-    font-size:18px;
-
-    font-weight:bold;
-}
-
-#lobby{
-    display:none;
-}
-
-</style>
+<title>Test</title>
 </head>
 
 <body>
 
-<div class="box">
-
-<div id="namePage">
-
-<h1>🎮 STICKMAN</h1>
-
-<input
-id="name"
-placeholder="اسمت را بنویس"
->
+<input id="name" placeholder="اسم">
 
 <button
-id="confirm"
->
-تأیید اسم
+type="button"
+id="testButton">
+تأیید
 </button>
 
-</div>
-
-
-<div id="lobby">
-
-<h1>
-سلام <span id="player"></span> 👋
-</h1>
-
-<button>
-🏠 ساخت اتاق
-</button>
-
-<button>
-🚪 ورود به اتاق
-</button>
-
-</div>
-
-</div>
-
+<div id="result"></div>
 
 <script>
 
-const confirmButton =
-document.getElementById("confirm");
+document
+.getElementById("testButton")
+.addEventListener("click", function(event){
 
-const nameInput =
-document.getElementById("name");
+    event.preventDefault();
 
-const namePage =
-document.getElementById("namePage");
+    document
+    .getElementById("result")
+    .textContent =
+    "دکمه کار کرد ✅";
 
-const lobby =
-document.getElementById("lobby");
-
-const player =
-document.getElementById("player");
-
-
-confirmButton.onclick = function(){
-
-    const name =
-    nameInput.value.trim();
-
-    if(name === ""){
-
-        alert("اسم را وارد کن!");
-
-        return;
-
-    }
-
-    player.innerText =
-    name;
-
-    namePage.style.display =
-    "none";
-
-    lobby.style.display =
-    "block";
-
-};
+});
 
 </script>
 
 </body>
-
 </html>
