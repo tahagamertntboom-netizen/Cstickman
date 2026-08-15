@@ -1,28 +1,34 @@
 <!DOCTYPE html>
 <html>
 <head>
+
 <title>Stickman Forest</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 
-body{
+*{
 margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
 overflow:hidden;
 background:#87ceeb;
-touch-action:none;
 }
 
 canvas{
 display:block;
+width:100vw;
+height:100vh;
 }
 
 .controls{
 position:fixed;
 bottom:20px;
-left:0;
-right:0;
+width:100%;
 text-align:center;
 }
 
@@ -30,11 +36,11 @@ button{
 font-size:30px;
 padding:15px 30px;
 margin:10px;
-border-radius:20px;
 border:0;
+border-radius:20px;
 background:#222;
 color:white;
-opacity:0.7;
+opacity:.7;
 }
 
 </style>
@@ -43,44 +49,56 @@ opacity:0.7;
 
 <body>
 
+
 <canvas id="game"></canvas>
 
 
 <div class="controls">
+
 <button id="left">⬅️</button>
 <button id="right">➡️</button>
+
 </div>
 
 
 
 <script>
 
+
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
 
 
+let W;
+let H;
+
+
 function resize(){
 
-canvas.width=window.innerWidth;
-canvas.height=window.innerHeight;
+W=window.innerWidth;
+H=window.innerHeight;
+
+
+canvas.width=W;
+canvas.height=H;
 
 }
 
+
 resize();
 
-window.onresize=resize;
+window.addEventListener("resize",resize);
 
 
 
 let player={
 
-x:canvas.width/2,
-
-y:canvas.height-150,
+x:500,
+y:0,
 
 name:"Taha",
 
-speed:6,
+speed:7,
 
 walk:0
 
@@ -89,7 +107,6 @@ walk:0
 
 
 let keys={};
-
 
 
 document.addEventListener("keydown",e=>{
@@ -107,18 +124,27 @@ keys[e.key]=false;
 
 
 
-// گوشی
-
-let moveLeft=false;
-let moveRight=false;
+let left=false;
+let right=false;
 
 
-left.ontouchstart=()=>moveLeft=true;
-left.ontouchend=()=>moveLeft=false;
+document.getElementById("left").ontouchstart=()=>{
+left=true;
+};
+
+document.getElementById("left").ontouchend=()=>{
+left=false;
+};
 
 
-right.ontouchstart=()=>moveRight=true;
-right.ontouchend=()=>moveRight=false;
+document.getElementById("right").ontouchstart=()=>{
+right=true;
+};
+
+document.getElementById("right").ontouchend=()=>{
+right=false;
+};
+
 
 
 
@@ -126,7 +152,7 @@ right.ontouchend=()=>moveRight=false;
 function update(){
 
 
-if(keys["a"]||keys["A"]||keys["ش"]||moveLeft){
+if(keys["a"] || keys["A"] || keys["ش"] || left){
 
 player.x-=player.speed;
 player.walk+=0.4;
@@ -135,7 +161,7 @@ player.walk+=0.4;
 
 
 
-if(keys["d"]||keys["D"]||keys["ی"]||moveRight){
+if(keys["d"] || keys["D"] || keys["ی"] || right){
 
 player.x+=player.speed;
 player.walk+=0.4;
@@ -143,91 +169,111 @@ player.walk+=0.4;
 }
 
 
+player.y=H-180;
+
+
 }
 
 
 
 
-function draw(){
 
-let w=canvas.width;
-let h=canvas.height;
+function forest(){
 
 
 
 // آسمان
 
-ctx.fillStyle="#87ceeb";
-ctx.fillRect(0,0,w,h);
+ctx.fillStyle="#75d7ff";
+ctx.fillRect(0,0,W,H);
+
 
 
 // خورشید
 
 ctx.fillStyle="yellow";
+
 ctx.beginPath();
+
 ctx.arc(100,100,50,0,Math.PI*2);
+
 ctx.fill();
 
 
 
 // زمین
 
-ctx.fillStyle="#3d9b42";
-ctx.fillRect(0,h-100,w,100);
+ctx.fillStyle="#35a94a";
+
+ctx.fillRect(0,H-100,W,100);
 
 
 
 
-// درخت‌ها
+// درخت ها
 
-for(let x=100;x<w;x+=250){
+for(let x=100;x<W;x+=250){
 
-ctx.fillStyle="#6b3515";
-ctx.fillRect(x,h-250,40,150);
+
+ctx.fillStyle="#704214";
+
+ctx.fillRect(
+x,
+H-270,
+50,
+170
+);
+
 
 
 ctx.fillStyle="green";
+
 ctx.beginPath();
-ctx.arc(x+20,h-270,80,0,Math.PI*2);
+
+ctx.arc(
+x+25,
+H-300,
+90,
+0,
+Math.PI*2
+);
+
 ctx.fill();
 
-}
-
-
-
-drawPlayer();
-
 
 }
 
 
+}
 
 
-function drawPlayer(){
+
+
+
+function playerDraw(){
 
 
 let x=player.x;
 let y=player.y;
 
 
-let move=Math.sin(player.walk)*20;
+let move=Math.sin(player.walk)*25;
 
 
 
 ctx.strokeStyle="black";
-ctx.lineWidth=6;
+ctx.lineWidth=7;
 
 
+// اسم
 
-// اسم بالاتر
-
-ctx.font="24px Arial";
 ctx.fillStyle="black";
+ctx.font="26px Arial";
 
 ctx.fillText(
 player.name,
-x-35,
-y-150
+x-40,
+y-170
 );
 
 
@@ -235,7 +281,15 @@ y-150
 // سر
 
 ctx.beginPath();
-ctx.arc(x,y-100,25,0,Math.PI*2);
+
+ctx.arc(
+x,
+y-120,
+30,
+0,
+Math.PI*2
+);
+
 ctx.stroke();
 
 
@@ -243,23 +297,37 @@ ctx.stroke();
 // بدن
 
 ctx.beginPath();
-ctx.moveTo(x,y-75);
-ctx.lineTo(x,y+10);
+
+ctx.moveTo(x,y-90);
+
+ctx.lineTo(x,y);
+
 ctx.stroke();
 
 
 
-// دست‌ها
+
+// دست ها
 
 ctx.beginPath();
 
-ctx.moveTo(x,y-45);
-ctx.lineTo(x-45,y+move);
+ctx.moveTo(x,y-60);
 
-ctx.moveTo(x,y-45);
-ctx.lineTo(x+45,y-move);
+ctx.lineTo(
+x-50,
+y-30+move
+);
+
+
+ctx.moveTo(x,y-60);
+
+ctx.lineTo(
+x+50,
+y-30-move
+);
 
 ctx.stroke();
+
 
 
 
@@ -267,32 +335,51 @@ ctx.stroke();
 
 ctx.beginPath();
 
-ctx.moveTo(x,y+10);
-ctx.lineTo(x-25,y+80+move);
 
-ctx.moveTo(x,y+10);
-ctx.lineTo(x+25,y+80-move);
+ctx.moveTo(x,y);
+
+ctx.lineTo(
+x-30,
+y+70+move
+);
+
+
+ctx.moveTo(x,y);
+
+ctx.lineTo(
+x+30,
+y+70-move
+);
+
 
 ctx.stroke();
 
 
+
 }
+
 
 
 
 
 function loop(){
 
+
 update();
 
-draw();
+forest();
+
+playerDraw();
+
 
 requestAnimationFrame(loop);
+
 
 }
 
 
 loop();
+
 
 </script>
 
