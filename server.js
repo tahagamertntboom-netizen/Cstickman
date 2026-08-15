@@ -1,110 +1,112 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
-
 const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 
 app.use(express.static(__dirname));
 
-
-// ==========================
-// اتاق‌ها
-// ==========================
-
 const rooms = {};
 
-
-// ساخت کد اتاق
-function makeRoomCode(){
-
+function createRoomCode() {
     let code;
 
-    do{
-
+    do {
         code = Math.floor(
             100000 + Math.random() * 900000
         ).toString();
-
-    }while(rooms[code]);
+    } while (rooms[code]);
 
     return code;
 }
 
+io.on("connection", (socket) => {
 
-// ==========================
-// Socket
-// ==========================
-
-io.on("connection",(socket)=>{
-
-    console.log("Player connected:",socket.id);
+    console.log("Connected:", socket.id);
 
 
-    // --------------------------
+    // =========================
     // ساخت اتاق
-    // --------------------------
+    // =========================
 
-    socket.on("createRoom",(playerName)=>{
+    socket.on("createRoom", (name) => {
 
-        const roomCode = makeRoomCode();
+        name = String(name || "").trim();
 
-        rooms[roomCode] = {
+        if (!name) {
+            socket.emit(
+                "roomError",
+                "اسم وارد نشده!"
+            );
+            return;
+        }
 
-            players: {
+        const code = createRoomCode();
 
-                [socket.id]: {
-
-                    id: socket.id,
-                    name: playerName
-
-                }
-
-            }
-
+        rooms[code] = {
+            players: {}
         };
 
+        rooms[code].players[socket.id] = {
+            id: socket.id,
+            name: name
+        };
 
-        socket.join(roomCode);
+        socket.join(code);
 
-        socket.roomCode = roomCode;
-        socket.playerName = playerName;
-
+        socket.roomCode = code;
+        socket.playerName = name;
 
         socket.emit(
             "roomCreated",
-            roomCode
+            code
         );
 
-
-        io.to(roomCode).emit(
+        io.to(code).emit(
             "roomPlayers",
             Object.values(
-                rooms[roomCode].players
+                rooms[code].players
             )
         );
 
+        console.log(
+            "Room created:",
+            code
+        );
     });
 
 
-    // --------------------------
+    // =========================
     // ورود به اتاق
-    // --------------------------
+    // =========================
 
     socket.on(
         "joinRoom",
-        ({roomCode,playerName})=>{
+        ({ roomCode, playerName }) => {
 
-            roomCode =
-                String(roomCode).trim();
+            const code =
+                String(roomCode || "").trim();
+
+            const name =
+                String(playerName || "").trim();
 
 
-            if(!rooms[roomCode]){
+            if (!name) {
+
+                socket.emit(
+                    "roomError",
+                    "اسم وارد نشده!"
+                );
+
+                return;
+            }
+
+
+            if (!rooms[code]) {
 
                 socket.emit(
                     "roomError",
@@ -112,39 +114,35 @@ io.on("connection",(socket)=>{
                 );
 
                 return;
-
             }
 
 
-            rooms[roomCode].players[
-                socket.id
-            ] = {
+            rooms[code].players[socket.id] = {
 
                 id: socket.id,
-                name: playerName
+
+                name: name
 
             };
 
 
-            socket.join(roomCode);
+            socket.join(code);
 
-            socket.roomCode =
-                roomCode;
+            socket.roomCode = code;
 
-            socket.playerName =
-                playerName;
+            socket.playerName = name;
 
 
             socket.emit(
                 "joinedRoom",
-                roomCode
+                code
             );
 
 
-            io.to(roomCode).emit(
+            io.to(code).emit(
                 "roomPlayers",
                 Object.values(
-                    rooms[roomCode].players
+                    rooms[code].players
                 )
             );
 
@@ -152,67 +150,54 @@ io.on("connection",(socket)=>{
     );
 
 
-    // --------------------------
-    // خروج بازیکن
-    // --------------------------
+    // =========================
+    // قطع اتصال
+    // =========================
 
-    socket.on("disconnect",()=>{
+    socket.on("disconnect", () => {
 
-        const roomCode =
+        const code =
             socket.roomCode;
 
 
-        if(
-            roomCode &&
-            rooms[roomCode]
-        ){
+        if (
+            code &&
+            rooms[code]
+        ) {
 
-            delete rooms[
-                roomCode
-            ].players[
-                socket.id
-            ];
+            delete rooms[code]
+                .players[socket.id];
 
 
-            io.to(roomCode).emit(
+            io.to(code).emit(
                 "roomPlayers",
                 Object.values(
-                    rooms[roomCode].players
+                    rooms[code].players
                 )
             );
 
 
-            // اگر اتاق خالی شد
-            if(
+            if (
                 Object.keys(
-                    rooms[roomCode].players
+                    rooms[code].players
                 ).length === 0
-            ){
+            ) {
 
-                delete rooms[roomCode];
+                delete rooms[code];
 
             }
 
         }
-
-
-        console.log(
-            "Player disconnected:",
-            socket.id
-        );
 
     });
 
 });
 
 
-app.get("/",(req,res)=>{
+app.get("/", (req, res) => {
 
     res.sendFile(
-        path.join(
-            __dirname,
-            "lobby.html"
-        )
+        __dirname + "/index.html"
     );
 
 });
@@ -220,9 +205,12 @@ app.get("/",(req,res)=>{
 
 server.listen(
     PORT,
-    ()=>{
+    () => {
+
         console.log(
-            `Server running on port ${PORT}`
+            "Server running on port " +
+            PORT
         );
+
     }
 );
