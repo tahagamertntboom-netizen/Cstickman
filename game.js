@@ -77,12 +77,6 @@ socket.on("connect", () => {
 
     me.id = socket.id;
 
-
-    /*
-       خیلی مهم:
-       این اتصال جدید دوباره وارد همان اتاق می‌شود.
-    */
-
     if (roomCode) {
 
         socket.emit("joinRoom", {
@@ -108,19 +102,15 @@ socket.on("players", (list) => {
         return;
     }
 
-
     list.forEach((player) => {
 
         if (!player || !player.id) {
             return;
         }
 
-
-        // خودمان را دوباره نساز
         if (player.id === socket.id) {
             return;
         }
-
 
         players[player.id] = {
 
@@ -179,7 +169,6 @@ socket.on("playerMoved", (data) => {
         return;
     }
 
-
     if (!players[data.id]) {
 
         players[data.id] = {
@@ -198,13 +187,11 @@ socket.on("playerMoved", (data) => {
 
     }
 
-
     if (typeof data.x === "number") {
 
         players[data.id].x = data.x;
 
     }
-
 
     if (typeof data.y === "number") {
 
@@ -517,7 +504,9 @@ function drawStickman(
     ctx.translate(x, y);
 
 
+    // =================================
     // سایه
+    // =================================
 
     ctx.beginPath();
 
@@ -537,7 +526,9 @@ function drawStickman(
     ctx.fill();
 
 
+    // =================================
     // سر
+    // =================================
 
     ctx.beginPath();
 
@@ -562,7 +553,9 @@ function drawStickman(
     ctx.stroke();
 
 
-    // چشم
+    // =================================
+    // چشم‌ها
+    // =================================
 
     ctx.fillStyle =
         "#111827";
@@ -594,7 +587,9 @@ function drawStickman(
     ctx.fill();
 
 
+    // =================================
     // بدن
+    // =================================
 
     ctx.beginPath();
 
@@ -621,7 +616,9 @@ function drawStickman(
     ctx.stroke();
 
 
+    // =================================
     // دست چپ
+    // =================================
 
     ctx.beginPath();
 
@@ -643,7 +640,9 @@ function drawStickman(
     ctx.stroke();
 
 
+    // =================================
     // دست راست
+    // =================================
 
     ctx.beginPath();
 
@@ -660,7 +659,9 @@ function drawStickman(
     ctx.stroke();
 
 
+    // =================================
     // پای چپ
+    // =================================
 
     ctx.beginPath();
 
@@ -677,7 +678,9 @@ function drawStickman(
     ctx.stroke();
 
 
+    // =================================
     // پای راست
+    // =================================
 
     ctx.beginPath();
 
@@ -694,32 +697,88 @@ function drawStickman(
     ctx.stroke();
 
 
-    // اسم
-
-    ctx.font =
-        "bold 16px Arial";
+    // =================================
+    // اسم و ADMIN
+    // =================================
 
     ctx.textAlign =
         "center";
+
+
+    /*
+       فقط برای ادمین:
+       نوشته ADMIN بالای اسم
+    */
+
+    if (admin === true) {
+
+        ctx.font =
+            "bold 14px Arial";
+
+        ctx.lineWidth = 4;
+
+        ctx.strokeStyle =
+            "#000000";
+
+        ctx.strokeText(
+            "👑 ADMIN",
+            0,
+            -88
+        );
+
+        ctx.fillStyle =
+            "#facc15";
+
+        ctx.fillText(
+            "👑 ADMIN",
+            0,
+            -88
+        );
+
+    }
+
+
+    /*
+       اسم ادمین رنگین‌کمانی
+    */
+
+    ctx.font =
+        "bold 17px Arial";
 
     ctx.lineWidth = 4;
 
     ctx.strokeStyle =
         "#000000";
 
+
     ctx.strokeText(
-        safeName +
-        (admin === true ? " 👑" : ""),
+        safeName,
         0,
         -68
     );
 
-    ctx.fillStyle =
-        "#ffffff";
+
+    if (admin === true) {
+
+        const hue =
+            (Date.now() / 8) % 360;
+
+
+        ctx.fillStyle =
+            `hsl(${hue}, 100%, 60%)`;
+
+    }
+
+    else {
+
+        ctx.fillStyle =
+            "#ffffff";
+
+    }
+
 
     ctx.fillText(
-        safeName +
-        (admin === true ? " 👑" : ""),
+        safeName,
         0,
         -68
     );
@@ -827,7 +886,7 @@ function drawWorld() {
 
 
 // =====================================
-// پنل ادمین
+// دکمه ADMIN
 // =====================================
 
 function createAdminButton() {
@@ -841,11 +900,6 @@ function createAdminButton() {
 
     }
 
-
-    /*
-       اگر game.html خودش دکمه دارد،
-       دکمه دوم نساز.
-    */
 
     const existingButton =
         document.getElementById(
