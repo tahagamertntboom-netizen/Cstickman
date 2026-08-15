@@ -1,12 +1,17 @@
 <!DOCTYPE html>
 <html lang="fa">
+
 <head>
+
 <meta charset="UTF-8">
 
 <meta name="viewport"
-content="width=device-width, initial-scale=1.0">
+content="width=device-width,
+initial-scale=1.0,
+maximum-scale=1.0,
+user-scalable=no">
 
-<title>Stickman Lobby</title>
+<title>Stickman</title>
 
 <style>
 
@@ -14,13 +19,27 @@ content="width=device-width, initial-scale=1.0">
     box-sizing:border-box;
 }
 
+html,
 body{
+
     margin:0;
+
+    width:100%;
+    min-height:100%;
+
+}
+
+body{
+
     min-height:100vh;
 
     display:flex;
+
     justify-content:center;
+
     align-items:center;
+
+    padding:20px;
 
     font-family:Arial,sans-serif;
 
@@ -28,80 +47,142 @@ body{
     linear-gradient(
         135deg,
         #0f172a,
+        #1e1b4b,
         #312e81
     );
 
     color:white;
+
 }
 
 .box{
-    width:90%;
+
+    width:100%;
+
     max-width:430px;
 
     padding:30px;
 
-    text-align:center;
-
-    background:#111827;
-
     border-radius:25px;
 
+    background:
+    rgba(15,23,42,.97);
+
     box-shadow:
-    0 20px 60px #0008;
+    0 20px 60px rgba(0,0,0,.5);
+
+    text-align:center;
+
 }
 
 h1{
-    font-size:38px;
+
+    margin:0 0 10px;
+
+    font-size:42px;
+
+}
+
+.subtitle{
+
+    color:#a5b4fc;
+
+    margin-bottom:25px;
+
 }
 
 input{
+
     width:100%;
 
-    padding:15px;
+    padding:16px;
 
-    margin:10px 0;
+    margin:8px 0;
 
     border:0;
-    border-radius:12px;
+
+    outline:none;
+
+    border-radius:13px;
 
     font-size:18px;
 
     text-align:center;
+
 }
 
 button{
+
     width:100%;
 
-    padding:15px;
+    padding:16px;
 
     margin-top:10px;
 
     border:0;
 
-    border-radius:12px;
+    border-radius:13px;
 
     font-size:18px;
 
     font-weight:bold;
 
     cursor:pointer;
+
 }
 
-#createButton{
+#confirmName{
+
     background:#22c55e;
+
     color:white;
+
 }
 
-#startButton{
+#createRoom{
+
+    background:#22c55e;
+
+    color:white;
+
+}
+
+#joinRoom{
+
+    background:#6366f1;
+
+    color:white;
+
+}
+
+#startGame{
+
     background:#f59e0b;
+
     color:white;
+
 }
 
-#room{
+#namePage{
+
+    display:block;
+
+}
+
+#lobbyPage{
+
     display:none;
+
+}
+
+#roomPage{
+
+    display:none;
+
 }
 
 .code{
+
     margin:20px 0;
 
     padding:20px;
@@ -110,55 +191,136 @@ button{
 
     border-radius:15px;
 
-    font-size:42px;
+    font-size:40px;
 
     font-weight:bold;
 
     letter-spacing:8px;
 
     color:#22c55e;
+
 }
 
 #error{
-    margin-top:15px;
+
+    min-height:25px;
+
+    margin-top:12px;
+
     color:#f87171;
+
+}
+
+.player{
+
+    padding:10px;
+
+    margin:6px 0;
+
+    background:#1e293b;
+
+    border-radius:10px;
+
 }
 
 </style>
+
 </head>
+
 
 <body>
 
+
 <div class="box">
+
 
 <h1>🎮 STICKMAN</h1>
 
-<div id="menu">
+
+<div class="subtitle">
+Multiplayer
+</div>
+
+
+<!-- =====================
+     صفحه اسم
+===================== -->
+
+<div id="namePage">
 
 <input
-    id="name"
+    id="playerName"
+    type="text"
     maxlength="20"
-    placeholder="اسم بازیکن"
+    autocomplete="off"
+    placeholder="اسم خودت را بنویس"
 >
 
-<button id="createButton">
-🏠 ساخت اتاق
+
+<button id="confirmName">
+
+✅ تأیید اسم
+
 </button>
+
 
 <div id="error"></div>
 
 </div>
 
 
-<div id="room">
+<!-- =====================
+     صفحه لابی
+===================== -->
+
+<div id="lobbyPage">
 
 <h2>
-🎉 اتاق ساخته شد!
+سلام <span id="showName"></span> 👋
 </h2>
 
+
+<button id="createRoom">
+
+🏠 ساخت اتاق
+
+</button>
+
+
+<input
+    id="roomInput"
+    type="text"
+    inputmode="numeric"
+    maxlength="6"
+    autocomplete="off"
+    placeholder="کد ۶ رقمی اتاق"
+>
+
+
+<button id="joinRoom">
+
+🚪 ورود به اتاق
+
+</button>
+
+</div>
+
+
+<!-- =====================
+     صفحه اتاق
+===================== -->
+
+<div id="roomPage">
+
+<h2>
+🎉 اتاق ساخته شد
+</h2>
+
+
 <p>
-کد اتاق را به دوستت بده:
+کد اتاق:
 </p>
+
 
 <div
     id="roomCode"
@@ -167,18 +329,32 @@ button{
 ------
 </div>
 
-<button id="startButton">
+
+<h3>
+👥 بازیکنان
+</h3>
+
+
+<div id="players"></div>
+
+
+<button id="startGame">
+
 🎮 ورود به بازی
+
 </button>
 
 </div>
+
 
 </div>
 
 
 <script src="/socket.io/socket.io.js"></script>
 
-<script src="/lobby.js"></script>
+<script src="./lobby.js"></script>
+
 
 </body>
+
 </html>
