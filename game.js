@@ -141,9 +141,7 @@ socket.on("players", (list) => {
     Object.keys(players).forEach((id) => {
 
         if (!currentIds.includes(id)) {
-
             delete players[id];
-
         }
 
     });
@@ -186,32 +184,44 @@ socket.on("playerMoved", (data) => {
 
 // =====================================
 // کنترل کیبورد
+// فارسی و انگلیسی هر دو کار می‌کنند
 // =====================================
 
 window.addEventListener("keydown", (e) => {
 
-    const key = e.key.toLowerCase();
+    // کلید فیزیکی A
+    // انگلیسی: A
+    // فارسی: ش
+    if (e.code === "KeyA") {
 
-    if (
-        e.key === "ArrowLeft" ||
-        key === "a"
-    ) {
         keys.left = true;
+
+        e.preventDefault();
     }
 
-    if (
-        e.key === "ArrowRight" ||
-        key === "d"
-    ) {
+
+    // کلید فیزیکی D
+    // انگلیسی: D
+    // فارسی: ی
+    if (e.code === "KeyD") {
+
         keys.right = true;
+
+        e.preventDefault();
     }
 
+
+    // پرش
+    // W / و / Space / فلش بالا
     if (
-        e.key === "ArrowUp" ||
-        key === "w" ||
-        e.key === " "
+        e.code === "KeyW" ||
+        e.code === "Space" ||
+        e.code === "ArrowUp"
     ) {
+
         jump();
+
+        e.preventDefault();
     }
 
 });
@@ -219,20 +229,21 @@ window.addEventListener("keydown", (e) => {
 
 window.addEventListener("keyup", (e) => {
 
-    const key = e.key.toLowerCase();
+    // A / ش
+    if (e.code === "KeyA") {
 
-    if (
-        e.key === "ArrowLeft" ||
-        key === "a"
-    ) {
         keys.left = false;
+
+        e.preventDefault();
     }
 
-    if (
-        e.key === "ArrowRight" ||
-        key === "d"
-    ) {
+
+    // D / ی
+    if (e.code === "KeyD") {
+
         keys.right = false;
+
+        e.preventDefault();
     }
 
 });
@@ -275,6 +286,13 @@ if (leftButton) {
         }
     );
 
+    leftButton.addEventListener(
+        "pointercancel",
+        () => {
+            keys.left = false;
+        }
+    );
+
 }
 
 
@@ -296,6 +314,13 @@ if (rightButton) {
 
     rightButton.addEventListener(
         "pointerleave",
+        () => {
+            keys.right = false;
+        }
+    );
+
+    rightButton.addEventListener(
+        "pointercancel",
         () => {
             keys.right = false;
         }
@@ -343,16 +368,21 @@ function jump() {
 
 function update() {
 
+    // چپ
     if (keys.left) {
 
         me.vx = -5;
 
     }
+
+    // راست
     else if (keys.right) {
 
         me.vx = 5;
 
     }
+
+    // توقف نرم
     else {
 
         me.vx *= 0.8;
@@ -386,6 +416,7 @@ function update() {
         me.onGround = true;
 
     }
+
     else {
 
         me.onGround = false;
@@ -393,22 +424,27 @@ function update() {
     }
 
 
-    // محدودیت صفحه
+    // محدودیت چپ
 
     if (me.x < 30) {
         me.x = 30;
     }
 
+
+    // محدودیت راست
+
     if (
         me.x >
         canvas.width - 30
     ) {
+
         me.x =
             canvas.width - 30;
+
     }
 
 
-    // ارسال حرکت
+    // ارسال حرکت به سرور
 
     socket.emit(
         "move",
@@ -706,7 +742,7 @@ function drawStickman(
 
 
 // =====================================
-// آسمان و زمین
+// دنیا
 // =====================================
 
 function drawWorld() {
@@ -793,7 +829,7 @@ function drawWorld() {
 
 
 // =====================================
-// رسم همه چیز
+// رسم
 // =====================================
 
 function draw() {
