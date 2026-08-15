@@ -2,97 +2,209 @@
 <html lang="fa">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+
+<meta name="viewport"
+      content="width=device-width,
+      initial-scale=1.0,
+      maximum-scale=1.0,
+      user-scalable=no,
+      viewport-fit=cover">
 
 <title>Stickman Forest</title>
 
 <style>
+
 *{
     margin:0;
     padding:0;
     box-sizing:border-box;
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-touch-callout:none;
 }
 
 html,body{
     width:100%;
     height:100%;
     overflow:hidden;
+    position:fixed;
+    inset:0;
     background:#75d7ff;
-    font-family:Arial,sans-serif;
     touch-action:none;
+    overscroll-behavior:none;
+}
+
+body{
+    font-family:Arial,sans-serif;
 }
 
 canvas{
     display:block;
     width:100vw;
     height:100vh;
+    touch-action:none;
 }
+
+/* دکمه‌های موبایل */
+
+.controls{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:
+        max(18px, env(safe-area-inset-bottom));
+
+    display:flex;
+    justify-content:flex-start;
+
+    padding-left:20px;
+
+    z-index:50;
+
+    pointer-events:none;
+}
+
+.control-group{
+    display:flex;
+    gap:12px;
+    pointer-events:auto;
+}
+
+.control{
+    width:70px;
+    height:70px;
+
+    border:0;
+    border-radius:20px;
+
+    background:rgba(20,20,20,.65);
+    color:white;
+
+    font-size:30px;
+
+    touch-action:none;
+
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-touch-callout:none;
+
+    -webkit-tap-highlight-color:transparent;
+
+    outline:none;
+}
+
+.control:active{
+    transform:scale(.94);
+    background:rgba(50,50,50,.85);
+}
+
+
+/* ادمین */
 
 #adminButton{
     display:none;
+
     position:fixed;
-    top:15px;
+
+    top:
+        max(15px, env(safe-area-inset-top));
+
     right:15px;
-    z-index:20;
+
+    z-index:100;
+
     padding:12px 18px;
+
     border:0;
     border-radius:14px;
+
     background:#7c3aed;
     color:white;
+
     font-size:16px;
     font-weight:bold;
+
+    touch-action:manipulation;
 }
+
+
+/* پنل ادمین */
 
 #adminPanel{
     display:none;
+
     position:fixed;
-    top:65px;
+
+    top:70px;
     right:15px;
+
     width:280px;
     max-width:calc(100vw - 30px);
-    z-index:19;
+
+    z-index:90;
+
     padding:18px;
+
     border-radius:18px;
-    background:#18181b;
+
+    background:rgba(20,20,25,.96);
     color:white;
+
     text-align:center;
+
     box-shadow:0 10px 35px #0008;
 }
 
 .adminBtn{
     width:100%;
+
     padding:12px;
+
     margin:5px 0;
+
     border:0;
     border-radius:10px;
+
     background:#333;
+
     color:white;
+
     font-size:15px;
+
+    touch-action:manipulation;
 }
 
 .close{
     background:#b91c1c;
 }
 
-.controls{
-    position:fixed;
-    bottom:20px;
-    left:0;
-    right:0;
-    display:flex;
-    justify-content:space-between;
-    padding:0 20px;
-    z-index:10;
+
+/* موبایل */
+
+@media(max-width:700px){
+
+    .control{
+        width:64px;
+        height:64px;
+        font-size:27px;
+    }
+
+    #adminButton{
+        font-size:14px;
+        padding:10px 14px;
+    }
+
 }
 
-.control{
-    width:65px;
-    height:65px;
-    border:0;
-    border-radius:18px;
-    background:#222b;
-    color:white;
-    font-size:28px;
+
+/* کامپیوتر */
+
+@media(min-width:701px){
+
+    .controls{
+        display:none;
+    }
+
 }
 
 </style>
@@ -102,7 +214,11 @@ canvas{
 
 <canvas id="game"></canvas>
 
-<button id="adminButton">⚡ ADMIN</button>
+
+<button id="adminButton">
+⚡ ADMIN
+</button>
+
 
 <div id="adminPanel">
 
@@ -136,46 +252,102 @@ canvas{
 
 </div>
 
+
 <div class="controls">
 
-    <button class="control" id="left">⬅️</button>
+    <div class="control-group">
 
-    <button class="control" id="right">➡️</button>
+        <button
+            class="control"
+            id="left"
+            type="button">
+            ⬅️
+        </button>
+
+        <button
+            class="control"
+            id="right"
+            type="button">
+            ➡️
+        </button>
+
+    </div>
 
 </div>
 
 
 <script>
 
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+const canvas =
+    document.getElementById("game");
 
-let W = window.innerWidth;
-let H = window.innerHeight;
+const ctx =
+    canvas.getContext("2d");
+
+
+/* =========================
+   صفحه
+========================= */
+
+let W = 0;
+let H = 0;
 
 function resize(){
 
     W = window.innerWidth;
     H = window.innerHeight;
 
-    canvas.width = W;
-    canvas.height = H;
+    const dpr =
+        Math.min(
+            window.devicePixelRatio || 1,
+            2
+        );
+
+    canvas.width =
+        Math.floor(W * dpr);
+
+    canvas.height =
+        Math.floor(H * dpr);
+
+    canvas.style.width =
+        W + "px";
+
+    canvas.style.height =
+        H + "px";
+
+    ctx.setTransform(
+        dpr,
+        0,
+        0,
+        dpr,
+        0,
+        0
+    );
 
 }
 
 resize();
 
-window.addEventListener("resize",resize);
+window.addEventListener(
+    "resize",
+    resize
+);
 
 
-/* اسم ادمین */
+/* =========================
+   اسم
+========================= */
 
-const PLAYER_NAME = "tahagamertnt";
+const PLAYER_NAME =
+    "tahagamertnt";
 
-const ADMIN_NAME = "tahagamertnt";
+const ADMIN_NAME =
+    "tahagamertnt";
 
 
-/* بازیکن */
+/* =========================
+   بازیکن
+========================= */
 
 let player = {
 
@@ -192,27 +364,38 @@ let player = {
 };
 
 
-/* کیبورد */
+/* =========================
+   کیبورد
+========================= */
 
 let keys = {};
 
-document.addEventListener("keydown",function(e){
+document.addEventListener(
+    "keydown",
+    function(e){
 
-    keys[e.key] = true;
+        keys[e.key] = true;
 
-});
+    }
+);
 
-document.addEventListener("keyup",function(e){
+document.addEventListener(
+    "keyup",
+    function(e){
 
-    keys[e.key] = false;
+        keys[e.key] = false;
 
-});
+    }
+);
 
 
-/* گوشی */
+/* =========================
+   موبایل
+========================= */
 
-let left = false;
-let right = false;
+let moveLeft = false;
+let moveRight = false;
+
 
 const leftButton =
     document.getElementById("left");
@@ -221,72 +404,151 @@ const rightButton =
     document.getElementById("right");
 
 
-function startLeft(e){
+/* لمس مدرن */
+
+function leftStart(e){
 
     e.preventDefault();
-    left = true;
+
+    moveLeft = true;
+
+    if(e.pointerId !== undefined){
+
+        try{
+            leftButton.setPointerCapture(
+                e.pointerId
+            );
+        }catch(err){}
+
+    }
 
 }
 
-function stopLeft(e){
+
+function leftEnd(e){
 
     e.preventDefault();
-    left = false;
+
+    moveLeft = false;
 
 }
 
-function startRight(e){
+
+function rightStart(e){
 
     e.preventDefault();
-    right = true;
+
+    moveRight = true;
+
+    if(e.pointerId !== undefined){
+
+        try{
+            rightButton.setPointerCapture(
+                e.pointerId
+            );
+        }catch(err){}
+
+    }
 
 }
 
-function stopRight(e){
+
+function rightEnd(e){
 
     e.preventDefault();
-    right = false;
+
+    moveRight = false;
 
 }
 
+
+/* pointer */
 
 leftButton.addEventListener(
-    "touchstart",
-    startLeft,
+    "pointerdown",
+    leftStart,
     {passive:false}
 );
 
 leftButton.addEventListener(
-    "touchend",
-    stopLeft,
+    "pointerup",
+    leftEnd,
     {passive:false}
 );
 
 leftButton.addEventListener(
-    "touchcancel",
-    stopLeft
+    "pointercancel",
+    leftEnd,
+    {passive:false}
+);
+
+leftButton.addEventListener(
+    "pointerleave",
+    leftEnd,
+    {passive:false}
 );
 
 
 rightButton.addEventListener(
-    "touchstart",
-    startRight,
+    "pointerdown",
+    rightStart,
     {passive:false}
 );
 
 rightButton.addEventListener(
-    "touchend",
-    stopRight,
+    "pointerup",
+    rightEnd,
     {passive:false}
 );
 
 rightButton.addEventListener(
-    "touchcancel",
-    stopRight
+    "pointercancel",
+    rightEnd,
+    {passive:false}
+);
+
+rightButton.addEventListener(
+    "pointerleave",
+    rightEnd,
+    {passive:false}
 );
 
 
-/* حرکت */
+/* جلوگیری از منوی نگه داشتن */
+
+document.addEventListener(
+    "contextmenu",
+    function(e){
+
+        e.preventDefault();
+
+    }
+);
+
+
+document.addEventListener(
+    "selectstart",
+    function(e){
+
+        e.preventDefault();
+
+    }
+);
+
+
+document.addEventListener(
+    "dragstart",
+    function(e){
+
+        e.preventDefault();
+
+    }
+);
+
+
+/* =========================
+   حرکت
+========================= */
 
 function update(){
 
@@ -297,12 +559,14 @@ function update(){
         keys["a"] ||
         keys["A"] ||
         keys["ش"] ||
-        left
+        moveLeft
     ){
 
-        player.x -= player.speed;
+        player.x -=
+            player.speed;
 
-        player.walk += 0.35;
+        player.walk +=
+            0.35;
 
         moving = true;
 
@@ -313,12 +577,14 @@ function update(){
         keys["d"] ||
         keys["D"] ||
         keys["ی"] ||
-        right
+        moveRight
     ){
 
-        player.x += player.speed;
+        player.x +=
+            player.speed;
 
-        player.walk += 0.35;
+        player.walk +=
+            0.35;
 
         moving = true;
 
@@ -346,12 +612,15 @@ function update(){
     }
 
 
-    player.y = H - 180;
+    player.y =
+        H - 180;
 
 }
 
 
-/* جنگل */
+/* =========================
+   جنگل
+========================= */
 
 function drawForest(){
 
@@ -385,7 +654,8 @@ function drawForest(){
 
     /* خورشید */
 
-    ctx.fillStyle = "#ffd83d";
+    ctx.fillStyle =
+        "#ffd83d";
 
     ctx.beginPath();
 
@@ -402,7 +672,8 @@ function drawForest(){
 
     /* زمین */
 
-    ctx.fillStyle = "#3fa447";
+    ctx.fillStyle =
+        "#3fa447";
 
     ctx.fillRect(
         0,
@@ -412,7 +683,8 @@ function drawForest(){
     );
 
 
-    ctx.fillStyle = "#268631";
+    ctx.fillStyle =
+        "#268631";
 
     ctx.fillRect(
         0,
@@ -440,11 +712,14 @@ function drawForest(){
 }
 
 
-/* درخت */
+/* =========================
+   درخت
+========================= */
 
 function drawTree(x,y){
 
-    ctx.fillStyle = "#704214";
+    ctx.fillStyle =
+        "#704214";
 
     ctx.fillRect(
         x,
@@ -454,7 +729,8 @@ function drawTree(x,y){
     );
 
 
-    ctx.fillStyle = "#238b35";
+    ctx.fillStyle =
+        "#238b35";
 
     ctx.beginPath();
 
@@ -497,29 +773,43 @@ function drawTree(x,y){
 }
 
 
-/* استیکمن */
+/* =========================
+   استیکمن
+========================= */
 
 function drawPlayer(){
 
-    let x = player.x;
-    let y = player.y;
+    let x =
+        player.x;
+
+    let y =
+        player.y;
 
     let move =
-        Math.sin(player.walk) * 25;
+        Math.sin(
+            player.walk
+        ) * 25;
 
 
-    ctx.strokeStyle = "#111";
+    ctx.strokeStyle =
+        "#111";
+
     ctx.lineWidth = 7;
-    ctx.lineCap = "round";
+
+    ctx.lineCap =
+        "round";
 
 
     /* اسم */
 
-    ctx.fillStyle = "#111";
+    ctx.fillStyle =
+        "#111";
 
-    ctx.font = "bold 23px Arial";
+    ctx.font =
+        "bold 23px Arial";
 
-    ctx.textAlign = "center";
+    ctx.textAlign =
+        "center";
 
     ctx.fillText(
         PLAYER_NAME,
@@ -594,7 +884,7 @@ function drawPlayer(){
     ctx.stroke();
 
 
-    /* پای چپ */
+    /* پا چپ */
 
     ctx.beginPath();
 
@@ -611,7 +901,7 @@ function drawPlayer(){
     ctx.stroke();
 
 
-    /* پای راست */
+    /* پا راست */
 
     ctx.beginPath();
 
@@ -628,28 +918,35 @@ function drawPlayer(){
     ctx.stroke();
 
 
-    ctx.textAlign = "left";
+    ctx.textAlign =
+        "left";
 
 }
 
 
 /* =========================
-   ADMIN
+   ادمین
 ========================= */
 
 const adminButton =
-    document.getElementById("adminButton");
+    document.getElementById(
+        "adminButton"
+    );
 
 const adminPanel =
-    document.getElementById("adminPanel");
+    document.getElementById(
+        "adminPanel"
+    );
 
 const adminName =
-    document.getElementById("adminName");
+    document.getElementById(
+        "adminName"
+    );
 
 
-/* مستقیم بررسی می‌کنیم */
-
-if(PLAYER_NAME === ADMIN_NAME){
+if(
+    PLAYER_NAME === ADMIN_NAME
+){
 
     adminButton.style.display =
         "block";
@@ -660,12 +957,15 @@ if(PLAYER_NAME === ADMIN_NAME){
 }
 
 
-adminButton.onclick = function(){
+adminButton.addEventListener(
+    "click",
+    function(){
 
-    adminPanel.style.display =
-        "block";
+        adminPanel.style.display =
+            "block";
 
-};
+    }
+);
 
 
 function closeAdmin(){
@@ -679,7 +979,9 @@ function closeAdmin(){
 function adminMessage(){
 
     let msg =
-        prompt("📢 پیام ادمین:");
+        prompt(
+            "📢 پیام ادمین:"
+        );
 
     if(msg){
 
@@ -703,21 +1005,15 @@ function changeSpeed(){
 
     if(value !== null){
 
-        let number =
+        let n =
             Number(value);
 
         if(
-            number > 0 &&
-            number <= 50
+            n > 0 &&
+            n <= 50
         ){
 
-            player.speed =
-                number;
-
-            alert(
-                "سرعت شد: " +
-                number
-            );
+            player.speed = n;
 
         }
 
@@ -744,24 +1040,22 @@ function teleport(){
     player.x =
         W / 2;
 
-    alert(
-        "📍 تلپورت شدی!"
-    );
-
 }
 
 
 let night = false;
 
-
 function nightMode(){
 
-    night = !night;
+    night =
+        !night;
 
 }
 
 
-/* حلقه بازی */
+/* =========================
+   بازی
+========================= */
 
 function gameLoop(){
 
