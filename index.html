@@ -11,7 +11,7 @@ initial-scale=1.0,
 maximum-scale=1.0,
 user-scalable=no">
 
-<title>Stickman</title>
+<title>Stickman Lobby</title>
 
 <style>
 
@@ -19,14 +19,10 @@ user-scalable=no">
     box-sizing:border-box;
 }
 
-html,
-body{
-
+html,body{
     margin:0;
-
     width:100%;
     min-height:100%;
-
 }
 
 body{
@@ -34,9 +30,7 @@ body{
     min-height:100vh;
 
     display:flex;
-
     justify-content:center;
-
     align-items:center;
 
     padding:20px;
@@ -52,27 +46,23 @@ body{
     );
 
     color:white;
-
 }
 
 .box{
 
     width:100%;
-
     max-width:430px;
 
     padding:30px;
 
     border-radius:25px;
 
-    background:
-    rgba(15,23,42,.97);
+    background:#111827;
 
     box-shadow:
     0 20px 60px rgba(0,0,0,.5);
 
     text-align:center;
-
 }
 
 h1{
@@ -80,7 +70,6 @@ h1{
     margin:0 0 10px;
 
     font-size:42px;
-
 }
 
 .subtitle{
@@ -88,7 +77,6 @@ h1{
     color:#a5b4fc;
 
     margin-bottom:25px;
-
 }
 
 input{
@@ -108,7 +96,6 @@ input{
     font-size:18px;
 
     text-align:center;
-
 }
 
 button{
@@ -128,7 +115,6 @@ button{
     font-weight:bold;
 
     cursor:pointer;
-
 }
 
 #confirmName{
@@ -136,7 +122,6 @@ button{
     background:#22c55e;
 
     color:white;
-
 }
 
 #createRoom{
@@ -144,7 +129,6 @@ button{
     background:#22c55e;
 
     color:white;
-
 }
 
 #joinRoom{
@@ -152,7 +136,6 @@ button{
     background:#6366f1;
 
     color:white;
-
 }
 
 #startGame{
@@ -160,25 +143,21 @@ button{
     background:#f59e0b;
 
     color:white;
-
 }
 
 #namePage{
 
     display:block;
-
 }
 
 #lobbyPage{
 
     display:none;
-
 }
 
 #roomPage{
 
     display:none;
-
 }
 
 .code{
@@ -198,7 +177,6 @@ button{
     letter-spacing:8px;
 
     color:#22c55e;
-
 }
 
 #error{
@@ -208,7 +186,6 @@ button{
     margin-top:12px;
 
     color:#f87171;
-
 }
 
 .player{
@@ -220,7 +197,6 @@ button{
     background:#1e293b;
 
     border-radius:10px;
-
 }
 
 </style>
@@ -234,17 +210,17 @@ button{
 <div class="box">
 
 
-<h1>🎮 STICKMAN</h1>
+<h1>
+🎮 STICKMAN
+</h1>
 
 
 <div class="subtitle">
-Multiplayer
+Multiplayer Lobby
 </div>
 
 
-<!-- =====================
-     صفحه اسم
-===================== -->
+<!-- صفحه اول -->
 
 <div id="namePage">
 
@@ -257,10 +233,11 @@ Multiplayer
 >
 
 
-<button id="confirmName">
-
+<button
+    id="confirmName"
+    type="button"
+>
 ✅ تأیید اسم
-
 </button>
 
 
@@ -269,9 +246,7 @@ Multiplayer
 </div>
 
 
-<!-- =====================
-     صفحه لابی
-===================== -->
+<!-- صفحه لابی -->
 
 <div id="lobbyPage">
 
@@ -280,10 +255,11 @@ Multiplayer
 </h2>
 
 
-<button id="createRoom">
-
+<button
+    id="createRoom"
+    type="button"
+>
 🏠 ساخت اتاق
-
 </button>
 
 
@@ -292,23 +268,21 @@ Multiplayer
     type="text"
     inputmode="numeric"
     maxlength="6"
-    autocomplete="off"
     placeholder="کد ۶ رقمی اتاق"
 >
 
 
-<button id="joinRoom">
-
+<button
+    id="joinRoom"
+    type="button"
+>
 🚪 ورود به اتاق
-
 </button>
 
 </div>
 
 
-<!-- =====================
-     صفحه اتاق
-===================== -->
+<!-- صفحه اتاق -->
 
 <div id="roomPage">
 
@@ -338,10 +312,11 @@ Multiplayer
 <div id="players"></div>
 
 
-<button id="startGame">
-
+<button
+    id="startGame"
+    type="button"
+>
 🎮 ورود به بازی
-
 </button>
 
 </div>
@@ -351,6 +326,116 @@ Multiplayer
 
 
 <script src="/socket.io/socket.io.js"></script>
+
+
+<script>
+
+/* =========================
+   صفحه اسم
+========================= */
+
+const namePage =
+    document.getElementById(
+        "namePage"
+    );
+
+const lobbyPage =
+    document.getElementById(
+        "lobbyPage"
+    );
+
+const roomPage =
+    document.getElementById(
+        "roomPage"
+    );
+
+
+const playerName =
+    document.getElementById(
+        "playerName"
+    );
+
+const showName =
+    document.getElementById(
+        "showName"
+    );
+
+const error =
+    document.getElementById(
+        "error"
+    );
+
+
+const confirmName =
+    document.getElementById(
+        "confirmName"
+    );
+
+
+/* =========================
+   تأیید اسم
+========================= */
+
+confirmName.onclick =
+function(){
+
+    const name =
+        playerName.value.trim();
+
+
+    if(name === ""){
+
+        error.textContent =
+            "اول اسمت را بنویس!";
+
+        return;
+
+    }
+
+
+    localStorage.setItem(
+        "player",
+        name
+    );
+
+
+    showName.textContent =
+        name;
+
+
+    error.textContent =
+        "";
+
+
+    namePage.style.display =
+        "none";
+
+
+    lobbyPage.style.display =
+        "block";
+
+};
+
+
+/* =========================
+   Enter
+========================= */
+
+playerName.addEventListener(
+    "keydown",
+    function(event){
+
+        if(event.key === "Enter"){
+
+            confirmName.click();
+
+        }
+
+    }
+);
+
+</script>
+
 
 <script src="./lobby.js"></script>
 
