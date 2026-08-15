@@ -8,11 +8,10 @@ canvas.height = window.innerHeight;
 
 
 // =====================================
-// اطلاعات
+// اطلاعات بازیکن
 // =====================================
 
-const savedName =
-    localStorage.getItem("player");
+const savedName = localStorage.getItem("player");
 
 const myName =
     savedName &&
@@ -33,27 +32,16 @@ const isAdmin =
 // =====================================
 
 const me = {
-
     id: "",
-
     name: myName,
-
     x: 250,
-
     y: 300,
-
     vx: 0,
-
     vy: 0,
-
     health: 100,
-
     flying: false,
-
     rainbow: isAdmin,
-
     onGround: false
-
 };
 
 
@@ -85,11 +73,8 @@ socket.on("connect", () => {
     if (roomCode) {
 
         socket.emit("joinRoom", {
-
             roomCode: roomCode,
-
             playerName: myName
-
         });
 
     }
@@ -98,24 +83,18 @@ socket.on("connect", () => {
 
 
 // =====================================
-// بازیکنان اتاق
+// لیست بازیکنان
 // =====================================
 
 socket.on("players", (list) => {
 
-    if (!Array.isArray(list)) {
-        return;
-    }
+    if (!Array.isArray(list)) return;
 
     list.forEach((player) => {
 
-        if (!player || !player.id) {
-            return;
-        }
+        if (!player || !player.id) return;
 
-        if (player.id === socket.id) {
-            return;
-        }
+        if (player.id === socket.id) return;
 
         players[player.id] = {
 
@@ -153,26 +132,18 @@ socket.on("players", (list) => {
     });
 
 
-    const ids =
-        list
-            .filter(
-                p => p && p.id
-            )
-            .map(
-                p => p.id
-            );
+    const ids = list
+        .filter(p => p && p.id)
+        .map(p => p.id);
 
 
-    Object.keys(players)
-        .forEach((id) => {
+    Object.keys(players).forEach((id) => {
 
-            if (!ids.includes(id)) {
+        if (!ids.includes(id)) {
+            delete players[id];
+        }
 
-                delete players[id];
-
-            }
-
-        });
+    });
 
 });
 
@@ -183,29 +154,19 @@ socket.on("players", (list) => {
 
 socket.on("playerMoved", (data) => {
 
-    if (!data || !data.id) {
-        return;
-    }
-
+    if (!data || !data.id) return;
 
     if (!players[data.id]) {
 
         players[data.id] = {
 
             id: data.id,
-
             name: "Player",
-
             admin: false,
-
             x: 300,
-
             y: 400,
-
             health: 100,
-
             flying: false,
-
             rainbow: false
 
         };
@@ -213,24 +174,79 @@ socket.on("playerMoved", (data) => {
     }
 
 
-    if (
-        typeof data.x ===
-        "number"
-    ) {
+    if (typeof data.x === "number") {
+        players[data.id].x = data.x;
+    }
 
-        players[data.id].x =
-            data.x;
+    if (typeof data.y === "number") {
+        players[data.id].y = data.y;
+    }
 
+});
+
+
+// =====================================
+// قابلیت‌های ادمین
+// =====================================
+
+socket.on("adminEffect", (data) => {
+
+    if (!data) return;
+
+    const targetId = data.targetId;
+
+
+    // رنگی کردن همه
+
+    if (data.action === "allColor") {
+
+        me.rainbow = true;
+
+        Object.values(players).forEach(player => {
+            player.rainbow = true;
+        });
+
+        return;
     }
 
 
-    if (
-        typeof data.y ===
-        "number"
-    ) {
+    // خودمان
 
-        players[data.id].y =
-            data.y;
+    if (targetId === socket.id) {
+
+        if (data.action === "fly") {
+            me.flying = data.value === true;
+        }
+
+        if (data.action === "color") {
+            me.rainbow = data.value === true;
+        }
+
+        if (data.action === "kill") {
+            me.health = 0;
+        }
+
+        return;
+    }
+
+
+    // بازیکن دیگر
+
+    if (players[targetId]) {
+
+        if (data.action === "fly") {
+            players[targetId].flying =
+                data.value === true;
+        }
+
+        if (data.action === "color") {
+            players[targetId].rainbow =
+                data.value === true;
+        }
+
+        if (data.action === "kill") {
+            players[targetId].health = 0;
+        }
 
     }
 
@@ -238,261 +254,94 @@ socket.on("playerMoved", (data) => {
 
 
 // =====================================
-// نتیجه قابلیت ادمین
+// اخراج
 // =====================================
 
-socket.on(
-    "adminEffect",
-    (data) => {
+socket.on("kicked", (data) => {
 
-        if (!data) {
-            return;
-        }
+    alert(
+        data && data.reason
+            ? data.reason
+            : "از بازی خارج شدید."
+    );
 
+    window.location.href = "/";
 
-        const targetId =
-            data.targetId;
-
-
-        // -------------------------------
-        // رنگی کردن همه
-        // -------------------------------
-
-        if (
-            data.action ===
-            "allColor"
-        ) {
-
-            me.rainbow = true;
-
-
-            Object.values(players)
-                .forEach(
-                    player => {
-
-                        player.rainbow =
-                            true;
-
-                    }
-                );
-
-
-            return;
-
-        }
-
-
-        // -------------------------------
-        // اگر هدف خودمان هستیم
-        // -------------------------------
-
-        if (
-            targetId ===
-            socket.id
-        ) {
-
-            if (
-                data.action ===
-                "fly"
-            ) {
-
-                me.flying =
-                    data.value === true;
-
-            }
-
-
-            if (
-                data.action ===
-                "color"
-            ) {
-
-                me.rainbow =
-                    data.value === true;
-
-            }
-
-
-            if (
-                data.action ===
-                "kill"
-            ) {
-
-                me.health = 0;
-
-            }
-
-
-            return;
-
-        }
-
-
-        // -------------------------------
-        // اگر هدف بازیکن دیگر است
-        // -------------------------------
-
-        if (
-            players[targetId]
-        ) {
-
-            if (
-                data.action ===
-                "fly"
-            ) {
-
-                players[targetId].flying =
-                    data.value === true;
-
-            }
-
-
-            if (
-                data.action ===
-                "color"
-            ) {
-
-                players[targetId].rainbow =
-                    data.value === true;
-
-            }
-
-
-            if (
-                data.action ===
-                "kill"
-            ) {
-
-                players[targetId].health =
-                    0;
-
-            }
-
-        }
-
-    }
-);
-
-
-// =====================================
-// اخراج شدن
-// =====================================
-
-socket.on(
-    "kicked",
-    (data) => {
-
-        alert(
-            data &&
-            data.reason
-                ? data.reason
-                : "از بازی خارج شدید."
-        );
-
-
-        window.location.href =
-            "/";
-
-    }
-);
+});
 
 
 // =====================================
 // خطای ادمین
 // =====================================
 
-socket.on(
-    "adminError",
-    (message) => {
+socket.on("adminError", (message) => {
 
-        alert(
-            message ||
-            "خطای ادمین"
-        );
+    alert(
+        message || "خطای ادمین"
+    );
 
-    }
-);
+});
 
 
 // =====================================
 // کیبورد
 // =====================================
 
-window.addEventListener(
-    "keydown",
-    (e) => {
+window.addEventListener("keydown", (e) => {
 
-        const key =
-            e.key.toLowerCase();
+    const key = e.key.toLowerCase();
 
-
-        if (
-            e.key === "ArrowLeft" ||
-            key === "a"
-        ) {
-
-            keys.left = true;
-
-        }
-
-
-        if (
-            e.key === "ArrowRight" ||
-            key === "d"
-        ) {
-
-            keys.right = true;
-
-        }
-
-
-        if (
-            e.key === "ArrowUp" ||
-            key === "w" ||
-            e.key === " "
-        ) {
-
-            jump();
-
-        }
-
+    if (
+        e.key === "ArrowLeft" ||
+        key === "a"
+    ) {
+        keys.left = true;
     }
-);
 
 
-window.addEventListener(
-    "keyup",
-    (e) => {
-
-        const key =
-            e.key.toLowerCase();
-
-
-        if (
-            e.key === "ArrowLeft" ||
-            key === "a"
-        ) {
-
-            keys.left = false;
-
-        }
-
-
-        if (
-            e.key === "ArrowRight" ||
-            key === "d"
-        ) {
-
-            keys.right = false;
-
-        }
-
+    if (
+        e.key === "ArrowRight" ||
+        key === "d"
+    ) {
+        keys.right = true;
     }
-);
+
+
+    if (
+        e.key === "ArrowUp" ||
+        key === "w" ||
+        e.key === " "
+    ) {
+        jump();
+    }
+
+});
+
+
+window.addEventListener("keyup", (e) => {
+
+    const key = e.key.toLowerCase();
+
+    if (
+        e.key === "ArrowLeft" ||
+        key === "a"
+    ) {
+        keys.left = false;
+    }
+
+
+    if (
+        e.key === "ArrowRight" ||
+        key === "d"
+    ) {
+        keys.right = false;
+    }
+
+});
 
 
 // =====================================
-// دکمه‌های بازی
+// دکمه‌های لمسی
 // =====================================
 
 const leftButton =
@@ -510,29 +359,21 @@ if (leftButton) {
     leftButton.addEventListener(
         "pointerdown",
         () => {
-
             keys.left = true;
-
         }
     );
-
 
     leftButton.addEventListener(
         "pointerup",
         () => {
-
             keys.left = false;
-
         }
     );
-
 
     leftButton.addEventListener(
         "pointercancel",
         () => {
-
             keys.left = false;
-
         }
     );
 
@@ -544,29 +385,21 @@ if (rightButton) {
     rightButton.addEventListener(
         "pointerdown",
         () => {
-
             keys.right = true;
-
         }
     );
-
 
     rightButton.addEventListener(
         "pointerup",
         () => {
-
             keys.right = false;
-
         }
     );
-
 
     rightButton.addEventListener(
         "pointercancel",
         () => {
-
             keys.right = false;
-
         }
     );
 
@@ -615,9 +448,7 @@ function jump() {
 
 function update() {
 
-    if (
-        me.health <= 0
-    ) {
+    if (me.health <= 0) {
 
         me.vx = 0;
 
@@ -631,13 +462,11 @@ function update() {
         me.vx = -5;
 
     }
-
     else if (keys.right) {
 
         me.vx = 5;
 
     }
-
     else {
 
         me.vx *= 0.8;
@@ -648,29 +477,13 @@ function update() {
     me.x += me.vx;
 
 
-    // -------------------------------
     // پرواز
-    // -------------------------------
 
     if (me.flying) {
-
-        if (keys.left) {
-
-            me.vy -= 0.35;
-
-        }
-
-        if (keys.right) {
-
-            me.vy -= 0.35;
-
-        }
-
 
         me.vy *= 0.92;
 
     }
-
     else {
 
         me.vy += 0.6;
@@ -698,7 +511,6 @@ function update() {
         me.onGround = true;
 
     }
-
     else {
 
         me.onGround = false;
@@ -706,31 +518,19 @@ function update() {
     }
 
 
-    // -------------------------------
     // مرزها
-    // -------------------------------
 
     if (me.x < 30) {
-
         me.x = 30;
-
     }
 
 
-    if (
-        me.x >
-        canvas.width - 30
-    ) {
-
-        me.x =
-            canvas.width - 30;
-
+    if (me.x > canvas.width - 30) {
+        me.x = canvas.width - 30;
     }
 
 
-    if (
-        me.y < 30
-    ) {
+    if (me.y < 30) {
 
         me.y = 30;
 
@@ -739,10 +539,7 @@ function update() {
     }
 
 
-    if (
-        me.y >
-        canvas.height + 300
-    ) {
+    if (me.y > canvas.height + 300) {
 
         me.y =
             ground - 55;
@@ -752,30 +549,22 @@ function update() {
     }
 
 
-    // -------------------------------
     // ارسال حرکت
-    // -------------------------------
 
-    socket.emit(
-        "move",
-        {
+    socket.emit("move", {
 
-            x: me.x,
+        x: me.x,
+        y: me.y,
+        vx: me.vx,
+        vy: me.vy
 
-            y: me.y,
-
-            vx: me.vx,
-
-            vy: me.vy
-
-        }
-    );
+    });
 
 }
 
 
 // =====================================
-// رنگ
+// رنگ رنگین‌کمانی
 // =====================================
 
 function rainbowColor() {
@@ -816,15 +605,10 @@ function drawStickman(
 
     ctx.save();
 
-    ctx.translate(
-        x,
-        y
-    );
+    ctx.translate(x, y);
 
 
-    // =================================
     // سایه
-    // =================================
 
     ctx.beginPath();
 
@@ -844,9 +628,7 @@ function drawStickman(
     ctx.fill();
 
 
-    // =================================
     // سر
-    // =================================
 
     ctx.beginPath();
 
@@ -871,13 +653,10 @@ function drawStickman(
     ctx.stroke();
 
 
-    // =================================
-    // چشم
-    // =================================
+    // چشم‌ها
 
     ctx.fillStyle =
         "#111827";
-
 
     ctx.beginPath();
 
@@ -905,9 +684,7 @@ function drawStickman(
     ctx.fill();
 
 
-    // =================================
     // بدن
-    // =================================
 
     ctx.beginPath();
 
@@ -928,7 +705,6 @@ function drawStickman(
             rainbowColor();
 
     }
-
     else {
 
         ctx.strokeStyle =
@@ -947,9 +723,7 @@ function drawStickman(
     ctx.stroke();
 
 
-    // =================================
-    // دست‌ها
-    // =================================
+    // دست چپ
 
     ctx.beginPath();
 
@@ -971,6 +745,8 @@ function drawStickman(
     ctx.stroke();
 
 
+    // دست راست
+
     ctx.beginPath();
 
     ctx.moveTo(
@@ -986,9 +762,7 @@ function drawStickman(
     ctx.stroke();
 
 
-    // =================================
-    // پاها
-    // =================================
+    // پای چپ
 
     ctx.beginPath();
 
@@ -1004,6 +778,8 @@ function drawStickman(
 
     ctx.stroke();
 
+
+    // پای راست
 
     ctx.beginPath();
 
@@ -1081,7 +857,6 @@ function drawStickman(
             rainbowColor();
 
     }
-
     else {
 
         ctx.fillStyle =
@@ -1098,49 +873,8 @@ function drawStickman(
 
 
     // =================================
-    // جان
+    // نوار سبز سلامتی حذف شد
     // =================================
-
-    const hp =
-        Math.max(
-            0,
-            Math.min(
-                100,
-                health ?? 100
-            )
-        );
-
-
-    const barWidth =
-        55;
-
-    const barHeight =
-        7;
-
-
-    ctx.fillStyle =
-        "#111827";
-
-
-    ctx.fillRect(
-        -barWidth / 2,
-        -105,
-        barWidth,
-        barHeight
-    );
-
-
-    ctx.fillStyle =
-        "#22c55e";
-
-
-    ctx.fillRect(
-        -barWidth / 2,
-        -105,
-        barWidth * (hp / 100),
-        barHeight
-    );
-
 
     ctx.restore();
 
@@ -1173,7 +907,6 @@ function drawWorld() {
         "#38bdf8"
     );
 
-
     sky.addColorStop(
         1,
         "#bae6fd"
@@ -1182,7 +915,6 @@ function drawWorld() {
 
     ctx.fillStyle =
         sky;
-
 
     ctx.fillRect(
         0,
@@ -1197,13 +929,11 @@ function drawWorld() {
     ctx.fillStyle =
         "#365314";
 
-
     ctx.fillRect(
         0,
         ground,
         canvas.width,
-        canvas.height -
-        ground
+        canvas.height - ground
     );
 
 
@@ -1211,7 +941,6 @@ function drawWorld() {
 
     ctx.fillStyle =
         "#84cc16";
-
 
     ctx.fillRect(
         0,
@@ -1242,14 +971,12 @@ function drawWorld() {
 
 
 // =====================================
-// دکمه ADMIN
+// پنل ادمین
 // =====================================
 
 function setupAdminButton() {
 
-    if (!isAdmin) {
-        return;
-    }
+    if (!isAdmin) return;
 
 
     const button =
@@ -1257,10 +984,7 @@ function setupAdminButton() {
             "adminButton"
         );
 
-
-    if (!button) {
-        return;
-    }
+    if (!button) return;
 
 
     button.style.display =
@@ -1273,24 +997,17 @@ function setupAdminButton() {
         );
 
 
-    if (!overlay) {
-        return;
-    }
+    if (!overlay) return;
 
 
-    // -------------------------------
-    // دکمه باز کردن پنل
-    // -------------------------------
+    button.onclick = () => {
 
-    button.onclick =
-        () => {
+        overlay.style.display =
+            "flex";
 
-            overlay.style.display =
-                "flex";
+        refreshPlayerList();
 
-            refreshPlayerList();
-
-        };
+    };
 
 
     const closeButton =
@@ -1312,10 +1029,6 @@ function setupAdminButton() {
     }
 
 
-    // -------------------------------
-    // پرواز
-    // -------------------------------
-
     const flyButton =
         document.getElementById(
             "flyButton"
@@ -1335,10 +1048,6 @@ function setupAdminButton() {
 
     }
 
-
-    // -------------------------------
-    // رنگ
-    // -------------------------------
 
     const colorButton =
         document.getElementById(
@@ -1360,10 +1069,6 @@ function setupAdminButton() {
     }
 
 
-    // -------------------------------
-    // کشتن
-    // -------------------------------
-
     const killButton =
         document.getElementById(
             "killButton"
@@ -1384,10 +1089,6 @@ function setupAdminButton() {
     }
 
 
-    // -------------------------------
-    // اخراج
-    // -------------------------------
-
     const kickButton =
         document.getElementById(
             "kickButton"
@@ -1407,10 +1108,6 @@ function setupAdminButton() {
 
     }
 
-
-    // -------------------------------
-    // رنگی کردن همه
-    // -------------------------------
 
     const allColorButton =
         document.getElementById(
@@ -1436,10 +1133,6 @@ function setupAdminButton() {
     }
 
 
-    // -------------------------------
-    // بازیکن خودمان به صورت پیش‌فرض
-    // -------------------------------
-
     selectedPlayer =
         socket.id;
 
@@ -1452,7 +1145,7 @@ function setupAdminButton() {
 
 
 // =====================================
-// انتخاب بازیکن ادمین
+// انتخاب بازیکن
 // =====================================
 
 let selectedPlayer = null;
@@ -1466,15 +1159,11 @@ function refreshPlayerList() {
         );
 
 
-    if (!list) {
-        return;
-    }
+    if (!list) return;
 
 
     list.innerHTML = "";
 
-
-    // خود ادمین
 
     addPlayerButton(
         list,
@@ -1484,21 +1173,15 @@ function refreshPlayerList() {
 
 
     Object.values(players)
-        .forEach(
-            player => {
+        .forEach(player => {
 
-                addPlayerButton(
+            addPlayerButton(
+                list,
+                player.id,
+                player.name
+            );
 
-                    list,
-
-                    player.id,
-
-                    player.name
-
-                );
-
-            }
-        );
+        });
 
 }
 
@@ -1538,38 +1221,37 @@ function addPlayerButton(
     }
 
 
-    button.onclick =
-        () => {
+    button.onclick = () => {
 
-            selectedPlayer =
-                id;
-
-
-            document
-                .querySelectorAll(
-                    ".playerButton"
-                )
-                .forEach(
-                    b => {
-
-                        b.classList.remove(
-                            "selected"
-                        );
-
-                    }
-                );
+        selectedPlayer =
+            id;
 
 
-            button.classList.add(
-                "selected"
+        document
+            .querySelectorAll(
+                ".playerButton"
+            )
+            .forEach(
+                b => {
+
+                    b.classList.remove(
+                        "selected"
+                    );
+
+                }
             );
 
 
-            updateAdminStatus(
-                "🎯 انتخاب: " + name
-            );
+        button.classList.add(
+            "selected"
+        );
 
-        };
+
+        updateAdminStatus(
+            "🎯 انتخاب: " + name
+        );
+
+    };
 
 
     list.appendChild(
@@ -1587,15 +1269,8 @@ function sendAdminAction(
     action
 ) {
 
-    if (!isAdmin) {
-        return;
-    }
+    if (!isAdmin) return;
 
-
-    /*
-       اگر هیچ بازیکنی انتخاب نشده،
-       خود ادمین هدف باشد.
-    */
 
     const targetId =
         selectedPlayer ||
@@ -1655,7 +1330,7 @@ setupAdminButton();
 
 
 // =====================================
-// رسم
+// رسم بازی
 // =====================================
 
 function draw() {
@@ -1674,29 +1349,21 @@ function draw() {
     // بازیکنان دیگر
 
     Object.values(players)
-        .forEach(
-            player => {
+        .forEach(player => {
 
-                drawStickman(
+            drawStickman(
 
-                    player.x,
+                player.x,
+                player.y,
+                player.name,
+                player.admin,
+                player.rainbow,
+                player.health,
+                false
 
-                    player.y,
+            );
 
-                    player.name,
-
-                    player.admin,
-
-                    player.rainbow,
-
-                    player.health,
-
-                    false
-
-                );
-
-            }
-        );
+        });
 
 
     // خودمان
@@ -1704,17 +1371,11 @@ function draw() {
     drawStickman(
 
         me.x,
-
         me.y,
-
         myName,
-
         isAdmin,
-
         me.rainbow,
-
         me.health,
-
         true
 
     );
@@ -1743,7 +1404,7 @@ loop();
 
 
 // =====================================
-// تغییر اندازه
+// تغییر اندازه صفحه
 // =====================================
 
 window.addEventListener(
