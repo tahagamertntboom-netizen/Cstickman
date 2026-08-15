@@ -1,388 +1,1050 @@
 <!DOCTYPE html>
-<html>
+<html lang="fa">
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <title>Stickman Forest</title>
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 
 *{
-margin:0;
-padding:0;
-box-sizing:border-box;
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
 }
 
-body{
-overflow:hidden;
-background:#87ceeb;
+html,body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#78d8ff;
+    font-family:Arial,sans-serif;
+    touch-action:none;
 }
 
 canvas{
-display:block;
-width:100vw;
-height:100vh;
+    display:block;
+    width:100vw;
+    height:100vh;
 }
+
+/* کنترل گوشی */
 
 .controls{
-position:fixed;
-bottom:20px;
-width:100%;
-text-align:center;
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:20px;
+    display:flex;
+    justify-content:space-between;
+    padding:0 25px;
+    pointer-events:none;
 }
 
-button{
-font-size:30px;
-padding:15px 30px;
-margin:10px;
-border:0;
-border-radius:20px;
-background:#222;
-color:white;
-opacity:.7;
+.control-group{
+    display:flex;
+    gap:15px;
+    pointer-events:auto;
+}
+
+.control{
+    width:70px;
+    height:70px;
+    border:none;
+    border-radius:20px;
+    background:rgba(20,20,20,.65);
+    color:white;
+    font-size:30px;
+    user-select:none;
+    -webkit-user-select:none;
+    touch-action:none;
+}
+
+.control:active{
+    transform:scale(.92);
+    background:rgba(60,60,60,.8);
+}
+
+/* دکمه ادمین */
+
+#adminButton{
+    display:none;
+    position:fixed;
+    top:20px;
+    right:20px;
+    z-index:1000;
+
+    padding:12px 20px;
+
+    border:none;
+    border-radius:14px;
+
+    background:#7c3aed;
+    color:white;
+
+    font-size:17px;
+    font-weight:bold;
+
+    cursor:pointer;
+
+    box-shadow:0 5px 20px rgba(0,0,0,.3);
+}
+
+/* پنل ادمین */
+
+#adminPanel{
+    display:none;
+
+    position:fixed;
+    top:75px;
+    right:20px;
+
+    width:290px;
+    max-width:calc(100vw - 40px);
+
+    z-index:999;
+
+    padding:20px;
+
+    border-radius:20px;
+
+    background:rgba(20,20,25,.96);
+    color:white;
+
+    box-shadow:0 10px 40px rgba(0,0,0,.5);
+
+    text-align:center;
+}
+
+#adminPanel h2{
+    margin-bottom:18px;
+}
+
+.adminBtn{
+    width:100%;
+
+    padding:12px;
+
+    margin:6px 0;
+
+    border:none;
+    border-radius:12px;
+
+    background:#333;
+
+    color:white;
+
+    font-size:15px;
+
+    cursor:pointer;
+}
+
+.adminBtn:hover{
+    background:#4b4b4b;
+}
+
+.closeBtn{
+    background:#b91c1c;
+}
+
+@media(max-width:600px){
+
+    .control{
+        width:62px;
+        height:62px;
+        font-size:26px;
+    }
+
+    #adminButton{
+        top:10px;
+        right:10px;
+        font-size:14px;
+        padding:10px 14px;
+    }
+
+    #adminPanel{
+        top:60px;
+        right:10px;
+        width:270px;
+    }
+
 }
 
 </style>
-
 </head>
 
 <body>
 
-
 <canvas id="game"></canvas>
 
 
-<div class="controls">
+<!-- دکمه ادمین -->
 
-<button id="left">⬅️</button>
-<button id="right">➡️</button>
+<button id="adminButton">
+⚡ ADMIN
+</button>
+
+
+<!-- پنل ادمین -->
+
+<div id="adminPanel">
+
+    <h2>⚡ پنل ادمین</h2>
+
+    <button class="adminBtn" onclick="adminMessage()">
+        📢 پیام
+    </button>
+
+    <button class="adminBtn" onclick="changeSpeed()">
+        🏃 تغییر سرعت
+    </button>
+
+    <button class="adminBtn" onclick="giveCoins()">
+        🪙 دادن سکه
+    </button>
+
+    <button class="adminBtn" onclick="teleportPlayer()">
+        📍 تلپورت
+    </button>
+
+    <button class="adminBtn" onclick="changeWeather()">
+        ☀️ تغییر آب‌وهوا
+    </button>
+
+    <button class="adminBtn" onclick="nightMode()">
+        🌙 شب کردن
+    </button>
+
+    <button class="adminBtn closeBtn" onclick="closeAdmin()">
+        ❌ بستن
+    </button>
 
 </div>
 
 
+<!-- کنترل گوشی -->
+
+<div class="controls">
+
+    <div class="control-group">
+
+        <button class="control" id="left">
+            ⬅️
+        </button>
+
+        <button class="control" id="right">
+            ➡️
+        </button>
+
+    </div>
+
+</div>
+
 
 <script>
 
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-const canvas=document.getElementById("game");
-const ctx=canvas.getContext("2d");
 
+/* =========================
+   اندازه صفحه
+========================= */
 
-let W;
-let H;
-
+let W = window.innerWidth;
+let H = window.innerHeight;
 
 function resize(){
 
-W=window.innerWidth;
-H=window.innerHeight;
+    W = window.innerWidth;
+    H = window.innerHeight;
 
-
-canvas.width=W;
-canvas.height=H;
+    canvas.width = W;
+    canvas.height = H;
 
 }
-
 
 resize();
 
 window.addEventListener("resize",resize);
 
 
+/* =========================
+   اسم بازیکن
+========================= */
 
-let player={
+let savedName = localStorage.getItem("player");
 
-x:500,
-y:0,
+if(!savedName){
+    savedName = localStorage.getItem("name");
+}
 
-name:"Taha",
+if(!savedName){
+    savedName = "Player";
+}
 
-speed:7,
 
-walk:0
+/* =========================
+   بازیکن
+========================= */
+
+let player = {
+
+    x: W / 2,
+
+    y: H - 180,
+
+    speed: 6,
+
+    walk: 0,
+
+    coins: 0
 
 };
 
 
+/* =========================
+   کنترل‌ها
+========================= */
 
-let keys={};
+let keys = {};
+
+let moveLeft = false;
+let moveRight = false;
 
 
-document.addEventListener("keydown",e=>{
+document.addEventListener("keydown",function(e){
 
-keys[e.key]=true;
+    keys[e.key] = true;
 
 });
 
 
-document.addEventListener("keyup",e=>{
+document.addEventListener("keyup",function(e){
 
-keys[e.key]=false;
+    keys[e.key] = false;
 
 });
 
 
+/* =========================
+   کنترل گوشی
+========================= */
 
-let left=false;
-let right=false;
-
-
-document.getElementById("left").ontouchstart=()=>{
-left=true;
-};
-
-document.getElementById("left").ontouchend=()=>{
-left=false;
-};
+const leftButton = document.getElementById("left");
+const rightButton = document.getElementById("right");
 
 
-document.getElementById("right").ontouchstart=()=>{
-right=true;
-};
+leftButton.addEventListener("touchstart",function(e){
 
-document.getElementById("right").ontouchend=()=>{
-right=false;
-};
+    e.preventDefault();
 
+    moveLeft = true;
 
+},{passive:false});
 
 
+leftButton.addEventListener("touchend",function(e){
+
+    e.preventDefault();
+
+    moveLeft = false;
+
+},{passive:false});
+
+
+leftButton.addEventListener("touchcancel",function(){
+
+    moveLeft = false;
+
+});
+
+
+rightButton.addEventListener("touchstart",function(e){
+
+    e.preventDefault();
+
+    moveRight = true;
+
+},{passive:false});
+
+
+rightButton.addEventListener("touchend",function(e){
+
+    e.preventDefault();
+
+    moveRight = false;
+
+},{passive:false});
+
+
+rightButton.addEventListener("touchcancel",function(){
+
+    moveRight = false;
+
+});
+
+
+/* =========================
+   حرکت بازیکن
+========================= */
 
 function update(){
 
-
-if(keys["a"] || keys["A"] || keys["ش"] || left){
-
-player.x-=player.speed;
-player.walk+=0.4;
-
-}
+    let moving = false;
 
 
+    if(
+        keys["a"] ||
+        keys["A"] ||
+        keys["ش"] ||
+        moveLeft
+    ){
 
-if(keys["d"] || keys["D"] || keys["ی"] || right){
+        player.x -= player.speed;
 
-player.x+=player.speed;
-player.walk+=0.4;
+        player.walk += 0.35;
 
-}
+        moving = true;
 
-
-player.y=H-180;
-
-
-}
-
-
-
+    }
 
 
-function forest(){
+    if(
+        keys["d"] ||
+        keys["D"] ||
+        keys["ی"] ||
+        moveRight
+    ){
+
+        player.x += player.speed;
+
+        player.walk += 0.35;
+
+        moving = true;
+
+    }
 
 
+    if(!moving){
 
-// آسمان
+        player.walk *= 0.85;
 
-ctx.fillStyle="#75d7ff";
-ctx.fillRect(0,0,W,H);
-
-
-
-// خورشید
-
-ctx.fillStyle="yellow";
-
-ctx.beginPath();
-
-ctx.arc(100,100,50,0,Math.PI*2);
-
-ctx.fill();
+    }
 
 
+    /* محدود کردن بازیکن */
 
-// زمین
+    if(player.x < 50){
 
-ctx.fillStyle="#35a94a";
+        player.x = 50;
 
-ctx.fillRect(0,H-100,W,100);
-
-
-
-
-// درخت ها
-
-for(let x=100;x<W;x+=250){
+    }
 
 
-ctx.fillStyle="#704214";
+    if(player.x > W - 50){
 
-ctx.fillRect(
-x,
-H-270,
-50,
-170
-);
+        player.x = W - 50;
+
+    }
 
 
-
-ctx.fillStyle="green";
-
-ctx.beginPath();
-
-ctx.arc(
-x+25,
-H-300,
-90,
-0,
-Math.PI*2
-);
-
-ctx.fill();
-
+    player.y = H - 180;
 
 }
 
 
-}
+/* =========================
+   جنگل
+========================= */
+
+function drawForest(){
+
+    /* آسمان */
+
+    let skyGradient = ctx.createLinearGradient(
+        0,
+        0,
+        0,
+        H
+    );
+
+    skyGradient.addColorStop(0,"#69cfff");
+    skyGradient.addColorStop(1,"#d5f5ff");
+
+    ctx.fillStyle = skyGradient;
+
+    ctx.fillRect(
+        0,
+        0,
+        W,
+        H
+    );
 
 
+    /* خورشید */
+
+    ctx.fillStyle = "#ffd93d";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        100,
+        90,
+        45,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
 
 
+    /* ابر */
 
-function playerDraw(){
-
-
-let x=player.x;
-let y=player.y;
+    drawCloud(250,90);
+    drawCloud(550,130);
 
 
-let move=Math.sin(player.walk)*25;
+    /* پشت جنگل */
+
+    for(
+        let x = -100;
+        x < W + 200;
+        x += 180
+    ){
+
+        drawTree(
+            x,
+            H - 330,
+            0.8
+        );
+
+    }
 
 
+    /* زمین */
 
-ctx.strokeStyle="black";
-ctx.lineWidth=7;
+    ctx.fillStyle = "#42a942";
 
-
-// اسم
-
-ctx.fillStyle="black";
-ctx.font="26px Arial";
-
-ctx.fillText(
-player.name,
-x-40,
-y-170
-);
+    ctx.fillRect(
+        0,
+        H - 100,
+        W,
+        100
+    );
 
 
+    /* چمن */
 
-// سر
+    ctx.fillStyle = "#238b32";
 
-ctx.beginPath();
-
-ctx.arc(
-x,
-y-120,
-30,
-0,
-Math.PI*2
-);
-
-ctx.stroke();
+    ctx.fillRect(
+        0,
+        H - 100,
+        W,
+        15
+    );
 
 
+    /* درخت‌های جلویی */
 
-// بدن
+    for(
+        let x = 50;
+        x < W + 200;
+        x += 260
+    ){
 
-ctx.beginPath();
+        drawTree(
+            x,
+            H - 270,
+            1
+        );
 
-ctx.moveTo(x,y-90);
-
-ctx.lineTo(x,y);
-
-ctx.stroke();
-
-
-
-
-// دست ها
-
-ctx.beginPath();
-
-ctx.moveTo(x,y-60);
-
-ctx.lineTo(
-x-50,
-y-30+move
-);
-
-
-ctx.moveTo(x,y-60);
-
-ctx.lineTo(
-x+50,
-y-30-move
-);
-
-ctx.stroke();
-
-
-
-
-// پاها
-
-ctx.beginPath();
-
-
-ctx.moveTo(x,y);
-
-ctx.lineTo(
-x-30,
-y+70+move
-);
-
-
-ctx.moveTo(x,y);
-
-ctx.lineTo(
-x+30,
-y+70-move
-);
-
-
-ctx.stroke();
-
-
+    }
 
 }
 
 
+/* =========================
+   ابر
+========================= */
 
+function drawCloud(x,y){
 
+    ctx.fillStyle = "rgba(255,255,255,.85)";
 
-function loop(){
+    ctx.beginPath();
 
+    ctx.arc(x,y,25,0,Math.PI*2);
 
-update();
+    ctx.arc(x+30,y-15,30,0,Math.PI*2);
 
-forest();
+    ctx.arc(x+65,y,25,0,Math.PI*2);
 
-playerDraw();
-
-
-requestAnimationFrame(loop);
-
+    ctx.fill();
 
 }
 
 
-loop();
+/* =========================
+   درخت
+========================= */
 
+function drawTree(x,y,scale){
+
+    ctx.save();
+
+    ctx.translate(x,y);
+
+    ctx.scale(scale,scale);
+
+
+    /* تنه */
+
+    ctx.fillStyle = "#704214";
+
+    ctx.fillRect(
+        0,
+        0,
+        50,
+        170
+    );
+
+
+    /* شاخه */
+
+    ctx.strokeStyle = "#704214";
+
+    ctx.lineWidth = 15;
+
+    ctx.beginPath();
+
+    ctx.moveTo(25,50);
+
+    ctx.lineTo(-20,10);
+
+    ctx.moveTo(25,70);
+
+    ctx.lineTo(70,25);
+
+    ctx.stroke();
+
+
+    /* برگ‌ها */
+
+    ctx.fillStyle = "#228b35";
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        25,
+        -20,
+        70,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        -25,
+        20,
+        55,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        75,
+        20,
+        55,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    ctx.restore();
+
+}
+
+
+/* =========================
+   استیک‌من
+========================= */
+
+function drawPlayer(){
+
+    let x = player.x;
+    let y = player.y;
+
+
+    let animation =
+        Math.sin(player.walk) * 25;
+
+
+    ctx.strokeStyle = "#111";
+
+    ctx.fillStyle = "#111";
+
+    ctx.lineWidth = 7;
+
+    ctx.lineCap = "round";
+
+
+    /* اسم */
+
+    ctx.font = "bold 24px Arial";
+
+    ctx.textAlign = "center";
+
+    ctx.fillText(
+        savedName,
+        x,
+        y - 175
+    );
+
+
+    /* سر */
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x,
+        y - 115,
+        28,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.stroke();
+
+
+    /* بدن */
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x,
+        y - 87
+    );
+
+    ctx.lineTo(
+        x,
+        y
+    );
+
+    ctx.stroke();
+
+
+    /* دست چپ */
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x,
+        y - 60
+    );
+
+    ctx.lineTo(
+        x - 50,
+        y - 25 + animation
+    );
+
+    ctx.stroke();
+
+
+    /* دست راست */
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x,
+        y - 60
+    );
+
+    ctx.lineTo(
+        x + 50,
+        y - 25 - animation
+    );
+
+    ctx.stroke();
+
+
+    /* پای چپ */
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x,
+        y
+    );
+
+    ctx.lineTo(
+        x - 30,
+        y + 70 + animation
+    );
+
+    ctx.stroke();
+
+
+    /* پای راست */
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x,
+        y
+    );
+
+    ctx.lineTo(
+        x + 30,
+        y + 70 - animation
+    );
+
+    ctx.stroke();
+
+
+    ctx.textAlign = "left";
+
+}
+
+
+/* =========================
+   سیستم ادمین
+========================= */
+
+const ADMIN_NAME = "tahagamertnt";
+
+
+const adminButton =
+    document.getElementById("adminButton");
+
+const adminPanel =
+    document.getElementById("adminPanel");
+
+
+if(savedName === ADMIN_NAME){
+
+    adminButton.style.display = "block";
+
+}
+
+
+/* باز کردن پنل */
+
+adminButton.onclick = function(){
+
+    adminPanel.style.display = "block";
+
+};
+
+
+/* بستن پنل */
+
+function closeAdmin(){
+
+    adminPanel.style.display = "none";
+
+}
+
+
+/* پیام */
+
+function adminMessage(){
+
+    let message =
+        prompt("📢 پیام ادمین را بنویس:");
+
+    if(message){
+
+        alert(
+            "📢 پیام ادمین:\n\n" +
+            message
+        );
+
+    }
+
+}
+
+
+/* تغییر سرعت */
+
+function changeSpeed(){
+
+    let value =
+        prompt(
+            "🏃 سرعت جدید را وارد کن:",
+            player.speed
+        );
+
+
+    if(value !== null){
+
+        let speed =
+            Number(value);
+
+
+        if(
+            !isNaN(speed) &&
+            speed > 0 &&
+            speed <= 50
+        ){
+
+            player.speed = speed;
+
+            alert(
+                "سرعت شد: " +
+                speed
+            );
+
+        }else{
+
+            alert(
+                "سرعت نامعتبر است."
+            );
+
+        }
+
+    }
+
+}
+
+
+/* سکه */
+
+function giveCoins(){
+
+    player.coins += 100;
+
+    alert(
+        "🪙 100 سکه گرفتی!\n\n" +
+        "سکه‌ها: " +
+        player.coins
+    );
+
+}
+
+
+/* تلپورت */
+
+function teleportPlayer(){
+
+    player.x = W / 2;
+
+    alert(
+        "📍 تلپورت شدی!"
+    );
+
+}
+
+
+/* آب‌وهوا */
+
+let weatherMode = "sunny";
+
+
+function changeWeather(){
+
+    if(weatherMode === "sunny"){
+
+        weatherMode = "rain";
+
+        alert(
+            "🌧️ حالت بارانی فعال شد!"
+        );
+
+    }else{
+
+        weatherMode = "sunny";
+
+        alert(
+            "☀️ حالت آفتابی فعال شد!"
+        );
+
+    }
+
+}
+
+
+/* شب */
+
+let night = false;
+
+
+function nightMode(){
+
+    night = !night;
+
+    if(night){
+
+        alert(
+            "🌙 حالت شب فعال شد!"
+        );
+
+    }else{
+
+        alert(
+            "☀️ حالت روز فعال شد!"
+        );
+
+    }
+
+}
+
+
+/* =========================
+   حلقه بازی
+========================= */
+
+function gameLoop(){
+
+    update();
+
+    drawForest();
+
+
+    /* حالت شب */
+
+    if(night){
+
+        ctx.fillStyle =
+            "rgba(10,20,60,.55)";
+
+        ctx.fillRect(
+            0,
+            0,
+            W,
+            H
+        );
+
+    }
+
+
+    drawPlayer();
+
+
+    requestAnimationFrame(
+        gameLoop
+    );
+
+}
+
+
+gameLoop();
 
 </script>
-
 
 </body>
 </html>
