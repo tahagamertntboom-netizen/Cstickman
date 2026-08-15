@@ -2,173 +2,282 @@
 <html>
 <head>
 <title>Stickman Forest</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
+
 body{
 margin:0;
 overflow:hidden;
+background:#87ceeb;
+touch-action:none;
 }
+
 canvas{
 display:block;
 }
+
+.controls{
+position:fixed;
+bottom:20px;
+left:0;
+right:0;
+text-align:center;
+}
+
+button{
+font-size:30px;
+padding:15px 30px;
+margin:10px;
+border-radius:20px;
+border:0;
+background:#222;
+color:white;
+opacity:0.7;
+}
+
 </style>
+
 </head>
 
 <body>
 
 <canvas id="game"></canvas>
 
+
+<div class="controls">
+<button id="left">⬅️</button>
+<button id="right">➡️</button>
+</div>
+
+
+
 <script>
 
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
 
-canvas.width=900;
-canvas.height=500;
+
+function resize(){
+
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
+
+}
+
+resize();
+
+window.onresize=resize;
+
 
 
 let player={
-x:450,
-y:330,
+
+x:canvas.width/2,
+
+y:canvas.height-150,
+
 name:"Taha",
-speed:5,
+
+speed:6,
+
 walk:0
+
 };
+
 
 
 let keys={};
 
 
+
 document.addEventListener("keydown",e=>{
+
 keys[e.key]=true;
+
 });
 
 
 document.addEventListener("keyup",e=>{
+
 keys[e.key]=false;
+
 });
 
 
-let trees=[
-{x:100},
-{x:300},
-{x:650},
-{x:800}
-];
+
+// گوشی
+
+let moveLeft=false;
+let moveRight=false;
+
+
+left.ontouchstart=()=>moveLeft=true;
+left.ontouchend=()=>moveLeft=false;
+
+
+right.ontouchstart=()=>moveRight=true;
+right.ontouchend=()=>moveRight=false;
+
+
 
 
 function update(){
 
-if(keys["a"] || keys["A"] || keys["ش"]){
+
+if(keys["a"]||keys["A"]||keys["ش"]||moveLeft){
+
 player.x-=player.speed;
 player.walk+=0.4;
+
 }
 
 
-if(keys["d"] || keys["D"] || keys["ی"]){
+
+if(keys["d"]||keys["D"]||keys["ی"]||moveRight){
+
 player.x+=player.speed;
 player.walk+=0.4;
-}
 
 }
 
 
+}
 
-function forest(){
+
+
+
+function draw(){
+
+let w=canvas.width;
+let h=canvas.height;
+
+
+
+// آسمان
 
 ctx.fillStyle="#87ceeb";
-ctx.fillRect(0,0,900,500);
+ctx.fillRect(0,0,w,h);
 
 
 // خورشید
+
 ctx.fillStyle="yellow";
 ctx.beginPath();
-ctx.arc(100,80,40,0,Math.PI*2);
+ctx.arc(100,100,50,0,Math.PI*2);
 ctx.fill();
 
 
+
 // زمین
-ctx.fillStyle="#3c9b42";
-ctx.fillRect(0,400,900,100);
+
+ctx.fillStyle="#3d9b42";
+ctx.fillRect(0,h-100,w,100);
+
+
 
 
 // درخت‌ها
-trees.forEach(t=>{
 
-ctx.fillStyle="#6b3b18";
-ctx.fillRect(t.x,260,40,140);
+for(let x=100;x<w;x+=250){
+
+ctx.fillStyle="#6b3515";
+ctx.fillRect(x,h-250,40,150);
 
 
 ctx.fillStyle="green";
 ctx.beginPath();
-ctx.arc(t.x+20,220,80,0,Math.PI*2);
+ctx.arc(x+20,h-270,80,0,Math.PI*2);
 ctx.fill();
-
-});
 
 }
 
 
 
-function stickman(){
+drawPlayer();
+
+
+}
+
+
+
+
+function drawPlayer(){
+
 
 let x=player.x;
 let y=player.y;
 
-let move=Math.sin(player.walk)*25;
+
+let move=Math.sin(player.walk)*20;
+
 
 
 ctx.strokeStyle="black";
-ctx.fillStyle="black";
 ctx.lineWidth=6;
 
 
-// اسم
 
-ctx.font="22px Arial";
-ctx.fillText(player.name,x-35,y-120);
+// اسم بالاتر
+
+ctx.font="24px Arial";
+ctx.fillStyle="black";
+
+ctx.fillText(
+player.name,
+x-35,
+y-150
+);
+
 
 
 // سر
 
 ctx.beginPath();
-ctx.arc(x,y-90,25,0,Math.PI*2);
+ctx.arc(x,y-100,25,0,Math.PI*2);
 ctx.stroke();
+
 
 
 // بدن
 
 ctx.beginPath();
-ctx.moveTo(x,y-65);
-ctx.lineTo(x,y+20);
+ctx.moveTo(x,y-75);
+ctx.lineTo(x,y+10);
 ctx.stroke();
 
 
-// دست راست و چپ متحرک
+
+// دست‌ها
 
 ctx.beginPath();
 
-ctx.moveTo(x,y-40);
-ctx.lineTo(x-40,y+move);
+ctx.moveTo(x,y-45);
+ctx.lineTo(x-45,y+move);
 
-ctx.moveTo(x,y-40);
-ctx.lineTo(x+40,y-move);
+ctx.moveTo(x,y-45);
+ctx.lineTo(x+45,y-move);
 
 ctx.stroke();
+
 
 
 // پاها
 
 ctx.beginPath();
 
-ctx.moveTo(x,y+20);
+ctx.moveTo(x,y+10);
 ctx.lineTo(x-25,y+80+move);
 
-ctx.moveTo(x,y+20);
+ctx.moveTo(x,y+10);
 ctx.lineTo(x+25,y+80-move);
 
 ctx.stroke();
 
+
 }
+
 
 
 
@@ -176,9 +285,7 @@ function loop(){
 
 update();
 
-forest();
-
-stickman();
+draw();
 
 requestAnimationFrame(loop);
 
@@ -188,6 +295,7 @@ requestAnimationFrame(loop);
 loop();
 
 </script>
+
 
 </body>
 </html>
