@@ -1,250 +1,326 @@
-const socket = io();
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
 
-let playerName = "";
-let roomCode = "";
+<head>
 
-const namePage = document.getElementById("namePage");
-const lobbyPage = document.getElementById("lobbyPage");
+<meta charset="UTF-8">
 
-const nameInput = document.getElementById("nameInput");
-const showName = document.getElementById("showName");
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
 
-const error = document.getElementById("error");
+<title>Stickman Lobby</title>
 
-const room = document.getElementById("room");
-const roomCodeText = document.getElementById("roomCode");
+<style>
 
-const playerList = document.getElementById("playerList");
-
-const enterButton = document.getElementById("enter");
-
-
-// ==========================
-// تأیید اسم
-// ==========================
-
-document.getElementById("confirm").onclick = function () {
-
-    const name = nameInput.value.trim();
-
-    if (!name) {
-
-        error.textContent =
-            "❌ اول اسمت را وارد کن!";
-
-        return;
-    }
-
-    playerName = name;
-
-    localStorage.setItem(
-        "player",
-        playerName
-    );
-
-    showName.textContent =
-        playerName;
-
-    namePage.style.display =
-        "none";
-
-    lobbyPage.style.display =
-        "block";
-
-    error.textContent = "";
-};
-
-
-// ==========================
-// ساخت اتاق
-// ==========================
-
-document.getElementById("create").onclick = function () {
-
-    if (!playerName) {
-        alert("اول اسمت را تأیید کن!");
-        return;
-    }
-
-    socket.emit(
-        "createRoom",
-        playerName
-    );
-};
-
-
-// ==========================
-// ورود به اتاق
-// ==========================
-
-document.getElementById("join").onclick = function () {
-
-    const code =
-        document.getElementById("codeInput")
-        .value
-        .trim();
-
-    if (!/^\d{6}$/.test(code)) {
-
-        alert(
-            "❌ کد باید دقیقاً ۶ رقمی باشد!"
-        );
-
-        return;
-    }
-
-    socket.emit(
-        "joinRoom",
-        {
-            roomCode: code,
-            playerName: playerName
-        }
-    );
-};
-
-
-// ==========================
-// اتاق ساخته شد
-// ==========================
-
-socket.on(
-    "roomCreated",
-    function (code) {
-
-        openRoom(code);
-
-    }
-);
-
-
-// ==========================
-// وارد اتاق شد
-// ==========================
-
-socket.on(
-    "joinedRoom",
-    function (code) {
-
-        openRoom(code);
-
-    }
-);
-
-
-// ==========================
-// نمایش اتاق
-// ==========================
-
-function openRoom(code) {
-
-    roomCode =
-        String(code);
-
-    localStorage.setItem(
-        "room",
-        roomCode
-    );
-
-    localStorage.setItem(
-        "player",
-        playerName
-    );
-
-    room.style.display =
-        "block";
-
-    roomCodeText.textContent =
-        roomCode;
-
+*{
+    box-sizing:border-box;
 }
 
+body{
 
-// ==========================
-// بازیکنان اتاق
-// ==========================
+    margin:0;
 
-socket.on(
-    "roomPlayers",
-    function (players) {
+    min-height:100vh;
 
-        playerList.innerHTML = "";
+    display:flex;
 
-        players.forEach(
-            function (player) {
+    justify-content:center;
 
-                const div =
-                    document.createElement(
-                        "div"
-                    );
+    align-items:center;
 
-                div.className =
-                    "player";
+    font-family:Arial,sans-serif;
 
-                div.textContent =
-                    "👤 " +
-                    player.name;
+    color:white;
 
-                if (player.admin) {
-
-                    div.textContent +=
-                        " 👑";
-
-                }
-
-                playerList.appendChild(
-                    div
-                );
-
-            }
-        );
-
-        enterButton.style.display =
-            "block";
-
-    }
-);
-
-
-// ==========================
-// خطای سرور
-// ==========================
-
-socket.on(
-    "roomError",
-    function (message) {
-
-        alert(message);
-
-    }
-);
-
-
-// ==========================
-// ورود به بازی
-// ==========================
-
-enterButton.onclick = function () {
-
-    if (!roomCode) {
-
-        alert(
-            "❌ هنوز وارد اتاق نشده‌ای!"
-        );
-
-        return;
-    }
-
-    localStorage.setItem(
-        "player",
-        playerName
+    background:
+    linear-gradient(
+        135deg,
+        #0f172a,
+        #1e1b4b,
+        #312e81
     );
+}
 
-    localStorage.setItem(
-        "room",
-        roomCode
-    );
+.box{
 
-    window.location.href =
-        "/game.html";
+    width:92%;
 
-};
+    max-width:430px;
+
+    padding:30px;
+
+    border-radius:25px;
+
+    background:#111827;
+
+    box-shadow:
+    0 20px 70px #000b;
+
+    text-align:center;
+}
+
+h1{
+
+    font-size:40px;
+
+    margin:0 0 10px;
+}
+
+input{
+
+    width:100%;
+
+    padding:16px;
+
+    margin:7px 0;
+
+    border:0;
+
+    border-radius:13px;
+
+    font-size:18px;
+
+    outline:none;
+}
+
+button{
+
+    width:100%;
+
+    padding:16px;
+
+    margin-top:10px;
+
+    border:0;
+
+    border-radius:13px;
+
+    font-size:18px;
+
+    font-weight:bold;
+
+    cursor:pointer;
+
+    color:white;
+}
+
+button:active{
+
+    transform:scale(.97);
+}
+
+#confirm{
+
+    background:#22c55e;
+}
+
+#create{
+
+    background:#16a34a;
+}
+
+#join{
+
+    background:#6366f1;
+}
+
+#enter{
+
+    background:#f59e0b;
+
+    display:none;
+}
+
+#error{
+
+    color:#f87171;
+
+    min-height:25px;
+
+    margin-top:10px;
+}
+
+#namePage{
+
+    display:block;
+}
+
+#lobbyPage{
+
+    display:none;
+}
+
+#room{
+
+    display:none;
+
+    margin-top:20px;
+
+    padding:20px;
+
+    border-radius:15px;
+
+    background:#020617;
+}
+
+#roomCode{
+
+    margin:15px 0;
+
+    font-size:40px;
+
+    font-weight:bold;
+
+    letter-spacing:7px;
+
+    color:#4ade80;
+}
+
+#players{
+
+    margin-top:15px;
+}
+
+.player{
+
+    padding:10px;
+
+    margin:5px 0;
+
+    border-radius:10px;
+
+    background:#1e293b;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="box">
+
+
+<!-- ====================== -->
+<!-- صفحه اسم -->
+<!-- ====================== -->
+
+<div id="namePage">
+
+<h1>
+🎮 STICKMAN
+</h1>
+
+<p>
+اسم بازیکنت را وارد کن
+</p>
+
+<input
+    id="nameInput"
+    maxlength="20"
+    autocomplete="off"
+    placeholder="اسم بازیکن"
+>
+
+<button
+    id="confirm"
+    type="button"
+>
+✅ تأیید اسم
+</button>
+
+<div id="error"></div>
+
+</div>
+
+
+<!-- ====================== -->
+<!-- صفحه لابی -->
+<!-- ====================== -->
+
+<div id="lobbyPage">
+
+<h2>
+
+سلام
+<span id="showName"></span>
+👋
+
+</h2>
+
+
+<button
+    id="create"
+    type="button"
+>
+🏠 ساخت اتاق
+</button>
+
+
+<input
+    id="codeInput"
+    maxlength="6"
+    inputmode="numeric"
+    autocomplete="off"
+    placeholder="کد ۶ رقمی اتاق"
+>
+
+
+<button
+    id="join"
+    type="button"
+>
+🚪 ورود به اتاق
+</button>
+
+
+<div id="room">
+
+
+<div>
+کد اتاق:
+</div>
+
+
+<div id="roomCode">
+------
+</div>
+
+
+<div id="players">
+
+<strong>
+👥 بازیکنان
+</strong>
+
+
+<div id="playerList"></div>
+
+</div>
+
+
+<button
+    id="enter"
+    type="button"
+>
+🎮 ورود به بازی
+</button>
+
+
+</div>
+
+</div>
+
+</div>
+
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script src="/lobby.js"></script>
+
+
+</body>
+
+</html>
