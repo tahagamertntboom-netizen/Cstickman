@@ -4,13 +4,11 @@
 <title>Stickman Forest</title>
 <style>
 body{
-    margin:0;
-    overflow:hidden;
-    background:#87ceeb;
+margin:0;
+overflow:hidden;
 }
-
 canvas{
-    display:block;
+display:block;
 }
 </style>
 </head>
@@ -29,12 +27,11 @@ canvas.height=500;
 
 
 let player={
-    x:200,
-    y:330,
-    speed:5,
-    jump:0,
-    onGround:true,
-    walk:0
+x:450,
+y:330,
+name:"Taha",
+speed:5,
+walk:0
 };
 
 
@@ -42,160 +39,153 @@ let keys={};
 
 
 document.addEventListener("keydown",e=>{
-    keys[e.key]=true;
-
-    if(e.key=="ArrowUp" && player.onGround){
-        player.jump=-12;
-        player.onGround=false;
-    }
+keys[e.key]=true;
 });
 
 
 document.addEventListener("keyup",e=>{
-    keys[e.key]=false;
+keys[e.key]=false;
 });
 
 
-
 let trees=[
-    {x:100},
-    {x:350},
-    {x:650},
-    {x:800}
+{x:100},
+{x:300},
+{x:650},
+{x:800}
 ];
-
 
 
 function update(){
 
-    if(keys["ArrowRight"]){
-        player.x+=player.speed;
-        player.walk+=0.3;
-    }
-
-    if(keys["ArrowLeft"]){
-        player.x-=player.speed;
-        player.walk+=0.3;
-    }
+if(keys["a"] || keys["A"] || keys["ش"]){
+player.x-=player.speed;
+player.walk+=0.4;
+}
 
 
-    player.y+=player.jump;
-    player.jump+=0.5;
-
-
-    if(player.y>=330){
-        player.y=330;
-        player.jump=0;
-        player.onGround=true;
-    }
+if(keys["d"] || keys["D"] || keys["ی"]){
+player.x+=player.speed;
+player.walk+=0.4;
+}
 
 }
 
 
 
-function drawForest(){
+function forest(){
 
-    // آسمان
-    ctx.fillStyle="#87ceeb";
-    ctx.fillRect(0,0,900,500);
-
-
-    // خورشید
-    ctx.fillStyle="yellow";
-    ctx.beginPath();
-    ctx.arc(100,80,40,0,Math.PI*2);
-    ctx.fill();
+ctx.fillStyle="#87ceeb";
+ctx.fillRect(0,0,900,500);
 
 
-    // زمین
-    ctx.fillStyle="#3aa655";
-    ctx.fillRect(0,400,900,100);
+// خورشید
+ctx.fillStyle="yellow";
+ctx.beginPath();
+ctx.arc(100,80,40,0,Math.PI*2);
+ctx.fill();
 
 
-    // درخت ها
-    trees.forEach(t=>{
-
-        ctx.fillStyle="#6b3e1e";
-        ctx.fillRect(t.x,250,40,150);
+// زمین
+ctx.fillStyle="#3c9b42";
+ctx.fillRect(0,400,900,100);
 
 
-        ctx.fillStyle="green";
-        ctx.beginPath();
-        ctx.arc(t.x+20,220,80,0,Math.PI*2);
-        ctx.fill();
+// درخت‌ها
+trees.forEach(t=>{
 
-    });
-
-}
+ctx.fillStyle="#6b3b18";
+ctx.fillRect(t.x,260,40,140);
 
 
+ctx.fillStyle="green";
+ctx.beginPath();
+ctx.arc(t.x+20,220,80,0,Math.PI*2);
+ctx.fill();
 
-function drawStickman(){
-
-    let x=player.x;
-    let y=player.y;
-
-
-    ctx.strokeStyle="black";
-    ctx.lineWidth=6;
-
-
-    // سر
-    ctx.beginPath();
-    ctx.arc(x,y-80,25,0,Math.PI*2);
-    ctx.stroke();
-
-
-    // بدن
-    ctx.beginPath();
-    ctx.moveTo(x,y-55);
-    ctx.lineTo(x,y+20);
-    ctx.stroke();
-
-
-
-    // دست ها
-    ctx.beginPath();
-    ctx.moveTo(x,y-30);
-    ctx.lineTo(x-35,y);
-    ctx.moveTo(x,y-30);
-    ctx.lineTo(x+35,y);
-    ctx.stroke();
-
-
-
-    // پاها با انیمیشن راه رفتن
-    let leg=Math.sin(player.walk)*20;
-
-
-    ctx.beginPath();
-    ctx.moveTo(x,y+20);
-    ctx.lineTo(x-leg,y+70);
-
-    ctx.moveTo(x,y+20);
-    ctx.lineTo(x+leg,y+70);
-
-    ctx.stroke();
+});
 
 }
 
 
 
-function gameLoop(){
+function stickman(){
 
-    update();
+let x=player.x;
+let y=player.y;
 
-    drawForest();
-
-    drawStickman();
+let move=Math.sin(player.walk)*25;
 
 
-    requestAnimationFrame(gameLoop);
+ctx.strokeStyle="black";
+ctx.fillStyle="black";
+ctx.lineWidth=6;
+
+
+// اسم
+
+ctx.font="22px Arial";
+ctx.fillText(player.name,x-35,y-120);
+
+
+// سر
+
+ctx.beginPath();
+ctx.arc(x,y-90,25,0,Math.PI*2);
+ctx.stroke();
+
+
+// بدن
+
+ctx.beginPath();
+ctx.moveTo(x,y-65);
+ctx.lineTo(x,y+20);
+ctx.stroke();
+
+
+// دست راست و چپ متحرک
+
+ctx.beginPath();
+
+ctx.moveTo(x,y-40);
+ctx.lineTo(x-40,y+move);
+
+ctx.moveTo(x,y-40);
+ctx.lineTo(x+40,y-move);
+
+ctx.stroke();
+
+
+// پاها
+
+ctx.beginPath();
+
+ctx.moveTo(x,y+20);
+ctx.lineTo(x-25,y+80+move);
+
+ctx.moveTo(x,y+20);
+ctx.lineTo(x+25,y+80-move);
+
+ctx.stroke();
 
 }
 
 
-gameLoop();
+
+function loop(){
+
+update();
+
+forest();
+
+stickman();
+
+requestAnimationFrame(loop);
+
+}
+
+
+loop();
 
 </script>
 
