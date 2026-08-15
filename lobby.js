@@ -1,155 +1,84 @@
-console.log("LOBBY JS LOADED");
-
 const socket = io();
 
-console.log("SOCKET CREATED");
+const nameInput =
+    document.getElementById("name");
+
+const createButton =
+    document.getElementById("createButton");
+
+const startButton =
+    document.getElementById("startButton");
+
+const menu =
+    document.getElementById("menu");
+
+const room =
+    document.getElementById("room");
+
+const roomCode =
+    document.getElementById("roomCode");
+
+const errorBox =
+    document.getElementById("error");
 
 
-const nameInput = document.getElementById("name");
-const roomInput = document.getElementById("roomInput");
+/* ساخت اتاق */
 
-const createButton = document.getElementById("createButton");
-const joinButton = document.getElementById("joinButton");
-const startButton = document.getElementById("startButton");
+createButton.onclick = function(){
 
-const menu = document.getElementById("menu");
-const room = document.getElementById("room");
+    const name =
+        nameInput.value.trim();
 
-const roomCode = document.getElementById("roomCode");
-const playersList = document.getElementById("playersList");
-const errorBox = document.getElementById("error");
-
-
-function getName(){
-
-    const name = nameInput.value.trim();
 
     if(!name){
 
         errorBox.textContent =
-            "اول اسم را بنویس!";
+            "اول اسمت را بنویس!";
 
-        return null;
+        return;
     }
 
-    localStorage.setItem(
-        "player",
+
+    errorBox.textContent = "";
+
+
+    socket.emit(
+        "createRoom",
         name
     );
 
-    return name;
-}
+};
 
 
-createButton.addEventListener(
-    "click",
-    function(){
-
-        console.log(
-            "CREATE CLICKED"
-        );
-
-        const name = getName();
-
-        if(!name) return;
-
-        socket.emit(
-            "createRoom",
-            name
-        );
-
-    }
-);
-
-
-joinButton.addEventListener(
-    "click",
-    function(){
-
-        console.log(
-            "JOIN CLICKED"
-        );
-
-        const name = getName();
-
-        if(!name) return;
-
-        const code =
-            roomInput.value.trim();
-
-        if(!/^\d{6}$/.test(code)){
-
-            errorBox.textContent =
-                "کد باید ۶ رقمی باشد!";
-
-            return;
-        }
-
-        socket.emit(
-            "joinRoom",
-            {
-                roomCode: code,
-                playerName: name
-            }
-        );
-
-    }
-);
-
-
-socket.on(
-    "connect",
-    function(){
-
-        console.log(
-            "SOCKET CONNECTED:",
-            socket.id
-        );
-
-    }
-);
-
-
-socket.on(
-    "connect_error",
-    function(error){
-
-        console.error(
-            "SOCKET ERROR:",
-            error
-        );
-
-        errorBox.textContent =
-            "اتصال به سرور برقرار نشد!";
-
-    }
-);
-
+/* اتاق ساخته شد */
 
 socket.on(
     "roomCreated",
     function(code){
 
-        console.log(
-            "ROOM CREATED:",
-            code
-        );
+        const name =
+            nameInput.value.trim();
+
 
         localStorage.setItem(
             "player",
-            nameInput.value.trim()
+            name
         );
+
 
         localStorage.setItem(
             "room",
             code
         );
 
+
         menu.style.display =
             "none";
 
+
         room.style.display =
             "block";
+
 
         roomCode.textContent =
             code;
@@ -158,83 +87,11 @@ socket.on(
 );
 
 
-socket.on(
-    "joinedRoom",
-    function(code){
-
-        console.log(
-            "JOINED ROOM:",
-            code
-        );
-
-        localStorage.setItem(
-            "player",
-            nameInput.value.trim()
-        );
-
-        localStorage.setItem(
-            "room",
-            code
-        );
-
-        menu.style.display =
-            "none";
-
-        room.style.display =
-            "block";
-
-        roomCode.textContent =
-            code;
-
-    }
-);
-
-
-socket.on(
-    "roomPlayers",
-    function(players){
-
-        console.log(
-            "PLAYERS:",
-            players
-        );
-
-        playersList.innerHTML = "";
-
-        players.forEach(
-            function(player){
-
-                const div =
-                    document.createElement(
-                        "div"
-                    );
-
-                div.className =
-                    "player";
-
-                div.textContent =
-                    "👤 " +
-                    player.name;
-
-                playersList.appendChild(
-                    div
-                );
-
-            }
-        );
-
-    }
-);
-
+/* خطا */
 
 socket.on(
     "roomError",
     function(message){
-
-        console.log(
-            "ROOM ERROR:",
-            message
-        );
 
         errorBox.textContent =
             message;
@@ -243,20 +100,21 @@ socket.on(
 );
 
 
-startButton.addEventListener(
-    "click",
-    function(){
+/* ورود به بازی */
 
-        const name =
-            nameInput.value.trim();
+startButton.onclick = function(){
 
-        localStorage.setItem(
-            "player",
-            name
-        );
+    const name =
+        nameInput.value.trim();
 
-        window.location.href =
-            "/game.html";
 
-    }
-);
+    localStorage.setItem(
+        "player",
+        name
+    );
+
+
+    window.location.href =
+        "/game.html";
+
+};
