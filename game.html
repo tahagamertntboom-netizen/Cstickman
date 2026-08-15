@@ -1,16 +1,203 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-<title>Stickman Game</title>
+<title>Stickman Forest</title>
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:#87ceeb;
+}
+
+canvas{
+    display:block;
+}
+</style>
 </head>
 
-<body style="margin:0;background:#87ceeb;">
+<body>
 
-<canvas id="canvas" width="800" height="500"></canvas>
+<canvas id="game"></canvas>
 
-<script src="game.js"></script>
+<script>
+
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+
+canvas.width=900;
+canvas.height=500;
+
+
+let player={
+    x:200,
+    y:330,
+    speed:5,
+    jump:0,
+    onGround:true,
+    walk:0
+};
+
+
+let keys={};
+
+
+document.addEventListener("keydown",e=>{
+    keys[e.key]=true;
+
+    if(e.key=="ArrowUp" && player.onGround){
+        player.jump=-12;
+        player.onGround=false;
+    }
+});
+
+
+document.addEventListener("keyup",e=>{
+    keys[e.key]=false;
+});
+
+
+
+let trees=[
+    {x:100},
+    {x:350},
+    {x:650},
+    {x:800}
+];
+
+
+
+function update(){
+
+    if(keys["ArrowRight"]){
+        player.x+=player.speed;
+        player.walk+=0.3;
+    }
+
+    if(keys["ArrowLeft"]){
+        player.x-=player.speed;
+        player.walk+=0.3;
+    }
+
+
+    player.y+=player.jump;
+    player.jump+=0.5;
+
+
+    if(player.y>=330){
+        player.y=330;
+        player.jump=0;
+        player.onGround=true;
+    }
+
+}
+
+
+
+function drawForest(){
+
+    // آسمان
+    ctx.fillStyle="#87ceeb";
+    ctx.fillRect(0,0,900,500);
+
+
+    // خورشید
+    ctx.fillStyle="yellow";
+    ctx.beginPath();
+    ctx.arc(100,80,40,0,Math.PI*2);
+    ctx.fill();
+
+
+    // زمین
+    ctx.fillStyle="#3aa655";
+    ctx.fillRect(0,400,900,100);
+
+
+    // درخت ها
+    trees.forEach(t=>{
+
+        ctx.fillStyle="#6b3e1e";
+        ctx.fillRect(t.x,250,40,150);
+
+
+        ctx.fillStyle="green";
+        ctx.beginPath();
+        ctx.arc(t.x+20,220,80,0,Math.PI*2);
+        ctx.fill();
+
+    });
+
+}
+
+
+
+function drawStickman(){
+
+    let x=player.x;
+    let y=player.y;
+
+
+    ctx.strokeStyle="black";
+    ctx.lineWidth=6;
+
+
+    // سر
+    ctx.beginPath();
+    ctx.arc(x,y-80,25,0,Math.PI*2);
+    ctx.stroke();
+
+
+    // بدن
+    ctx.beginPath();
+    ctx.moveTo(x,y-55);
+    ctx.lineTo(x,y+20);
+    ctx.stroke();
+
+
+
+    // دست ها
+    ctx.beginPath();
+    ctx.moveTo(x,y-30);
+    ctx.lineTo(x-35,y);
+    ctx.moveTo(x,y-30);
+    ctx.lineTo(x+35,y);
+    ctx.stroke();
+
+
+
+    // پاها با انیمیشن راه رفتن
+    let leg=Math.sin(player.walk)*20;
+
+
+    ctx.beginPath();
+    ctx.moveTo(x,y+20);
+    ctx.lineTo(x-leg,y+70);
+
+    ctx.moveTo(x,y+20);
+    ctx.lineTo(x+leg,y+70);
+
+    ctx.stroke();
+
+}
+
+
+
+function gameLoop(){
+
+    update();
+
+    drawForest();
+
+    drawStickman();
+
+
+    requestAnimationFrame(gameLoop);
+
+}
+
+
+gameLoop();
+
+</script>
 
 </body>
-
 </html>
