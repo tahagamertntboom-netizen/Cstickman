@@ -12,316 +12,193 @@ app.use(express.static(__dirname));
 
 const rooms = {};
 
-const ADMIN_NAME = "tahagamertnt";
-
-function makeCode() {
+function newCode() {
     let code;
 
     do {
-        code = String(
-            Math.floor(100000 + Math.random() * 900000)
-        );
+        code = Math.floor(
+            100000 + Math.random() * 900000
+        ).toString();
     } while (rooms[code]);
 
     return code;
 }
 
-function cleanPlayer(p) {
-    return {
-        id: p.id,
-        name: p.name,
-        admin: p.admin,
+function sendPlayers(code) {
+    if (!rooms[code]) return;
 
-        x: p.x,
-        y: p.y,
+    const list = Object.values(rooms[code]);
 
-        direction: p.direction,
-
-        walking: p.walking,
-        running: p.running,
-        jumping: p.jumping,
-
-        health: p.health,
-        score: p.score
-    };
-}
-
-function broadcastPlayers(roomCode) {
-
-    const room = rooms[roomCode];
-
-    if (!room) return;
-
-    io.to(roomCode).emit(
-        "players",
-        Object.values(room.players).map(cleanPlayer)
-    );
+    io.to(code).emit("players", list);
 }
 
 io.on("connection", socket => {
 
-    console.log("CONNECTED:", socket.id);
+    console.log("CONNECTED", socket.id);
 
-
-    // =========================
-    // CREATE ROOM
-    // =========================
-
+    // ساخت اتاق
     socket.on("createRoom", name => {
 
         name = String(name || "").trim();
 
         if (!name) {
-            socket.emit(
-                "errorMessage",
-                "اول اسمت را وارد کن!"
-            );
+            socket.emit("errorMessage", "اسم را وارد کن!");
             return;
         }
 
-        const code = makeCode();
+        const code = newCode();
 
-        rooms[code] = {
-            players: {}
-        };
+        rooms[code] = {};
 
-        const player = {
-
+        rooms[code][socket.id] = {
             id: socket.id,
-
             name: name,
-
             admin:
-                name.toLowerCase() ===
-                ADMIN_NAME.toLowerCase(),
+                name.toLowerCase() === "tahagamertnt",
 
             x: 500,
             y: 0,
-
             direction: 1,
-
             walking: false,
             running: false,
             jumping: false,
-
-            health: 100,
-            score: 0
+            health: 100
         };
 
-        rooms[code].players[socket.id] =
-            player;
+        socket.room = code;
 
         socket.join(code);
 
-        socket.roomCode = code;
+        socket.emit("roomCreated", code);
 
-        socket.emit(
-            "roomCreated",
-            code
-        );
+        sendPlayers(code);
 
-        broadcastPlayers(code);
-
-        console.log(
-            "ROOM CREATED:",
-            code,
-            name
-        );
+        console.log("ROOM", code);
     });
 
 
-    // =========================
-    // JOIN ROOM
-    // =========================
-
+    // ورود
     socket.on("joinRoom", data => {
-
-        const code =
-            String(data?.code || "").trim();
 
         const name =
             String(data?.name || "").trim();
 
+        const code =
+            String(data?.code || "").trim();
+
         if (!name) {
-
-            socket.emit(
-                "errorMessage",
-                "اول اسمت را وارد کن!"
-            );
-
+            socket.emit("errorMessage", "اسم را وارد کن!");
             return;
         }
 
         if (!/^\d{6}$/.test(code)) {
-
             socket.emit(
                 "errorMessage",
                 "کد باید ۶ رقمی باشد!"
             );
-
             return;
         }
 
         if (!rooms[code]) {
-
             socket.emit(
                 "errorMessage",
                 "این اتاق وجود ندارد!"
             );
-
             return;
         }
 
-        const player = {
-
+        rooms[code][socket.id] = {
             id: socket.id,
-
             name: name,
-
             admin:
-                name.toLowerCase() ===
-                ADMIN_NAME.toLowerCase(),
+                name.toLowerCase() === "tahagamertnt",
 
             x: 500,
             y: 0,
-
             direction: 1,
-
             walking: false,
             running: false,
             jumping: false,
-
-            health: 100,
-            score: 0
+            health: 100
         };
 
-        rooms[code].players[socket.id] =
-            player;
+        socket.room = code;
 
         socket.join(code);
 
-        socket.roomCode = code;
+        socket.emit("roomJoined", code);
 
-        socket.emit(
-            "roomJoined",
-            code
-        );
-
-        broadcastPlayers(code);
+        sendPlayers(code);
 
         console.log(
-            "JOINED:",
             name,
+            "JOIN",
             code
         );
     });
 
 
-    // =========================
-    // GAME READY
-    // =========================
-
-    socket.on("gameReady", () => {
-
-        const code =
-            socket.roomCode;
-
-        if (!code || !rooms[code])
-            return;
-
-        broadcastPlayers(code);
-    });
-
-
-    // =========================
-    // PLAYER MOVE
-    // =========================
-
+    // حرکت بازیکن
     socket.on("move", data => {
 
-        const code =
-            socket.roomCode;
+        const code = socket.room;
 
-        if (!code || !rooms[code])
-            return;
+        if (!code || !rooms[code]) return;
 
-        const player =
-            rooms[code].players[socket.id];
+        const p =
+            rooms[code][socket.id];
 
-        if (!player)
-            return;
+        if (!p) return;
 
+        if (typeof data.x === "number")
+            p.x = data.x;
 
-        if (
-            typeof data.x === "number"
-        ) {
-            player.x = data.x;
-        }
+        if (typeof data.y === "number")
+            p.y = data.y;
 
-
-        if (
-            typeof data.y === "number"
-        ) {
-            player.y = data.y;
-        }
-
-
-        player.direction =
+        p.direction =
             data.direction === -1
                 ? -1
                 : 1;
 
-        player.walking =
-            !!data.walking;
-
-        player.running =
-            !!data.running;
-
-        player.jumping =
-            !!data.jumping;
-
+        p.walking = !!data.walking;
+        p.running = !!data.running;
+        p.jumping = !!data.jumping;
 
         socket.to(code).emit(
             "move",
-            cleanPlayer(player)
+            p
         );
-
     });
 
 
-    // =========================
-    // DISCONNECT
-    // =========================
-
+    // قطع شدن
     socket.on("disconnect", () => {
 
-        const code =
-            socket.roomCode;
+        const code = socket.room;
 
         if (!code || !rooms[code])
             return;
 
-        delete rooms[code]
-            .players[socket.id];
+        delete rooms[code][socket.id];
 
         io.to(code).emit(
             "playerLeft",
             socket.id
         );
 
-        broadcastPlayers(code);
-
+        sendPlayers(code);
 
         if (
             Object.keys(
-                rooms[code].players
+                rooms[code]
             ).length === 0
         ) {
             delete rooms[code];
         }
 
         console.log(
-            "DISCONNECTED:",
+            "LEFT",
             socket.id
         );
     });
@@ -330,33 +207,19 @@ io.on("connection", socket => {
 
 
 app.get("/", (req, res) => {
-
     res.sendFile(
         __dirname + "/index.html"
     );
-
 });
 
 
-server.listen(
-    PORT,
-    () => {
+server.listen(PORT, () => {
 
-        console.log(
-            "================================"
-        );
+    console.log("");
+    console.log("==============================");
+    console.log("STICKMAN SERVER");
+    console.log("PORT:", PORT);
+    console.log("==============================");
+    console.log("");
 
-        console.log(
-            "STICKMAN SERVER RUNNING"
-        );
-
-        console.log(
-            "PORT:",
-            PORT
-        );
-
-        console.log(
-            "================================"
-        );
-    }
-);
+});
