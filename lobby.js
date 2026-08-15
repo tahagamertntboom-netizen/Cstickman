@@ -1,120 +1,247 @@
 const socket = io();
 
-const nameInput =
-    document.getElementById("name");
+const namePage = document.getElementById("namePage");
+const lobbyPage = document.getElementById("lobbyPage");
+const roomPage = document.getElementById("roomPage");
 
-const createButton =
-    document.getElementById("createButton");
+const playerName = document.getElementById("playerName");
+const showName = document.getElementById("showName");
 
-const startButton =
-    document.getElementById("startButton");
+const confirmName = document.getElementById("confirmName");
+const createRoom = document.getElementById("createRoom");
+const joinRoom = document.getElementById("joinRoom");
+const startGame = document.getElementById("startGame");
 
-const menu =
-    document.getElementById("menu");
-
-const room =
-    document.getElementById("room");
-
-const roomCode =
-    document.getElementById("roomCode");
-
-const errorBox =
-    document.getElementById("error");
+const roomInput = document.getElementById("roomInput");
+const roomCode = document.getElementById("roomCode");
+const players = document.getElementById("players");
+const error = document.getElementById("error");
 
 
-/* ساخت اتاق */
+let myName = "";
+let currentRoom = "";
 
-createButton.onclick = function(){
+
+/* =========================
+   تأیید اسم
+========================= */
+
+confirmName.onclick = function(){
 
     const name =
-        nameInput.value.trim();
-
+        playerName.value.trim();
 
     if(!name){
 
-        errorBox.textContent =
+        error.textContent =
             "اول اسمت را بنویس!";
 
         return;
     }
 
+    myName = name;
 
-    errorBox.textContent = "";
-
-
-    socket.emit(
-        "createRoom",
-        name
+    localStorage.setItem(
+        "player",
+        myName
     );
 
+    showName.textContent =
+        myName;
+
+    error.textContent = "";
+
+    namePage.style.display =
+        "none";
+
+    lobbyPage.style.display =
+        "block";
 };
 
 
-/* اتاق ساخته شد */
+/* =========================
+   ساخت اتاق
+========================= */
+
+createRoom.onclick = function(){
+
+    if(!myName){
+
+        error.textContent =
+            "اول اسم را تأیید کن!";
+
+        return;
+    }
+
+    socket.emit(
+        "createRoom",
+        myName
+    );
+};
+
+
+/* =========================
+   اتاق ساخته شد
+========================= */
 
 socket.on(
     "roomCreated",
     function(code){
 
-        const name =
-            nameInput.value.trim();
+        currentRoom =
+            String(code);
 
-
-        localStorage.setItem(
-            "player",
-            name
-        );
-
+        roomCode.textContent =
+            currentRoom;
 
         localStorage.setItem(
             "room",
-            code
+            currentRoom
         );
 
-
-        menu.style.display =
+        lobbyPage.style.display =
             "none";
 
-
-        room.style.display =
+        roomPage.style.display =
             "block";
-
-
-        roomCode.textContent =
-            code;
-
     }
 );
 
 
-/* خطا */
+/* =========================
+   ورود به اتاق
+========================= */
+
+joinRoom.onclick = function(){
+
+    const code =
+        roomInput.value.trim();
+
+    if(!/^\d{6}$/.test(code)){
+
+        error.textContent =
+            "کد اتاق باید ۶ رقمی باشد!";
+
+        return;
+    }
+
+    socket.emit(
+        "joinRoom",
+        {
+            roomCode: code,
+            playerName: myName
+        }
+    );
+};
+
+
+/* =========================
+   وارد اتاق شد
+========================= */
+
+socket.on(
+    "joinedRoom",
+    function(code){
+
+        currentRoom =
+            String(code);
+
+        roomCode.textContent =
+            currentRoom;
+
+        localStorage.setItem(
+            "room",
+            currentRoom
+        );
+
+        lobbyPage.style.display =
+            "none";
+
+        roomPage.style.display =
+            "block";
+    }
+);
+
+
+/* =========================
+   بازیکنان
+========================= */
+
+socket.on(
+    "roomPlayers",
+    function(list){
+
+        players.innerHTML = "";
+
+        list.forEach(
+            function(player){
+
+                const div =
+                    document.createElement(
+                        "div"
+                    );
+
+                div.className =
+                    "player";
+
+                div.textContent =
+                    "👤 " +
+                    player.name;
+
+                players.appendChild(
+                    div
+                );
+            }
+        );
+    }
+);
+
+
+/* =========================
+   خطا
+========================= */
 
 socket.on(
     "roomError",
     function(message){
 
-        errorBox.textContent =
+        error.textContent =
             message;
+    }
+);
+
+
+/* =========================
+   اتصال
+========================= */
+
+socket.on(
+    "connect_error",
+    function(){
+
+        error.textContent =
+            "سرور وصل نیست!";
 
     }
 );
 
 
-/* ورود به بازی */
+/* =========================
+   ورود به بازی
+========================= */
 
-startButton.onclick = function(){
-
-    const name =
-        nameInput.value.trim();
-
+startGame.onclick = function(){
 
     localStorage.setItem(
         "player",
-        name
+        myName
     );
 
+    localStorage.setItem(
+        "room",
+        currentRoom
+    );
 
     window.location.href =
-        "/game.html";
-
+        "./game.html";
 };
