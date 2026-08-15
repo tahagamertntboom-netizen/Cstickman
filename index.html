@@ -1,35 +1,12 @@
 <!DOCTYPE html>
 <html>
-<head>
-<meta charset="UTF-8">
-<title>TEST</title>
-</head>
-
 <body>
 
-<h1>تست لابی</h1>
+<input id="name">
 
-<input id="name" placeholder="اسم">
-
-<button onclick="test()">
-تأیید اسم
+<button onclick="alert('دکمه کار می‌کند')">
+تأیید
 </button>
-
-<h2 id="result"></h2>
-
-<script>
-
-function test(){
-
-    const name =
-        document.getElementById("name").value;
-
-    document.getElementById("result").textContent =
-        "سلام " + name + " 👋";
-
-}
-
-</script>
 
 </body>
 </html>
