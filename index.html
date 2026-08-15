@@ -1,73 +1,286 @@
 <!DOCTYPE html>
-<html>
+<html lang="fa">
 <head>
-<title>Stickman Login</title>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,
+initial-scale=1.0,
+maximum-scale=1.0,
+user-scalable=no">
+
+<title>Stickman Lobby</title>
 
 <style>
+
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+html,body{
+    width:100%;
+    min-height:100%;
+}
+
 body{
-background:#111;
-color:white;
-font-family:Arial;
-text-align:center;
-padding-top:100px;
+    min-height:100vh;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    padding:20px;
+
+    font-family:Arial,sans-serif;
+
+    background:
+    linear-gradient(
+        135deg,
+        #0f172a,
+        #172554,
+        #312e81
+    );
+
+    color:white;
 }
 
-.box{
-background:#222;
-padding:30px;
-border-radius:20px;
-display:inline-block;
+.container{
+
+    width:100%;
+    max-width:450px;
+
+    padding:30px;
+
+    border-radius:25px;
+
+    background:
+    rgba(15,23,42,.96);
+
+    box-shadow:
+    0 20px 60px rgba(0,0,0,.5);
+
+    text-align:center;
+
 }
 
-input,button{
-padding:12px;
-margin:10px;
-border-radius:10px;
-border:0;
+h1{
+    font-size:40px;
+    margin-bottom:8px;
+}
+
+.subtitle{
+    color:#a5b4fc;
+    margin-bottom:25px;
+}
+
+input{
+
+    width:100%;
+
+    padding:15px;
+
+    margin:7px 0;
+
+    border:0;
+
+    border-radius:13px;
+
+    font-size:17px;
+
+    outline:none;
+
 }
 
 button{
-background:#00aa55;
-color:white;
-cursor:pointer;
+
+    width:100%;
+
+    padding:15px;
+
+    margin-top:10px;
+
+    border:0;
+
+    border-radius:13px;
+
+    font-size:17px;
+
+    font-weight:bold;
+
+    cursor:pointer;
+
 }
+
+.create{
+    background:#22c55e;
+    color:white;
+}
+
+.join{
+    background:#6366f1;
+    color:white;
+}
+
+.start{
+    background:#f59e0b;
+    color:white;
+}
+
+#menu{
+    display:block;
+}
+
+#room{
+    display:none;
+}
+
+#roomCode{
+
+    margin:15px 0;
+
+    font-size:36px;
+
+    letter-spacing:6px;
+
+    color:#22c55e;
+
+}
+
+.players{
+
+    margin-top:20px;
+
+    padding:15px;
+
+    border-radius:15px;
+
+    background:#0b1220;
+
+}
+
+.player{
+
+    padding:10px;
+
+    margin:6px 0;
+
+    border-radius:10px;
+
+    background:#1e293b;
+
+}
+
+#error{
+
+    margin-top:12px;
+
+    color:#f87171;
+
+}
+
 </style>
 
 </head>
 
+
 <body>
 
-<div class="box">
 
-<h1>STICKMAN</h1>
+<div class="container">
 
-<input id="name" placeholder="اسم بازیکن">
+    <h1>🎮 STICKMAN</h1>
 
-<br>
+    <div class="subtitle">
+        Multiplayer Lobby
+    </div>
 
-<button onclick="login()">ورود</button>
+
+    <!-- منوی اصلی -->
+
+    <div id="menu">
+
+        <input
+            id="name"
+            type="text"
+            maxlength="20"
+            autocomplete="off"
+            placeholder="اسم بازیکن"
+        >
+
+
+        <button
+            class="create"
+            id="createButton"
+        >
+            🏠 ساخت اتاق
+        </button>
+
+
+        <input
+            id="roomInput"
+            type="text"
+            inputmode="numeric"
+            maxlength="6"
+            autocomplete="off"
+            placeholder="کد اتاق"
+        >
+
+
+        <button
+            class="join"
+            id="joinButton"
+        >
+            🚪 ورود به اتاق
+        </button>
+
+
+        <div id="error"></div>
+
+    </div>
+
+
+    <!-- لابی -->
+
+    <div id="room">
+
+        <div>
+            کد اتاق
+        </div>
+
+
+        <div id="roomCode">
+            ------
+        </div>
+
+
+        <div class="players">
+
+            <h3>
+                👥 بازیکنان
+            </h3>
+
+            <div id="playersList"></div>
+
+        </div>
+
+
+        <button
+            class="start"
+            id="startButton"
+        >
+            🎮 ورود به بازی
+        </button>
+
+    </div>
 
 </div>
 
 
-<script>
+<script src="/socket.io/socket.io.js"></script>
 
-function login(){
-
-let name=document.getElementById("name").value;
-
-if(name==""){
-alert("اسم بنویس");
-return;
-}
-
-localStorage.setItem("player",name);
-
-window.location.href="game.html";
-
-}
-
-</script>
+<script src="/lobby.js"></script>
 
 </body>
 </html>
