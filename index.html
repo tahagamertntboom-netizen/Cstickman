@@ -1,70 +1,16 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Stickman</title>
-<style>
-body{
-margin:0;
-height:100vh;
-display:flex;
-justify-content:center;
-align-items:center;
-background:#111;
-font-family:Arial;
-color:white;
-}
-
-.box{
-background:#222;
-padding:40px;
-border-radius:20px;
-text-align:center;
-}
-
-input,button{
-padding:12px;
-margin:10px;
-border-radius:10px;
-border:0;
-}
-
-button{
-background:#00aa55;
-color:white;
-cursor:pointer;
-}
-</style>
-</head>
-
-<body>
-
-<div class="box">
-<h1>STICKMAN</h1>
-
-<input id="name" placeholder="اسم بازیکن">
-
-<br>
-
-<button onclick="go()">ورود</button>
-
-</div>
-
-
 <script>
-
 function go(){
 
-let n=document.getElementById("name").value;
+let name = document.getElementById("name").value;
 
-if(!n)return;
-
-localStorage.setItem("name",n);
-
-location="lobby.html";
-
+if(name==""){
+alert("اسم بنویس");
+return;
 }
 
-</script>
+localStorage.setItem("name", name);
 
-</body>
-</html>
+location.href = "game.html";
+
+}
+</script>
