@@ -48,6 +48,7 @@ const me = {
     height: 80,
 
     onGround: false
+
 };
 
 
@@ -76,6 +77,24 @@ socket.on("connect", () => {
 
     me.id = socket.id;
 
+
+    /*
+       خیلی مهم:
+       این اتصال جدید دوباره وارد همان اتاق می‌شود.
+    */
+
+    if (roomCode) {
+
+        socket.emit("joinRoom", {
+
+            roomCode: roomCode,
+
+            playerName: myName
+
+        });
+
+    }
+
 });
 
 
@@ -89,16 +108,19 @@ socket.on("players", (list) => {
         return;
     }
 
+
     list.forEach((player) => {
 
         if (!player || !player.id) {
             return;
         }
 
+
         // خودمان را دوباره نساز
         if (player.id === socket.id) {
             return;
         }
+
 
         players[player.id] = {
 
@@ -122,6 +144,7 @@ socket.on("players", (list) => {
                 typeof player.y === "number"
                     ? player.y
                     : 400
+
         };
 
     });
@@ -155,6 +178,7 @@ socket.on("playerMoved", (data) => {
     if (!data || !data.id) {
         return;
     }
+
 
     if (!players[data.id]) {
 
@@ -281,21 +305,29 @@ if (leftButton) {
     leftButton.addEventListener(
         "pointerdown",
         () => {
+
             keys.left = true;
+
         }
     );
+
 
     leftButton.addEventListener(
         "pointerup",
         () => {
+
             keys.left = false;
+
         }
     );
+
 
     leftButton.addEventListener(
         "pointercancel",
         () => {
+
             keys.left = false;
+
         }
     );
 
@@ -307,21 +339,29 @@ if (rightButton) {
     rightButton.addEventListener(
         "pointerdown",
         () => {
+
             keys.right = true;
+
         }
     );
+
 
     rightButton.addEventListener(
         "pointerup",
         () => {
+
             keys.right = false;
+
         }
     );
+
 
     rightButton.addEventListener(
         "pointercancel",
         () => {
+
             keys.right = false;
+
         }
     );
 
@@ -372,11 +412,13 @@ function update() {
         me.vx = -5;
 
     }
+
     else if (keys.right) {
 
         me.vx = 5;
 
     }
+
     else {
 
         me.vx *= 0.8;
@@ -408,6 +450,7 @@ function update() {
         me.onGround = true;
 
     }
+
     else {
 
         me.onGround = false;
@@ -458,7 +501,6 @@ function drawStickman(
     mine
 ) {
 
-    // جلوگیری کامل از undefined
     const safeName =
         (
             typeof name === "string" &&
@@ -708,10 +750,12 @@ function drawWorld() {
             ground
         );
 
+
     sky.addColorStop(
         0,
         "#38bdf8"
     );
+
 
     sky.addColorStop(
         1,
@@ -721,6 +765,7 @@ function drawWorld() {
 
     ctx.fillStyle =
         sky;
+
 
     ctx.fillRect(
         0,
@@ -734,6 +779,7 @@ function drawWorld() {
 
     ctx.fillStyle =
         "#365314";
+
 
     ctx.fillRect(
         0,
@@ -749,6 +795,7 @@ function drawWorld() {
     ctx.fillStyle =
         "#84cc16";
 
+
     ctx.fillRect(
         0,
         ground,
@@ -761,6 +808,7 @@ function drawWorld() {
 
     ctx.beginPath();
 
+
     ctx.arc(
         canvas.width - 100,
         100,
@@ -768,6 +816,7 @@ function drawWorld() {
         0,
         Math.PI * 2
     );
+
 
     ctx.fillStyle =
         "#fde047";
@@ -793,11 +842,21 @@ function createAdminButton() {
     }
 
 
-    if (
+    /*
+       اگر game.html خودش دکمه دارد،
+       دکمه دوم نساز.
+    */
+
+    const existingButton =
         document.getElementById(
             "adminButton"
-        )
-    ) {
+        );
+
+
+    if (existingButton) {
+
+        existingButton.style.display =
+            "block";
 
         return;
 
@@ -809,17 +868,20 @@ function createAdminButton() {
             "button"
         );
 
+
     button.id =
         "adminButton";
 
+
     button.textContent =
         "👑 ADMIN";
+
 
     button.style.cssText = `
         position:fixed;
         top:15px;
         right:15px;
-        z-index:100;
+        z-index:10000;
         padding:12px 18px;
         border:0;
         border-radius:12px;
