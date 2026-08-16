@@ -15,23 +15,15 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
-// فایل‌های بازی
 app.use(express.static(path.join(__dirname)));
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-/*
-==================================================
-ROOM SYSTEM
-==================================================
-*/
-
 const rooms = {};
 
-// ساخت کد اتاق فقط عددی - ۶ رقمی
-function makeRoomCode() {
+function createRoomCode() {
   let code;
 
   do {
@@ -43,278 +35,221 @@ function makeRoomCode() {
   return code;
 }
 
-// ساخت اتاق
-function createRoom(socket) {
-  const roomCode = makeRoomCode();
+function sendRoomPlayers(roomCode) {
+  const room = rooms[roomCode];
 
-  rooms[roomCode] = {
-    code: roomCode,
-    host: socket.id,
-    players: {}
-  };
+  if (!room) return;
 
-  return roomCode;
+  io.to(roomCode).emit(
+    "roomPlayers",
+    Object.values(room.players)
+  );
 }
 
-// حذف اتاق خالی
-function removeEmptyRoom(roomCode) {
-  if (!rooms[roomCode]) return;
+function leaveRoom(socket) {
+  const roomCode = socket.roomCode;
+
+  if (!roomCode) return;
+
+  const room = rooms[roomCode];
+
+  if (!room) {
+    socket.roomCode = null;
+    return;
+  }
+
+  const wasHost = room.host === socket.id;
+
+  delete room.players[socket.id];
+
+  socket.leave(roomCode);
+  socket.roomCode = null;
+
+  io.to(roomCode).emit(
+    "playerLeft",
+    socket.id
+  );
+
+  if (wasHost) {
+    const players = Object.keys(room.players);
+
+    if (players.length > 0) {
+      const newHost = players[0];
+
+      room.host = newHost;
+
+      room.players[newHost].isHost = true;
+
+      io.to(roomCode).emit(
+        "newHost",
+        newHost
+      );
+    }
+  }
+
+  sendRoomPlayers(roomCode);
 
   if (
-    Object.keys(rooms[roomCode].players).length === 0
+    Object.keys(room.players).length === 0
   ) {
     delete rooms[roomCode];
 
-    console.log("Room deleted:", roomCode);
+    console.log(
+      "Room deleted:",
+      roomCode
+    );
   }
 }
 
-/*
-==================================================
-CONNECTION
-==================================================
-*/
-
 io.on("connection", (socket) => {
-  console.log("Player connected:", socket.id);
+  console.log(
+    "Player connected:",
+    socket.id
+  );
 
-  /*
-  ================================================
-  CREATE ROOM
-  ================================================
-  */
+  // =========================
+  // CREATE ROOM
+  // =========================
 
-  socket.on("createRoom", (data, callback) => {
-    try {
-      const roomCode = createRoom(socket);
+  socket.on("createRoom", (data) => {
+    const roomCode = createRoomCode();
 
-      const player = {
-        id: socket.id,
+    const player = {
+      id: socket.id,
+      name:
+        typeof data?.name === "string"
+          ? data.name.substring(0, 20)
+          : "Player",
+      x: 400,
+      y: 300,
+      color:
+        typeof data?.color === "string"
+          ? data.color
+          : "#ffffff",
+      isHost: true
+    };
 
-        name:
-          data &&
-          typeof data.name === "string"
-            ? data.name.substring(0, 20)
-            : "Player",
+    rooms[roomCode] = {
+      code: roomCode,
+      host: socket.id,
+      players: {}
+    };
 
-        x: 400,
-        y: 300,
+    rooms[roomCode].players[socket.id] =
+      player;
 
-        color:
-          data &&
-          typeof data.color === "string"
-            ? data.color
-            : "#ffffff",
+    socket.join(roomCode);
 
-        isHost: true
-      };
+    socket.roomCode = roomCode;
 
-      rooms[roomCode].players[socket.id] =
-        player;
+    console.log(
+      "Room created:",
+      roomCode
+    );
 
-      socket.join(roomCode);
-
-      socket.roomCode = roomCode;
-
-      console.log(
-        "Room created:",
-        roomCode,
-        "Host:",
-        socket.id
-      );
-
-      const result = {
-        success: true,
+    socket.emit(
+      "roomCreated",
+      {
         roomCode: roomCode,
-        room: rooms[roomCode],
-        player: player
-      };
-
-      if (typeof callback === "function") {
-        callback(result);
+        player: player,
+        players:
+          Object.values(
+            rooms[roomCode].players
+          )
       }
-
-      socket.emit(
-        "roomCreated",
-        result
-      );
-
-    } catch (error) {
-      console.error(
-        "Create room error:",
-        error
-      );
-
-      if (typeof callback === "function") {
-        callback({
-          success: false,
-          message: "خطا در ساخت اتاق"
-        });
-      }
-    }
+    );
   });
 
-  /*
-  ================================================
-  JOIN ROOM
-  ================================================
-  */
+  // =========================
+  // JOIN ROOM
+  // =========================
 
-  socket.on("joinRoom", (data, callback) => {
-    try {
-      if (!data || !data.roomCode) {
-        const result = {
-          success: false,
-          message: "کد اتاق وارد نشده است."
-        };
+  socket.on("joinRoom", (data) => {
+    let roomCode = String(
+      data?.roomCode || ""
+    ).replace(/\D/g, "");
 
-        if (typeof callback === "function") {
-          callback(result);
-        }
-
-        return;
-      }
-
-      // فقط عدد قبول می‌شود
-      const roomCode = String(
-        data.roomCode
-      )
-        .replace(/\D/g, "")
-        .trim();
-
-      if (roomCode.length !== 6) {
-        const result = {
-          success: false,
-          message:
-            "کد اتاق باید ۶ رقمی باشد."
-        };
-
-        if (typeof callback === "function") {
-          callback(result);
-        }
-
-        socket.emit(
-          "roomError",
-          result
-        );
-
-        return;
-      }
-
-      const room = rooms[roomCode];
-
-      if (!room) {
-        const result = {
-          success: false,
-          message:
-            "این اتاق وجود ندارد."
-        };
-
-        if (typeof callback === "function") {
-          callback(result);
-        }
-
-        socket.emit(
-          "roomError",
-          result
-        );
-
-        return;
-      }
-
-      const player = {
-        id: socket.id,
-
-        name:
-          typeof data.name === "string"
-            ? data.name.substring(0, 20)
-            : "Player",
-
-        x:
-          400 +
-          Math.floor(
-            Math.random() * 100
-          ),
-
-        y: 300,
-
-        color:
-          typeof data.color === "string"
-            ? data.color
-            : "#ffffff",
-
-        isHost: false
-      };
-
-      room.players[socket.id] =
-        player;
-
-      socket.join(roomCode);
-
-      socket.roomCode =
-        roomCode;
-
-      console.log(
-        "Player joined:",
-        socket.id,
-        "Room:",
-        roomCode
-      );
-
-      const result = {
-        success: true,
-        roomCode: roomCode,
-        room: room,
-        player: player
-      };
-
-      if (typeof callback === "function") {
-        callback(result);
-      }
-
-      // اطلاعات اتاق برای بازیکن
+    if (roomCode.length !== 6) {
       socket.emit(
-        "roomJoined",
-        result
+        "roomError",
+        "کد اتاق باید ۶ رقمی باشد."
       );
 
-      socket.emit(
-        "currentPlayers",
-        room.players
-      );
-
-      // اطلاع به بقیه
-      socket.to(roomCode).emit(
-        "playerJoined",
-        player
-      );
-
-      io.to(roomCode).emit(
-        "roomPlayers",
-        room.players
-      );
-
-    } catch (error) {
-      console.error(
-        "Join room error:",
-        error
-      );
-
-      if (typeof callback === "function") {
-        callback({
-          success: false,
-          message:
-            "خطا در ورود به اتاق"
-        });
-      }
+      return;
     }
+
+    const room = rooms[roomCode];
+
+    if (!room) {
+      socket.emit(
+        "roomError",
+        "این اتاق وجود ندارد."
+      );
+
+      return;
+    }
+
+    const player = {
+      id: socket.id,
+
+      name:
+        typeof data?.name === "string"
+          ? data.name.substring(0, 20)
+          : "Player",
+
+      x:
+        300 +
+        Math.floor(
+          Math.random() * 300
+        ),
+
+      y: 300,
+
+      color:
+        typeof data?.color === "string"
+          ? data.color
+          : "#ffffff",
+
+      isHost: false
+    };
+
+    room.players[socket.id] =
+      player;
+
+    socket.join(roomCode);
+
+    socket.roomCode =
+      roomCode;
+
+    console.log(
+      "Player joined:",
+      socket.id,
+      roomCode
+    );
+
+    socket.emit(
+      "roomJoined",
+      {
+        roomCode: roomCode,
+        player: player,
+        players:
+          Object.values(
+            room.players
+          )
+      }
+    );
+
+    socket.to(roomCode).emit(
+      "playerJoined",
+      player
+    );
+
+    sendRoomPlayers(roomCode);
   });
 
-  /*
-  ================================================
-  PLAYER MOVEMENT
-  ================================================
-  */
+  // =========================
+  // MOVEMENT
+  // =========================
 
   socket.on(
     "playerMovement",
@@ -330,40 +265,32 @@ io.on("connection", (socket) => {
       if (!room) return;
 
       const player =
-        room.players[
-          socket.id
-        ];
+        room.players[socket.id];
 
       if (!player) return;
 
       if (
-        data &&
-        typeof data.x === "number"
+        typeof data?.x === "number"
       ) {
         player.x = data.x;
       }
 
       if (
-        data &&
-        typeof data.y === "number"
+        typeof data?.y === "number"
       ) {
         player.y = data.y;
       }
 
-      socket
-        .to(roomCode)
-        .emit(
-          "playerMoved",
-          player
-        );
+      socket.to(roomCode).emit(
+        "playerMoved",
+        player
+      );
     }
   );
 
-  /*
-  ================================================
-  UPDATE PLAYER
-  ================================================
-  */
+  // =========================
+  // PLAYER UPDATE
+  // =========================
 
   socket.on(
     "updatePlayer",
@@ -379,15 +306,12 @@ io.on("connection", (socket) => {
       if (!room) return;
 
       const player =
-        room.players[
-          socket.id
-        ];
+        room.players[socket.id];
 
       if (!player) return;
 
       if (
-        data &&
-        typeof data.name === "string"
+        typeof data?.name === "string"
       ) {
         player.name =
           data.name.substring(
@@ -397,8 +321,7 @@ io.on("connection", (socket) => {
       }
 
       if (
-        data &&
-        typeof data.color === "string"
+        typeof data?.color === "string"
       ) {
         player.color =
           data.color;
@@ -411,11 +334,9 @@ io.on("connection", (socket) => {
     }
   );
 
-  /*
-  ================================================
-  CHAT
-  ================================================
-  */
+  // =========================
+  // CHAT
+  // =========================
 
   socket.on(
     "chatMessage",
@@ -431,9 +352,7 @@ io.on("connection", (socket) => {
       if (!room) return;
 
       const player =
-        room.players[
-          socket.id
-        ];
+        room.players[socket.id];
 
       if (!player) return;
 
@@ -462,52 +381,9 @@ io.on("connection", (socket) => {
     }
   );
 
-  /*
-  ================================================
-  GET ROOM
-  ================================================
-  */
-
-  socket.on(
-    "getRoom",
-    (callback) => {
-      const roomCode =
-        socket.roomCode;
-
-      if (
-        !roomCode ||
-        !rooms[roomCode]
-      ) {
-        if (
-          typeof callback ===
-          "function"
-        ) {
-          callback({
-            success: false
-          });
-        }
-
-        return;
-      }
-
-      if (
-        typeof callback ===
-        "function"
-      ) {
-        callback({
-          success: true,
-          room:
-            rooms[roomCode]
-        });
-      }
-    }
-  );
-
-  /*
-  ================================================
-  LEAVE ROOM
-  ================================================
-  */
+  // =========================
+  // LEAVE
+  // =========================
 
   socket.on(
     "leaveRoom",
@@ -516,11 +392,9 @@ io.on("connection", (socket) => {
     }
   );
 
-  /*
-  ================================================
-  DISCONNECT
-  ================================================
-  */
+  // =========================
+  // DISCONNECT
+  // =========================
 
   socket.on(
     "disconnect",
@@ -535,104 +409,18 @@ io.on("connection", (socket) => {
   );
 });
 
-/*
-==================================================
-LEAVE ROOM
-==================================================
-*/
-
-function leaveRoom(socket) {
-  const roomCode =
-    socket.roomCode;
-
-  if (!roomCode) return;
-
-  const room =
-    rooms[roomCode];
-
-  if (!room) {
-    socket.roomCode =
-      null;
-
-    return;
-  }
-
-  const wasHost =
-    room.host === socket.id;
-
-  delete room.players[
-    socket.id
-  ];
-
-  socket.leave(roomCode);
-
-  socket.roomCode =
-    null;
-
-  // اطلاع خروج بازیکن
-  io.to(roomCode).emit(
-    "playerLeft",
-    socket.id
-  );
-
-  io.to(roomCode).emit(
-    "roomPlayers",
-    room.players
-  );
-
-  /*
-  اگر میزبان خارج شد،
-  بازیکن بعدی میزبان شود
-  */
-
-  if (wasHost) {
-    const remainingPlayers =
-      Object.keys(
-        room.players
-      );
-
-    if (
-      remainingPlayers.length >
-      0
-    ) {
-      const newHost =
-        remainingPlayers[0];
-
-      room.host =
-        newHost;
-
-      room.players[
-        newHost
-      ].isHost = true;
-
-      io.to(roomCode).emit(
-        "newHost",
-        room.players[
-          newHost
-        ]
-      );
-    }
-  }
-
-  removeEmptyRoom(
-    roomCode
-  );
-}
-
-/*
-==================================================
-SERVER STATUS
-==================================================
-*/
+// =========================
+// STATUS
+// =========================
 
 app.get(
   "/status",
   (req, res) => {
-    let totalPlayers = 0;
+    let players = 0;
 
     Object.values(rooms).forEach(
       (room) => {
-        totalPlayers +=
+        players +=
           Object.keys(
             room.players
           ).length;
@@ -642,29 +430,24 @@ app.get(
     res.json({
       online: true,
       rooms:
-        Object.keys(
-          rooms
-        ).length,
-      players:
-        totalPlayers,
-      uptime:
-        process.uptime()
+        Object.keys(rooms).length,
+      players: players,
+      uptime: process.uptime()
     });
   }
 );
 
-/*
-==================================================
-START SERVER
-==================================================
-*/
+// =========================
+// START
+// =========================
 
 server.listen(
   PORT,
   "0.0.0.0",
   () => {
     console.log(
-      `Server running on port ${PORT}`
+      "Server running on port " +
+      PORT
     );
   }
 );
