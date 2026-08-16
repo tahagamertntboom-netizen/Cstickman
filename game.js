@@ -3,17 +3,23 @@ const socket = io();
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
+
+// =====================================
+// اندازه صفحه
+// =====================================
+
 function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 }
 
 resize();
+
 window.addEventListener("resize", resize);
 
 
 // =====================================
-// اسم
+// اطلاعات بازیکن
 // =====================================
 
 const savedName = localStorage.getItem("player");
@@ -26,19 +32,40 @@ const myName =
         : "Player";
 
 
+const roomCode =
+    String(
+        localStorage.getItem("roomCode") || ""
+    ).trim();
+
+
+console.log("PLAYER:", myName);
+console.log("ROOM:", roomCode);
+
+
 // =====================================
-// خودمان
+// بازیکن خودمان
 // =====================================
 
 const me = {
+
     id: "",
+
     name: myName,
+
     x: 250,
+
     y: 300,
+
     vx: 0,
+
     vy: 0,
+
     onGround: false,
-    admin: myName.toLowerCase() === "tahagamertnt"
+
+    admin:
+        myName.toLowerCase() ===
+        "tahagamertnt"
+
 };
 
 
@@ -54,203 +81,401 @@ const players = {};
 // =====================================
 
 const keys = {
+
     left: false,
+
     right: false
+
 };
 
 
 // =====================================
-// اتصال
+// اتصال Socket
 // =====================================
 
 socket.on("connect", () => {
 
     me.id = socket.id;
 
-    console.log("CONNECTED:", socket.id);
+    console.log(
+        "CONNECTED:",
+        socket.id
+    );
 
-});
+
+    // ---------------------------------
+    // ورود دوباره به همان اتاق
+    // ---------------------------------
+
+    if (
+        roomCode &&
+        /^\d{6}$/.test(roomCode)
+    ) {
+
+        console.log(
+            "JOINING ROOM:",
+            roomCode
+        );
 
 
-// =====================================
-// دریافت لیست بازیکنان
-// =====================================
+        socket.emit(
+            "joinRoom",
+            {
 
-socket.on("players", (list) => {
+                roomCode:
+                    roomCode,
 
-    if (!Array.isArray(list)) {
-        return;
+                playerName:
+                    myName
+
+            }
+        );
+
+    }
+    else {
+
+        console.log(
+            "NO ROOM CODE"
+        );
+
     }
 
-    const ids = [];
-
-    list.forEach((player) => {
-
-        if (!player || !player.id) {
-            return;
-        }
-
-        ids.push(player.id);
-
-
-        // اطلاعات خودمان
-
-        if (player.id === socket.id) {
-
-            me.name =
-                player.name || myName;
-
-            me.admin =
-                player.admin === true;
-
-            if (typeof player.x === "number") {
-                me.x = player.x;
-            }
-
-            if (typeof player.y === "number") {
-                me.y = player.y;
-            }
-
-            return;
-        }
-
-
-        // ساخت بازیکن جدید
-
-        if (!players[player.id]) {
-
-            players[player.id] = {
-
-                id: player.id,
-
-                name:
-                    player.name || "Player",
-
-                admin:
-                    player.admin === true,
-
-                x:
-                    typeof player.x === "number"
-                        ? player.x
-                        : 300,
-
-                y:
-                    typeof player.y === "number"
-                        ? player.y
-                        : 400,
-
-                vx: 0,
-                vy: 0
-
-            };
-
-        }
-        else {
-
-            players[player.id].name =
-                player.name || "Player";
-
-            players[player.id].admin =
-                player.admin === true;
-
-        }
-
-
-        if (typeof player.x === "number") {
-            players[player.id].x = player.x;
-        }
-
-        if (typeof player.y === "number") {
-            players[player.id].y = player.y;
-        }
-
-    });
-
-
-    // حذف کسانی که از اتاق خارج شدند
-
-    Object.keys(players).forEach((id) => {
-
-        if (!ids.includes(id)) {
-
-            delete players[id];
-
-        }
-
-    });
-
 });
+
+
+// =====================================
+// ورود موفق به اتاق
+// =====================================
+
+socket.on(
+    "joinedRoom",
+    (code) => {
+
+        console.log(
+            "JOINED ROOM:",
+            code
+        );
+
+        localStorage.setItem(
+            "roomCode",
+            code
+        );
+
+    }
+);
+
+
+// =====================================
+// لیست بازیکنان
+// =====================================
+
+socket.on(
+    "players",
+    (list) => {
+
+        console.log(
+            "PLAYERS:",
+            list
+        );
+
+
+        if (
+            !Array.isArray(list)
+        ) {
+            return;
+        }
+
+
+        const ids = [];
+
+
+        list.forEach(
+            (player) => {
+
+                if (
+                    !player ||
+                    !player.id
+                ) {
+                    return;
+                }
+
+
+                ids.push(
+                    player.id
+                );
+
+
+                // -------------------------
+                // خودمان
+                // -------------------------
+
+                if (
+                    player.id ===
+                    socket.id
+                ) {
+
+                    me.name =
+                        player.name ||
+                        myName;
+
+
+                    me.admin =
+                        player.admin === true;
+
+
+                    if (
+                        typeof player.x ===
+                        "number"
+                    ) {
+
+                        me.x =
+                            player.x;
+
+                    }
+
+
+                    if (
+                        typeof player.y ===
+                        "number"
+                    ) {
+
+                        me.y =
+                            player.y;
+
+                    }
+
+
+                    return;
+                }
+
+
+                // -------------------------
+                // بازیکن جدید
+                // -------------------------
+
+                if (
+                    !players[player.id]
+                ) {
+
+                    players[player.id] = {
+
+                        id:
+                            player.id,
+
+                        name:
+                            player.name ||
+                            "Player",
+
+                        admin:
+                            player.admin === true,
+
+                        x:
+                            typeof player.x ===
+                            "number"
+                                ? player.x
+                                : 300,
+
+                        y:
+                            typeof player.y ===
+                            "number"
+                                ? player.y
+                                : 400,
+
+                        vx: 0,
+
+                        vy: 0
+
+                    };
+
+                }
+                else {
+
+                    // اسم را همیشه به‌روز کن
+
+                    players[player.id].name =
+                        player.name ||
+                        "Player";
+
+
+                    players[player.id].admin =
+                        player.admin === true;
+
+
+                    if (
+                        typeof player.x ===
+                        "number"
+                    ) {
+
+                        players[player.id].x =
+                            player.x;
+
+                    }
+
+
+                    if (
+                        typeof player.y ===
+                        "number"
+                    ) {
+
+                        players[player.id].y =
+                            player.y;
+
+                    }
+
+                }
+
+            }
+        );
+
+
+        // -----------------------------
+        // حذف بازیکنان خارج‌شده
+        // -----------------------------
+
+        Object.keys(
+            players
+        ).forEach(
+            (id) => {
+
+                if (
+                    !ids.includes(id)
+                ) {
+
+                    delete players[id];
+
+                }
+
+            }
+        );
+
+    }
+);
 
 
 // =====================================
 // حرکت بازیکنان دیگر
 // =====================================
 
-socket.on("playerMoved", (data) => {
+socket.on(
+    "playerMoved",
+    (data) => {
 
-    if (!data || !data.id) {
-        return;
+        if (
+            !data ||
+            !data.id
+        ) {
+
+            return;
+
+        }
+
+
+        // اگر هنوز اطلاعاتش را نداریم
+        if (
+            !players[data.id]
+        ) {
+
+            players[data.id] = {
+
+                id:
+                    data.id,
+
+                name:
+                    data.name ||
+                    "Player",
+
+                admin:
+                    data.admin === true,
+
+                x:
+                    typeof data.x ===
+                    "number"
+                        ? data.x
+                        : 300,
+
+                y:
+                    typeof data.y ===
+                    "number"
+                        ? data.y
+                        : 400,
+
+                vx: 0,
+
+                vy: 0
+
+            };
+
+        }
+
+
+        if (
+            typeof data.x ===
+            "number"
+        ) {
+
+            players[data.id].x =
+                data.x;
+
+        }
+
+
+        if (
+            typeof data.y ===
+            "number"
+        ) {
+
+            players[data.id].y =
+                data.y;
+
+        }
+
+
+        if (
+            typeof data.vx ===
+            "number"
+        ) {
+
+            players[data.id].vx =
+                data.vx;
+
+        }
+
+
+        if (
+            typeof data.vy ===
+            "number"
+        ) {
+
+            players[data.id].vy =
+                data.vy;
+
+        }
+
+
+        // اگر سرور اسم را هم فرستاد
+        if (
+            typeof data.name ===
+            "string"
+        ) {
+
+            players[data.id].name =
+                data.name;
+
+        }
+
+
+        if (
+            typeof data.admin ===
+            "boolean"
+        ) {
+
+            players[data.id].admin =
+                data.admin;
+
+        }
+
     }
-
-
-    // اگر بازیکن هنوز در لیست نیست
-    // همین‌جا ایجادش کن
-
-    if (!players[data.id]) {
-
-        players[data.id] = {
-
-            id: data.id,
-
-            name: "Player",
-
-            admin: false,
-
-            x: 300,
-
-            y: 400,
-
-            vx: 0,
-
-            vy: 0
-
-        };
-
-    }
-
-
-    if (typeof data.x === "number") {
-
-        players[data.id].x =
-            data.x;
-
-    }
-
-
-    if (typeof data.y === "number") {
-
-        players[data.id].y =
-            data.y;
-
-    }
-
-
-    if (typeof data.vx === "number") {
-
-        players[data.id].vx =
-            data.vx;
-
-    }
-
-
-    if (typeof data.vy === "number") {
-
-        players[data.id].vy =
-            data.vy;
-
-    }
-
-});
+);
 
 
 // =====================================
@@ -259,65 +484,79 @@ socket.on("playerMoved", (data) => {
 // فارسی ش / ی
 // =====================================
 
-window.addEventListener("keydown", (e) => {
+window.addEventListener(
+    "keydown",
+    (e) => {
 
-    if (e.code === "KeyA") {
+        if (
+            e.code === "KeyA"
+        ) {
 
-        keys.left = true;
+            keys.left = true;
 
-        e.preventDefault();
+            e.preventDefault();
 
-    }
-
-
-    if (e.code === "KeyD") {
-
-        keys.right = true;
-
-        e.preventDefault();
-
-    }
+        }
 
 
-    if (
-        e.code === "KeyW" ||
-        e.code === "Space" ||
-        e.code === "ArrowUp"
-    ) {
+        if (
+            e.code === "KeyD"
+        ) {
 
-        jump();
+            keys.right = true;
 
-        e.preventDefault();
+            e.preventDefault();
 
-    }
-
-});
+        }
 
 
-window.addEventListener("keyup", (e) => {
+        if (
+            e.code === "KeyW" ||
+            e.code === "Space" ||
+            e.code === "ArrowUp"
+        ) {
 
-    if (e.code === "KeyA") {
+            jump();
 
-        keys.left = false;
+            e.preventDefault();
 
-        e.preventDefault();
+        }
 
     }
+);
 
 
-    if (e.code === "KeyD") {
+window.addEventListener(
+    "keyup",
+    (e) => {
 
-        keys.right = false;
+        if (
+            e.code === "KeyA"
+        ) {
 
-        e.preventDefault();
+            keys.left = false;
+
+            e.preventDefault();
+
+        }
+
+
+        if (
+            e.code === "KeyD"
+        ) {
+
+            keys.right = false;
+
+            e.preventDefault();
+
+        }
 
     }
-
-});
+);
 
 
 // =====================================
-// دکمه‌های لمسی
+// کنترل لمسی
 // =====================================
 
 const leftButton =
@@ -334,22 +573,44 @@ if (leftButton) {
 
     leftButton.addEventListener(
         "pointerdown",
-        () => {
+        (e) => {
+
+            e.preventDefault();
+
             keys.left = true;
+
         }
     );
 
+
     leftButton.addEventListener(
         "pointerup",
-        () => {
+        (e) => {
+
+            e.preventDefault();
+
             keys.left = false;
+
         }
     );
+
+
+    leftButton.addEventListener(
+        "pointercancel",
+        () => {
+
+            keys.left = false;
+
+        }
+    );
+
 
     leftButton.addEventListener(
         "pointerleave",
         () => {
+
             keys.left = false;
+
         }
     );
 
@@ -360,22 +621,44 @@ if (rightButton) {
 
     rightButton.addEventListener(
         "pointerdown",
-        () => {
+        (e) => {
+
+            e.preventDefault();
+
             keys.right = true;
+
         }
     );
 
+
     rightButton.addEventListener(
         "pointerup",
-        () => {
+        (e) => {
+
+            e.preventDefault();
+
             keys.right = false;
+
         }
     );
+
+
+    rightButton.addEventListener(
+        "pointercancel",
+        () => {
+
+            keys.right = false;
+
+        }
+    );
+
 
     rightButton.addEventListener(
         "pointerleave",
         () => {
+
             keys.right = false;
+
         }
     );
 
@@ -404,7 +687,9 @@ if (jumpButton) {
 
 function jump() {
 
-    if (me.onGround) {
+    if (
+        me.onGround
+    ) {
 
         me.vy = -13;
 
@@ -421,12 +706,16 @@ function jump() {
 
 function update() {
 
-    if (keys.left) {
+    if (
+        keys.left
+    ) {
 
         me.vx = -5;
 
     }
-    else if (keys.right) {
+    else if (
+        keys.right
+    ) {
 
         me.vx = 5;
 
@@ -441,20 +730,27 @@ function update() {
     me.x += me.vx;
 
 
+    // -----------------------------
     // جاذبه
+    // -----------------------------
 
     me.vy += 0.6;
 
     me.y += me.vy;
 
 
+    // -----------------------------
     // زمین
+    // -----------------------------
 
     const ground =
         canvas.height * 0.65;
 
 
-    if (me.y + 55 >= ground) {
+    if (
+        me.y + 55 >=
+        ground
+    ) {
 
         me.y =
             ground - 55;
@@ -471,9 +767,13 @@ function update() {
     }
 
 
+    // -----------------------------
     // مرز صفحه
+    // -----------------------------
 
-    if (me.x < 30) {
+    if (
+        me.x < 30
+    ) {
 
         me.x = 30;
 
@@ -491,23 +791,40 @@ function update() {
     }
 
 
-    // فرستادن موقعیت به سرور
+    // -----------------------------
+    // ارسال حرکت
+    // -----------------------------
 
-    socket.emit(
-        "move",
-        {
-            x: me.x,
-            y: me.y,
-            vx: me.vx,
-            vy: me.vy
-        }
-    );
+    if (
+        socket.connected
+    ) {
+
+        socket.emit(
+            "move",
+            {
+
+                x:
+                    me.x,
+
+                y:
+                    me.y,
+
+                vx:
+                    me.vx,
+
+                vy:
+                    me.vy
+
+            }
+        );
+
+    }
 
 }
 
 
 // =====================================
-// استیکمن
+// رسم استیکمن
 // =====================================
 
 function drawStickman(
@@ -527,7 +844,11 @@ function drawStickman(
 
     ctx.save();
 
-    ctx.translate(x, y);
+
+    ctx.translate(
+        x,
+        y
+    );
 
 
     // -----------------------------
@@ -580,7 +901,7 @@ function drawStickman(
 
 
     // -----------------------------
-    // چشم‌ها
+    // چشم چپ
     // -----------------------------
 
     ctx.fillStyle =
@@ -598,6 +919,10 @@ function drawStickman(
 
     ctx.fill();
 
+
+    // -----------------------------
+    // چشم راست
+    // -----------------------------
 
     ctx.beginPath();
 
@@ -732,6 +1057,7 @@ function drawStickman(
     ctx.textAlign =
         "center";
 
+
     const displayName =
         safeName +
         (
@@ -769,7 +1095,9 @@ function drawStickman(
     // ADMIN
     // -----------------------------
 
-    if (admin) {
+    if (
+        admin
+    ) {
 
         ctx.font =
             "bold 14px Arial";
@@ -803,7 +1131,7 @@ function drawStickman(
 
 
 // =====================================
-// آسمان و زمین
+// دنیای بازی
 // =====================================
 
 function drawWorld() {
@@ -812,7 +1140,9 @@ function drawWorld() {
         canvas.height * 0.65;
 
 
+    // -----------------------------
     // آسمان
+    // -----------------------------
 
     const sky =
         ctx.createLinearGradient(
@@ -822,18 +1152,22 @@ function drawWorld() {
             ground
         );
 
+
     sky.addColorStop(
         0,
         "#38bdf8"
     );
+
 
     sky.addColorStop(
         1,
         "#bae6fd"
     );
 
+
     ctx.fillStyle =
         sky;
+
 
     ctx.fillRect(
         0,
@@ -843,7 +1177,9 @@ function drawWorld() {
     );
 
 
+    // -----------------------------
     // خورشید
+    // -----------------------------
 
     ctx.beginPath();
 
@@ -861,7 +1197,9 @@ function drawWorld() {
     ctx.fill();
 
 
+    // -----------------------------
     // زمین
+    // -----------------------------
 
     ctx.fillStyle =
         "#365314";
@@ -874,7 +1212,9 @@ function drawWorld() {
     );
 
 
+    // -----------------------------
     // چمن
+    // -----------------------------
 
     ctx.fillStyle =
         "#84cc16";
@@ -910,15 +1250,23 @@ function draw() {
     // بازیکنان دیگر
     // -----------------------------
 
-    Object.values(players).forEach(
+    Object.values(
+        players
+    ).forEach(
         (player) => {
 
             drawStickman(
+
                 player.x,
+
                 player.y,
+
                 player.name,
+
                 player.admin,
+
                 false
+
             );
 
         }
@@ -930,11 +1278,17 @@ function draw() {
     // -----------------------------
 
     drawStickman(
+
         me.x,
+
         me.y,
+
         me.name,
+
         me.admin,
+
         true
+
     );
 
 }
@@ -950,7 +1304,9 @@ function loop() {
 
     draw();
 
-    requestAnimationFrame(loop);
+    requestAnimationFrame(
+        loop
+    );
 
 }
 
