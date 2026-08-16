@@ -9,12 +9,11 @@ function resize() {
 }
 
 resize();
-
 window.addEventListener("resize", resize);
 
 
 // =====================================
-// اسم بازیکن
+// اسم
 // =====================================
 
 const savedName = localStorage.getItem("player");
@@ -28,7 +27,7 @@ const myName =
 
 
 // =====================================
-// بازیکن خودمان
+// خودمان
 // =====================================
 
 const me = {
@@ -38,7 +37,8 @@ const me = {
     y: 300,
     vx: 0,
     vy: 0,
-    onGround: false
+    onGround: false,
+    admin: myName.toLowerCase() === "tahagamertnt"
 };
 
 
@@ -67,13 +67,13 @@ socket.on("connect", () => {
 
     me.id = socket.id;
 
-    console.log("Connected:", socket.id);
+    console.log("CONNECTED:", socket.id);
 
 });
 
 
 // =====================================
-// دریافت بازیکنان
+// دریافت لیست بازیکنان
 // =====================================
 
 socket.on("players", (list) => {
@@ -82,7 +82,7 @@ socket.on("players", (list) => {
         return;
     }
 
-    const currentIds = [];
+    const ids = [];
 
     list.forEach((player) => {
 
@@ -90,10 +90,18 @@ socket.on("players", (list) => {
             return;
         }
 
-        currentIds.push(player.id);
+        ids.push(player.id);
 
-        // خودمان
+
+        // اطلاعات خودمان
+
         if (player.id === socket.id) {
+
+            me.name =
+                player.name || myName;
+
+            me.admin =
+                player.admin === true;
 
             if (typeof player.x === "number") {
                 me.x = player.x;
@@ -106,24 +114,47 @@ socket.on("players", (list) => {
             return;
         }
 
-        // بازیکن جدید
+
+        // ساخت بازیکن جدید
+
         if (!players[player.id]) {
 
             players[player.id] = {
+
                 id: player.id,
-                name: "Player",
-                admin: false,
-                x: 300,
-                y: 400
+
+                name:
+                    player.name || "Player",
+
+                admin:
+                    player.admin === true,
+
+                x:
+                    typeof player.x === "number"
+                        ? player.x
+                        : 300,
+
+                y:
+                    typeof player.y === "number"
+                        ? player.y
+                        : 400,
+
+                vx: 0,
+                vy: 0
+
             };
 
         }
+        else {
 
-        players[player.id].name =
-            player.name || "Player";
+            players[player.id].name =
+                player.name || "Player";
 
-        players[player.id].admin =
-            player.admin === true;
+            players[player.id].admin =
+                player.admin === true;
+
+        }
+
 
         if (typeof player.x === "number") {
             players[player.id].x = player.x;
@@ -136,12 +167,14 @@ socket.on("players", (list) => {
     });
 
 
-    // حذف بازیکنان خارج‌شده
+    // حذف کسانی که از اتاق خارج شدند
 
     Object.keys(players).forEach((id) => {
 
-        if (!currentIds.includes(id)) {
+        if (!ids.includes(id)) {
+
             delete players[id];
+
         }
 
     });
@@ -159,60 +192,93 @@ socket.on("playerMoved", (data) => {
         return;
     }
 
+
+    // اگر بازیکن هنوز در لیست نیست
+    // همین‌جا ایجادش کن
+
     if (!players[data.id]) {
 
         players[data.id] = {
+
             id: data.id,
+
             name: "Player",
+
             admin: false,
+
             x: 300,
-            y: 400
+
+            y: 400,
+
+            vx: 0,
+
+            vy: 0
+
         };
 
     }
 
+
     if (typeof data.x === "number") {
-        players[data.id].x = data.x;
+
+        players[data.id].x =
+            data.x;
+
     }
 
+
     if (typeof data.y === "number") {
-        players[data.id].y = data.y;
+
+        players[data.id].y =
+            data.y;
+
+    }
+
+
+    if (typeof data.vx === "number") {
+
+        players[data.id].vx =
+            data.vx;
+
+    }
+
+
+    if (typeof data.vy === "number") {
+
+        players[data.id].vy =
+            data.vy;
+
     }
 
 });
 
 
 // =====================================
-// کنترل کیبورد
-// فارسی و انگلیسی هر دو کار می‌کنند
+// کیبورد
+// A / D
+// فارسی ش / ی
 // =====================================
 
 window.addEventListener("keydown", (e) => {
 
-    // کلید فیزیکی A
-    // انگلیسی: A
-    // فارسی: ش
     if (e.code === "KeyA") {
 
         keys.left = true;
 
         e.preventDefault();
+
     }
 
 
-    // کلید فیزیکی D
-    // انگلیسی: D
-    // فارسی: ی
     if (e.code === "KeyD") {
 
         keys.right = true;
 
         e.preventDefault();
+
     }
 
 
-    // پرش
-    // W / و / Space / فلش بالا
     if (
         e.code === "KeyW" ||
         e.code === "Space" ||
@@ -222,6 +288,7 @@ window.addEventListener("keydown", (e) => {
         jump();
 
         e.preventDefault();
+
     }
 
 });
@@ -229,28 +296,28 @@ window.addEventListener("keydown", (e) => {
 
 window.addEventListener("keyup", (e) => {
 
-    // A / ش
     if (e.code === "KeyA") {
 
         keys.left = false;
 
         e.preventDefault();
+
     }
 
 
-    // D / ی
     if (e.code === "KeyD") {
 
         keys.right = false;
 
         e.preventDefault();
+
     }
 
 });
 
 
 // =====================================
-// دکمه‌های بازی
+// دکمه‌های لمسی
 // =====================================
 
 const leftButton =
@@ -286,13 +353,6 @@ if (leftButton) {
         }
     );
 
-    leftButton.addEventListener(
-        "pointercancel",
-        () => {
-            keys.left = false;
-        }
-    );
-
 }
 
 
@@ -314,13 +374,6 @@ if (rightButton) {
 
     rightButton.addEventListener(
         "pointerleave",
-        () => {
-            keys.right = false;
-        }
-    );
-
-    rightButton.addEventListener(
-        "pointercancel",
         () => {
             keys.right = false;
         }
@@ -363,26 +416,21 @@ function jump() {
 
 
 // =====================================
-// آپدیت بازی
+// حرکت
 // =====================================
 
 function update() {
 
-    // چپ
     if (keys.left) {
 
         me.vx = -5;
 
     }
-
-    // راست
     else if (keys.right) {
 
         me.vx = 5;
 
     }
-
-    // توقف نرم
     else {
 
         me.vx *= 0.8;
@@ -416,7 +464,6 @@ function update() {
         me.onGround = true;
 
     }
-
     else {
 
         me.onGround = false;
@@ -424,14 +471,14 @@ function update() {
     }
 
 
-    // محدودیت چپ
+    // مرز صفحه
 
     if (me.x < 30) {
+
         me.x = 30;
+
     }
 
-
-    // محدودیت راست
 
     if (
         me.x >
@@ -444,7 +491,7 @@ function update() {
     }
 
 
-    // ارسال حرکت به سرور
+    // فرستادن موقعیت به سرور
 
     socket.emit(
         "move",
@@ -460,7 +507,7 @@ function update() {
 
 
 // =====================================
-// رسم استیکمن
+// استیکمن
 // =====================================
 
 function drawStickman(
@@ -473,9 +520,7 @@ function drawStickman(
 
     const safeName =
         typeof name === "string" &&
-        name.trim() !== "" &&
-        name !== "undefined" &&
-        name !== "null"
+        name.trim() !== ""
             ? name
             : "Player";
 
@@ -485,7 +530,9 @@ function drawStickman(
     ctx.translate(x, y);
 
 
+    // -----------------------------
     // سایه
+    // -----------------------------
 
     ctx.beginPath();
 
@@ -505,7 +552,9 @@ function drawStickman(
     ctx.fill();
 
 
+    // -----------------------------
     // سر
+    // -----------------------------
 
     ctx.beginPath();
 
@@ -530,7 +579,12 @@ function drawStickman(
     ctx.stroke();
 
 
-    // چشم چپ
+    // -----------------------------
+    // چشم‌ها
+    // -----------------------------
+
+    ctx.fillStyle =
+        "#111827";
 
     ctx.beginPath();
 
@@ -542,13 +596,8 @@ function drawStickman(
         Math.PI * 2
     );
 
-    ctx.fillStyle =
-        "#111827";
-
     ctx.fill();
 
-
-    // چشم راست
 
     ctx.beginPath();
 
@@ -563,7 +612,9 @@ function drawStickman(
     ctx.fill();
 
 
+    // -----------------------------
     // بدن
+    // -----------------------------
 
     ctx.beginPath();
 
@@ -590,7 +641,9 @@ function drawStickman(
     ctx.stroke();
 
 
+    // -----------------------------
     // دست چپ
+    // -----------------------------
 
     ctx.beginPath();
 
@@ -612,7 +665,9 @@ function drawStickman(
     ctx.stroke();
 
 
+    // -----------------------------
     // دست راست
+    // -----------------------------
 
     ctx.beginPath();
 
@@ -629,7 +684,9 @@ function drawStickman(
     ctx.stroke();
 
 
+    // -----------------------------
     // پای چپ
+    // -----------------------------
 
     ctx.beginPath();
 
@@ -646,7 +703,9 @@ function drawStickman(
     ctx.stroke();
 
 
+    // -----------------------------
     // پای راست
+    // -----------------------------
 
     ctx.beginPath();
 
@@ -663,7 +722,9 @@ function drawStickman(
     ctx.stroke();
 
 
+    // -----------------------------
     // اسم
+    // -----------------------------
 
     ctx.font =
         "bold 16px Arial";
@@ -671,20 +732,19 @@ function drawStickman(
     ctx.textAlign =
         "center";
 
-    ctx.lineWidth = 4;
-
-    ctx.strokeStyle =
-        "#000000";
-
-
     const displayName =
         safeName +
         (
-            admin === true
+            admin
                 ? " 👑"
                 : ""
         );
 
+
+    ctx.lineWidth = 4;
+
+    ctx.strokeStyle =
+        "#000000";
 
     ctx.strokeText(
         displayName,
@@ -694,10 +754,9 @@ function drawStickman(
 
 
     ctx.fillStyle =
-        admin === true
+        admin
             ? "#22c55e"
             : "#ffffff";
-
 
     ctx.fillText(
         displayName,
@@ -706,12 +765,14 @@ function drawStickman(
     );
 
 
-    // نوشته ADMIN
+    // -----------------------------
+    // ADMIN
+    // -----------------------------
 
-    if (admin === true) {
+    if (admin) {
 
         ctx.font =
-            "bold 15px Arial";
+            "bold 14px Arial";
 
         ctx.strokeStyle =
             "#000000";
@@ -742,7 +803,7 @@ function drawStickman(
 
 
 // =====================================
-// دنیا
+// آسمان و زمین
 // =====================================
 
 function drawWorld() {
@@ -829,7 +890,7 @@ function drawWorld() {
 
 
 // =====================================
-// رسم
+// رسم بازی
 // =====================================
 
 function draw() {
@@ -845,10 +906,12 @@ function draw() {
     drawWorld();
 
 
+    // -----------------------------
     // بازیکنان دیگر
+    // -----------------------------
 
-    Object.values(players)
-        .forEach((player) => {
+    Object.values(players).forEach(
+        (player) => {
 
             drawStickman(
                 player.x,
@@ -858,17 +921,19 @@ function draw() {
                 false
             );
 
-        });
+        }
+    );
 
 
+    // -----------------------------
     // خودمان
+    // -----------------------------
 
     drawStickman(
         me.x,
         me.y,
-        myName,
-        myName.toLowerCase() ===
-            "tahagamertnt",
+        me.name,
+        me.admin,
         true
     );
 
