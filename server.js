@@ -1,7 +1,7 @@
 const express = require("express");
 const http = require("http");
-const { Server } = require("socket.io");
 const path = require("path");
+const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
@@ -15,105 +15,497 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
-// فایل‌های بازی
 app.use(express.static(path.join(__dirname)));
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// بازیکنان آنلاین
-const players = {};
+/*
+==================================================
+ROOM SYSTEM
+==================================================
+*/
 
-io.on("connection", (socket) => {
-  console.log("Player connected:", socket.id);
+const rooms = {};
 
-  // ساخت بازیکن جدید
-  players[socket.id] = {
-    id: socket.id,
-    x: 400,
-    y: 300,
-    name: "Player",
-    color: "#" + Math.floor(Math.random() * 16777215)
-      .toString(16)
-      .padStart(6, "0")
+function makeRoomCode() {
+  let code;
+
+  do {
+    code = Math.random()
+      .toString(36)
+      .substring(2, 8)
+      .toUpperCase();
+  } while (rooms[code]);
+
+  return code;
+}
+
+function createRoom(hostSocket) {
+  const roomCode = makeRoomCode();
+
+  rooms[roomCode] = {
+    code: roomCode,
+    host: hostSocket.id,
+    players: {}
   };
 
-  // فرستادن اطلاعات بازیکنان فعلی به بازیکن جدید
-  socket.emit("currentPlayers", players);
+  return roomCode;
+}
 
-  // اطلاع به بقیه بازیکنان
-  socket.broadcast.emit("playerJoined", players[socket.id]);
+function removeEmptyRoom(roomCode) {
+  if (!rooms[roomCode]) return;
 
-  // دریافت حرکت بازیکن
+  if (Object.keys(rooms[roomCode].players).length === 0) {
+    delete rooms[roomCode];
+
+    console.log("Room deleted:", roomCode);
+  }
+}
+
+/*
+==================================================
+CONNECTION
+==================================================
+*/
+
+io.on("connection", (socket) => {
+  console.log("Connected:", socket.id);
+
+  /*
+  ------------------------------------------------
+  CREATE ROOM
+  ------------------------------------------------
+  */
+
+  socket.on("createRoom", (data, callback) => {
+    try {
+      const roomCode = createRoom(socket);
+
+      const player = {
+        id: socket.id,
+        name:
+          data && typeof data.name === "string"
+            ? data.name.substring(0, 20)
+            : "Player",
+
+        x: 400,
+        y: 300,
+
+        color:
+          data && typeof data.color === "string"
+            ? data.color
+            : "#ffffff",
+
+        isHost: true
+      };
+
+      rooms[roomCode].players[socket.id] = player;
+
+      socket.join(roomCode);
+
+      socket.roomCode = roomCode;
+
+      console.log(
+        "Room created:",
+        roomCode,
+        "Host:",
+        socket.id
+      );
+
+      const result = {
+        success: true,
+        roomCode: roomCode,
+        room: rooms[roomCode],
+        player: player
+      };
+
+      if (typeof callback === "function") {
+        callback(result);
+      }
+
+      socket.emit("roomCreated", result);
+
+    } catch (error) {
+      console.error("Create room error:", error);
+
+      if (typeof callback === "function") {
+        callback({
+          success: false,
+          message: "خطا در ساخت اتاق"
+        });
+      }
+    }
+  });
+
+  /*
+  ------------------------------------------------
+  JOIN ROOM
+  ------------------------------------------------
+  */
+
+  socket.on("joinRoom", (data, callback) => {
+    try {
+      if (!data || !data.roomCode) {
+        const result = {
+          success: false,
+          message: "کد اتاق وارد نشده است."
+        };
+
+        if (typeof callback === "function") {
+          callback(result);
+        }
+
+        return;
+      }
+
+      const roomCode = String(data.roomCode)
+        .trim()
+        .toUpperCase();
+
+      const room = rooms[roomCode];
+
+      if (!room) {
+        const result = {
+          success: false,
+          message: "این اتاق وجود ندارد."
+        };
+
+        if (typeof callback === "function") {
+          callback(result);
+        }
+
+        socket.emit("roomError", result);
+
+        return;
+      }
+
+      const player = {
+        id: socket.id,
+
+        name:
+          typeof data.name === "string"
+            ? data.name.substring(0, 20)
+            : "Player",
+
+        x: 400 + Math.floor(Math.random() * 100),
+        y: 300,
+
+        color:
+          typeof data.color === "string"
+            ? data.color
+            : "#ffffff",
+
+        isHost: false
+      };
+
+      room.players[socket.id] = player;
+
+      socket.join(roomCode);
+
+      socket.roomCode = roomCode;
+
+      console.log(
+        "Player joined:",
+        socket.id,
+        "Room:",
+        roomCode
+      );
+
+      const result = {
+        success: true,
+        roomCode: roomCode,
+        room: room,
+        player: player
+      };
+
+      if (typeof callback === "function") {
+        callback(result);
+      }
+
+      /*
+      بازیکن جدید اطلاعات کل اتاق را می‌گیرد
+      */
+
+      socket.emit("roomJoined", result);
+
+      socket.emit("currentPlayers", room.players);
+
+      /*
+      بقیه بازیکنان متوجه ورود او می‌شوند
+      */
+
+      socket.to(roomCode).emit(
+        "playerJoined",
+        player
+      );
+
+      io.to(roomCode).emit(
+        "roomPlayers",
+        room.players
+      );
+
+    } catch (error) {
+      console.error("Join room error:", error);
+
+      if (typeof callback === "function") {
+        callback({
+          success: false,
+          message: "خطا در ورود به اتاق"
+        });
+      }
+    }
+  });
+
+  /*
+  ------------------------------------------------
+  PLAYER MOVEMENT
+  ------------------------------------------------
+  */
+
   socket.on("playerMovement", (data) => {
-    if (!players[socket.id]) return;
+    const roomCode = socket.roomCode;
 
-    if (typeof data.x === "number") {
-      players[socket.id].x = data.x;
+    if (!roomCode) return;
+
+    const room = rooms[roomCode];
+
+    if (!room) return;
+
+    const player = room.players[socket.id];
+
+    if (!player) return;
+
+    if (data && typeof data.x === "number") {
+      player.x = data.x;
     }
 
-    if (typeof data.y === "number") {
-      players[socket.id].y = data.y;
+    if (data && typeof data.y === "number") {
+      player.y = data.y;
     }
 
-    if (typeof data.name === "string") {
-      players[socket.id].name = data.name.slice(0, 20);
-    }
-
-    // ارسال حرکت به همه
-    io.emit("playerMoved", players[socket.id]);
+    socket.to(roomCode).emit(
+      "playerMoved",
+      player
+    );
   });
 
-  // تغییر اطلاعات بازیکن
+  /*
+  ------------------------------------------------
+  UPDATE PLAYER
+  ------------------------------------------------
+  */
+
   socket.on("updatePlayer", (data) => {
-    if (!players[socket.id]) return;
+    const roomCode = socket.roomCode;
 
-    if (typeof data.name === "string") {
-      players[socket.id].name = data.name.slice(0, 20);
+    if (!roomCode) return;
+
+    const room = rooms[roomCode];
+
+    if (!room) return;
+
+    const player = room.players[socket.id];
+
+    if (!player) return;
+
+    if (data && typeof data.name === "string") {
+      player.name = data.name.substring(0, 20);
     }
 
-    if (typeof data.color === "string") {
-      players[socket.id].color = data.color;
+    if (data && typeof data.color === "string") {
+      player.color = data.color;
     }
 
-    io.emit("playerUpdated", players[socket.id]);
+    io.to(roomCode).emit(
+      "playerUpdated",
+      player
+    );
   });
 
-  // چت
+  /*
+  ------------------------------------------------
+  CHAT
+  ------------------------------------------------
+  */
+
   socket.on("chatMessage", (message) => {
+    const roomCode = socket.roomCode;
+
+    if (!roomCode) return;
+
+    const room = rooms[roomCode];
+
+    if (!room) return;
+
+    const player = room.players[socket.id];
+
+    if (!player) return;
+
     if (typeof message !== "string") return;
 
-    message = message.trim().slice(0, 200);
+    message = message.trim().substring(0, 200);
 
     if (!message) return;
 
-    io.emit("chatMessage", {
-      id: socket.id,
-      name: players[socket.id]?.name || "Player",
-      message: message
-    });
+    io.to(roomCode).emit(
+      "chatMessage",
+      {
+        id: socket.id,
+        name: player.name,
+        message: message
+      }
+    );
   });
 
-  // قطع اتصال
+  /*
+  ------------------------------------------------
+  GET ROOM INFO
+  ------------------------------------------------
+  */
+
+  socket.on("getRoom", (callback) => {
+    const roomCode = socket.roomCode;
+
+    if (!roomCode || !rooms[roomCode]) {
+      if (typeof callback === "function") {
+        callback({
+          success: false
+        });
+      }
+
+      return;
+    }
+
+    if (typeof callback === "function") {
+      callback({
+        success: true,
+        room: rooms[roomCode]
+      });
+    }
+  });
+
+  /*
+  ------------------------------------------------
+  LEAVE ROOM
+  ------------------------------------------------
+  */
+
+  socket.on("leaveRoom", () => {
+    leaveRoom(socket);
+  });
+
+  /*
+  ------------------------------------------------
+  DISCONNECT
+  ------------------------------------------------
+  */
+
   socket.on("disconnect", () => {
-    console.log("Player disconnected:", socket.id);
+    console.log("Disconnected:", socket.id);
 
-    delete players[socket.id];
-
-    io.emit("playerLeft", socket.id);
+    leaveRoom(socket);
   });
 });
 
-// وضعیت سرور
+/*
+==================================================
+LEAVE ROOM FUNCTION
+==================================================
+*/
+
+function leaveRoom(socket) {
+  const roomCode = socket.roomCode;
+
+  if (!roomCode) return;
+
+  const room = rooms[roomCode];
+
+  if (!room) {
+    socket.roomCode = null;
+    return;
+  }
+
+  const wasHost = room.host === socket.id;
+
+  delete room.players[socket.id];
+
+  socket.leave(roomCode);
+
+  socket.roomCode = null;
+
+  /*
+  اطلاع به بازیکنان
+  */
+
+  io.to(roomCode).emit(
+    "playerLeft",
+    socket.id
+  );
+
+  io.to(roomCode).emit(
+    "roomPlayers",
+    room.players
+  );
+
+  /*
+  اگر میزبان خارج شد:
+  میزبان جدید تعیین می‌کنیم
+  */
+
+  if (wasHost) {
+    const remainingPlayers =
+      Object.keys(room.players);
+
+    if (remainingPlayers.length > 0) {
+      const newHost =
+        remainingPlayers[0];
+
+      room.host = newHost;
+
+      room.players[newHost].isHost = true;
+
+      io.to(roomCode).emit(
+        "newHost",
+        room.players[newHost]
+      );
+    }
+  }
+
+  removeEmptyRoom(roomCode);
+}
+
+/*
+==================================================
+SERVER STATUS
+==================================================
+*/
+
 app.get("/status", (req, res) => {
   res.json({
     online: true,
-    players: Object.keys(players).length,
+    rooms: Object.keys(rooms).length,
+
+    players: Object.values(rooms).reduce(
+      (total, room) =>
+        total +
+        Object.keys(room.players).length,
+      0
+    ),
+
     uptime: process.uptime()
   });
 });
 
+/*
+==================================================
+START SERVER
+==================================================
+*/
+
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(
+    `Server running on port ${PORT}`
+  );
 });
