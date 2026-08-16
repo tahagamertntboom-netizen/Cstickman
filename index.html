@@ -1,314 +1,253 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
-
 <head>
 <meta charset="UTF-8">
-
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Stickman Multiplayer</title>
 
 <style>
-
-* {
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
+*{
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
 }
 
-body {
-    margin: 0;
-    overflow: hidden;
-    font-family: Arial, sans-serif;
-    background: #87ceeb;
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    font-family:Arial,sans-serif;
 }
 
-.hidden {
-    display: none !important;
+body{
+    background:linear-gradient(135deg,#020617,#172554,#312e81);
 }
 
-/* =========================
-   صفحه ها
-========================= */
-
-.screen {
-    min-height: 100vh;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    padding: 20px;
-
-    color: white;
-
-    background:
-        linear-gradient(
-            135deg,
-            #020617,
-            #172554,
-            #312e81
-        );
+.screen{
+    width:100%;
+    height:100%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:20px;
 }
 
-.box {
-    width: 92%;
-    max-width: 430px;
-
-    padding: 30px;
-
-    background: #111827;
-
-    border-radius: 25px;
-
-    text-align: center;
-
-    box-shadow: 0 20px 70px #000b;
+.hidden{
+    display:none!important;
 }
 
-input {
-    width: 100%;
-
-    padding: 16px;
-
-    margin-top: 10px;
-
-    border: none;
-    border-radius: 12px;
-
-    font-size: 18px;
-
-    text-align: center;
+.box{
+    width:92%;
+    max-width:430px;
+    padding:30px;
+    background:#111827;
+    color:white;
+    border-radius:25px;
+    text-align:center;
+    box-shadow:0 20px 70px #000b;
 }
 
-button {
-    width: 100%;
-
-    padding: 16px;
-
-    margin-top: 12px;
-
-    border: none;
-    border-radius: 12px;
-
-    color: white;
-
-    font-size: 18px;
-    font-weight: bold;
-
-    cursor: pointer;
+h1{
+    margin-top:0;
+    font-size:40px;
 }
 
-.green {
-    background: #22c55e;
+input{
+    width:100%;
+    padding:16px;
+    margin-top:10px;
+    border:0;
+    border-radius:12px;
+    font-size:18px;
+    text-align:center;
+    outline:none;
 }
 
-.blue {
-    background: #2563eb;
+button{
+    width:100%;
+    padding:16px;
+    margin-top:12px;
+    border:0;
+    border-radius:12px;
+    color:white;
+    font-size:18px;
+    font-weight:bold;
+    cursor:pointer;
 }
 
-.purple {
-    background: #7c3aed;
+button:active{
+    transform:scale(.96);
 }
 
-.error {
-    color: #f87171;
-    min-height: 25px;
-    margin-top: 10px;
+.green{background:#22c55e}
+.blue{background:#2563eb}
+.purple{background:#7c3aed}
+.gray{background:#374151}
+
+.error{
+    color:#f87171;
+    min-height:25px;
+    margin-top:10px;
 }
 
-.roomCode {
-    direction: ltr;
-
-    font-size: 48px;
-    font-weight: bold;
-
-    letter-spacing: 10px;
-
-    color: #22c55e;
-
-    margin: 25px 0;
+.roomCode{
+    direction:ltr;
+    font-size:48px;
+    font-weight:bold;
+    letter-spacing:9px;
+    color:#22c55e;
+    margin:25px 0;
 }
 
-.waiting {
-    color: #fbbf24;
-    margin-top: 15px;
+.waiting{
+    color:#fbbf24;
+    margin-top:15px;
 }
 
 /* =========================
-   بازی
+   GAME
 ========================= */
 
-#gameScreen {
-    display: none;
-
-    position: fixed;
-
-    inset: 0;
-
-    overflow: hidden;
-
-    background: #87ceeb;
+#gameScreen{
+    position:fixed;
+    inset:0;
+    display:none;
+    overflow:hidden;
+    background:#87ceeb;
 }
 
-#gameCanvas {
-    position: absolute;
+#gameCanvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    touch-action:none;
+}
 
-    left: 0;
-    top: 0;
-
-    width: 100vw;
-    height: 100vh;
-
-    touch-action: none;
+#gameInfo{
+    position:fixed;
+    top:15px;
+    left:15px;
+    z-index:20;
+    padding:10px 15px;
+    background:#0009;
+    color:white;
+    border-radius:12px;
+    direction:rtl;
 }
 
 /* =========================
-   اطلاعات بازی
+   MOBILE CONTROLS
 ========================= */
 
-#gameInfo {
-    position: fixed;
+#mobileControls{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:25px;
+    z-index:50;
 
-    top: 15px;
-    left: 15px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
 
-    z-index: 20;
+    padding:0 25px;
 
-    padding: 10px 15px;
+    direction:ltr;
 
-    color: white;
-
-    background: #0008;
-
-    border-radius: 12px;
-
-    direction: rtl;
+    pointer-events:none;
 }
 
-/* =========================
-   کنترل موبایل
-========================= */
-
-#mobileControls {
-    position: fixed;
-
-    left: 0;
-    right: 0;
-    bottom: 25px;
-
-    z-index: 30;
-
-    display: none;
-
-    justify-content: space-between;
-
-    align-items: flex-end;
-
-    padding: 0 25px;
-
-    direction: ltr;
-
-    pointer-events: none;
+.controlGroup{
+    display:flex;
+    gap:12px;
+    pointer-events:auto;
 }
 
-.controlGroup {
-    display: flex;
+.mobileButton{
+    width:78px;
+    height:78px;
 
-    gap: 12px;
+    padding:0;
+    margin:0;
 
-    pointer-events: auto;
+    border-radius:22px;
+
+    border:2px solid #ffffff55;
+
+    background:#111827dd;
+
+    color:white;
+
+    font-size:32px;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    user-select:none;
+    touch-action:none;
+
+    pointer-events:auto;
 }
 
-.mobileButton {
-    width: 70px;
-    height: 70px;
-
-    padding: 0;
-    margin: 0;
-
-    border-radius: 20px;
-
-    background: #111827dd;
-
-    border: 2px solid #ffffff55;
-
-    font-size: 30px;
-
-    user-select: none;
-
-    touch-action: none;
+.mobileButton:active{
+    background:#2563eb;
+    transform:scale(.9);
 }
 
-.mobileButton:active {
-    background: #2563eb;
-    transform: scale(.92);
+#jumpButton{
+    background:#16a34add;
 }
 
-#jumpButton {
-    background: #22c55edd;
-}
-
-/* موبایل */
-
-@media (max-width: 700px) {
-
-    #mobileControls {
-        display: flex;
-    }
-
-    #gameInfo {
-        font-size: 13px;
+@media(min-width:901px){
+    #mobileControls{
+        display:none;
     }
 }
-
 </style>
 </head>
 
 <body>
 
 <!-- =========================
-     اسم
+     NAME
 ========================= -->
 
-<div
-    id="nameScreen"
-    class="screen"
->
+<div id="nameScreen" class="screen">
 
-<div class="box">
+    <div class="box">
 
-<h1>🎮 STICKMAN</h1>
+        <h1>🎮 STICKMAN</h1>
 
-<p>
-اسم بازیکنت رو وارد کن
-</p>
+        <p>اسم بازیکنت رو وارد کن</p>
 
-<input
-    id="nameInput"
-    maxlength="20"
-    placeholder="اسم بازیکن"
->
+        <input
+            id="nameInput"
+            maxlength="20"
+            placeholder="اسم بازیکن"
+            autocomplete="off"
+        >
 
-<button
-    id="confirmName"
-    class="green"
->
-تأیید اسم
-</button>
+        <button
+            id="confirmName"
+            class="green"
+        >
+            ✅ تأیید اسم
+        </button>
 
-<div
-    id="nameError"
-    class="error"
-></div>
+        <div
+            id="nameError"
+            class="error"
+        ></div>
 
-</div>
+    </div>
 
 </div>
 
 
 <!-- =========================
-     لابی
+     LOBBY
 ========================= -->
 
 <div
@@ -316,59 +255,59 @@ button {
     class="screen hidden"
 >
 
-<div class="box">
+    <div class="box">
 
-<h1>🏠 لابی</h1>
+        <h1>🏠 لابی</h1>
 
-<p id="welcome"></p>
+        <p id="welcome"></p>
 
-<button
-    id="createRoom"
-    class="blue"
->
-🏠 ساخت اتاق
-</button>
+        <button
+            id="createRoom"
+            class="blue"
+        >
+            🏠 ساخت اتاق
+        </button>
 
-<button
-    id="showJoin"
-    class="purple"
->
-🔢 ورود به اتاق
-</button>
+        <button
+            id="showJoin"
+            class="purple"
+        >
+            🔢 ورود به اتاق
+        </button>
 
-<div
-    id="joinBox"
-    class="hidden"
->
+        <div
+            id="joinBox"
+            class="hidden"
+        >
 
-<input
-    id="roomInput"
-    maxlength="6"
-    inputmode="numeric"
-    placeholder="کد ۶ رقمی"
->
+            <input
+                id="roomInput"
+                maxlength="6"
+                inputmode="numeric"
+                placeholder="کد ۶ رقمی"
+            >
 
-<button
-    id="joinRoom"
-    class="purple"
->
-ورود
-</button>
+            <button
+                id="joinRoom"
+                class="purple"
+            >
+                🚪 ورود
+            </button>
 
-</div>
+        </div>
 
-<div
-    id="lobbyError"
-    class="error"
-></div>
+        <div
+            id="lobbyError"
+            class="error"
+        ></div>
 
-</div>
+    </div>
 
 </div>
 
 
 <!-- =========================
-     اتاق
+     ROOM
 ========================= -->
 
 <div
@@ -376,1169 +315,90 @@ button {
     class="screen hidden"
 >
 
-<div class="box">
+    <div class="box">
 
-<h1>🎮 اتاق بازی</h1>
+        <h1>🎮 اتاق بازی</h1>
 
-<p>
-کد اتاق
-</p>
+        <p>کد اتاق:</p>
 
-<div
-    id="roomCode"
-    class="roomCode"
->
-------
-</div>
+        <div
+            id="roomCode"
+            class="roomCode"
+        >
+            ------
+        </div>
 
-<p>
-این کد را به دوستت بده
-</p>
+        <p>
+            کد را برای دوستت بفرست
+        </p>
 
-<button
-    id="readyButton"
-    class="green"
->
-🎮 بزن بریم تو بازی
-</button>
+        <button
+            id="readyButton"
+            class="green"
+        >
+            🎮 بزن بریم تو بازی
+        </button>
 
-<div
-    id="readyStatus"
-    class="waiting"
->
-منتظر بازیکن دوم...
-</div>
+        <div
+            id="readyStatus"
+            class="waiting"
+        >
+            منتظر بازیکن دوم...
+        </div>
 
-</div>
+    </div>
 
 </div>
 
 
 <!-- =========================
-     بازی
+     GAME
 ========================= -->
 
 <div id="gameScreen">
 
-<canvas
-    id="gameCanvas"
-></canvas>
+    <canvas id="gameCanvas"></canvas>
 
-<div id="gameInfo">
-🎮 Stickman
-</div>
+    <div id="gameInfo">
+        🎮 Stickman
+    </div>
 
+    <!-- کنترل موبایل -->
 
-<!-- کنترل موبایل -->
+    <div id="mobileControls">
 
-<div id="mobileControls">
+        <div class="controlGroup">
 
-<div class="controlGroup">
+            <button
+                id="leftButton"
+                class="mobileButton"
+            >
+                ⬅️
+            </button>
 
-<button
-    id="leftButton"
-    class="mobileButton"
->
-⬅️
-</button>
+            <button
+                id="rightButton"
+                class="mobileButton"
+            >
+                ➡️
+            </button>
 
-<button
-    id="rightButton"
-    class="mobileButton"
->
-➡️
-</button>
+        </div>
 
-</div>
+        <button
+            id="jumpButton"
+            class="mobileButton"
+        >
+            🦘
+        </button>
 
-<button
-    id="jumpButton"
-    class="mobileButton"
->
-🦘
-</button>
-
-</div>
+    </div>
 
 </div>
 
 
 <script src="/socket.io/socket.io.js"></script>
-
-<script>
-
-const socket = io();
-
-
-// =================================
-// متغیرها
-// =================================
-
-let playerName = "";
-
-let roomCode = "";
-
-let myPlayer = null;
-
-let players = {};
-
-let ready = false;
-
-let gameStarted = false;
-
-
-// =================================
-// فیزیک
-// =================================
-
-const GRAVITY = 0.7;
-
-const MOVE_SPEED = 5;
-
-const JUMP_POWER = 13;
-
-let velocityY = 0;
-
-let onGround = false;
-
-
-// =================================
-// کلیدها
-// =================================
-
-const keys = {};
-
-
-// =================================
-// عناصر
-// =================================
-
-const nameScreen =
-    document.getElementById(
-        "nameScreen"
-    );
-
-const lobbyScreen =
-    document.getElementById(
-        "lobbyScreen"
-    );
-
-const roomScreen =
-    document.getElementById(
-        "roomScreen"
-    );
-
-const gameScreen =
-    document.getElementById(
-        "gameScreen"
-    );
-
-const nameInput =
-    document.getElementById(
-        "nameInput"
-    );
-
-const confirmName =
-    document.getElementById(
-        "confirmName"
-    );
-
-const createRoom =
-    document.getElementById(
-        "createRoom"
-    );
-
-const showJoin =
-    document.getElementById(
-        "showJoin"
-    );
-
-const joinBox =
-    document.getElementById(
-        "joinBox"
-    );
-
-const roomInput =
-    document.getElementById(
-        "roomInput"
-    );
-
-const joinRoom =
-    document.getElementById(
-        "joinRoom"
-    );
-
-const roomCodeElement =
-    document.getElementById(
-        "roomCode"
-    );
-
-const readyButton =
-    document.getElementById(
-        "readyButton"
-    );
-
-const readyStatus =
-    document.getElementById(
-        "readyStatus"
-    );
-
-
-// =================================
-// اسم
-// =================================
-
-confirmName.onclick = () => {
-
-    const name =
-        nameInput.value.trim();
-
-    if (!name) {
-
-        document.getElementById(
-            "nameError"
-        ).textContent =
-            "لطفاً اسمت را وارد کن.";
-
-        return;
-    }
-
-    playerName =
-        name.substring(
-            0,
-            20
-        );
-
-    document.getElementById(
-        "welcome"
-    ).textContent =
-        "سلام " +
-        playerName +
-        " 👋";
-
-    nameScreen.classList.add(
-        "hidden"
-    );
-
-    lobbyScreen.classList.remove(
-        "hidden"
-    );
-};
-
-
-// =================================
-// ساخت اتاق
-// =================================
-
-createRoom.onclick = () => {
-
-    createRoom.disabled = true;
-
-    createRoom.textContent =
-        "⏳ در حال ساخت...";
-
-    socket.emit(
-        "createRoom",
-        {
-            name: playerName
-        }
-    );
-};
-
-
-// =================================
-// اتاق ساخته شد
-// =================================
-
-socket.on(
-    "roomCreated",
-    (data) => {
-
-        roomCode =
-            String(
-                data.roomCode
-            ).replace(
-                /\D/g,
-                ""
-            );
-
-        myPlayer =
-            data.player;
-
-        players = {};
-
-        players[
-            myPlayer.id
-        ] = myPlayer;
-
-        openRoomScreen();
-    }
-);
-
-
-// =================================
-// نمایش ورود
-// =================================
-
-showJoin.onclick = () => {
-
-    joinBox.classList.toggle(
-        "hidden"
-    );
-};
-
-
-// =================================
-// ورود
-// =================================
-
-joinRoom.onclick = () => {
-
-    const code =
-        roomInput.value
-            .replace(/\D/g, "")
-            .substring(0, 6);
-
-    roomInput.value = code;
-
-    if (code.length !== 6) {
-
-        document.getElementById(
-            "lobbyError"
-        ).textContent =
-            "کد باید ۶ رقمی باشد.";
-
-        return;
-    }
-
-    joinRoom.disabled = true;
-
-    joinRoom.textContent =
-        "⏳ در حال ورود...";
-
-    socket.emit(
-        "joinRoom",
-        {
-            roomCode: code,
-            name: playerName
-        }
-    );
-};
-
-
-// =================================
-// ورود موفق
-// =================================
-
-socket.on(
-    "roomJoined",
-    (data) => {
-
-        roomCode =
-            String(
-                data.roomCode
-            );
-
-        myPlayer =
-            data.player;
-
-        players = {};
-
-        players[
-            myPlayer.id
-        ] = myPlayer;
-
-        openRoomScreen();
-    }
-);
-
-
-// =================================
-// صفحه اتاق
-// =================================
-
-function openRoomScreen() {
-
-    lobbyScreen.classList.add(
-        "hidden"
-    );
-
-    roomScreen.classList.remove(
-        "hidden"
-    );
-
-    roomCodeElement.textContent =
-        roomCode;
-
-    ready = false;
-
-    readyButton.disabled =
-        false;
-
-    readyButton.textContent =
-        "🎮 بزن بریم تو بازی";
-
-    readyStatus.textContent =
-        "منتظر بازیکن دوم...";
-}
-
-
-// =================================
-// آماده
-// =================================
-
-readyButton.onclick = () => {
-
-    ready = true;
-
-    readyButton.disabled =
-        true;
-
-    readyButton.textContent =
-        "✅ آماده شدی";
-
-    readyStatus.textContent =
-        "⏳ منتظر بازیکن دیگر...";
-
-    socket.emit(
-        "readyForGame"
-    );
-};
-
-
-// =================================
-// شروع بازی
-// =================================
-
-socket.on(
-    "startGame",
-    () => {
-
-        startGame();
-    }
-);
-
-
-// =================================
-// بازیکنان
-// =================================
-
-socket.on(
-    "playersUpdate",
-    (list) => {
-
-        players = {};
-
-        list.forEach(
-            (player) => {
-
-                players[
-                    player.id
-                ] = player;
-
-                if (
-                    player.id ===
-                    socket.id
-                ) {
-
-                    myPlayer =
-                        player;
-                }
-            }
-        );
-    }
-);
-
-
-// =================================
-// حرکت بازیکن دیگر
-// =================================
-
-socket.on(
-    "playerMoved",
-    (player) => {
-
-        if (
-            players[
-                player.id
-            ]
-        ) {
-
-            players[
-                player.id
-            ].x = player.x;
-
-            players[
-                player.id
-            ].y = player.y;
-        }
-    }
-);
-
-
-// =================================
-// خروج
-// =================================
-
-socket.on(
-    "playerLeft",
-    (id) => {
-
-        delete players[id];
-    }
-);
-
-
-// =================================
-// خطا
-// =================================
-
-socket.on(
-    "roomError",
-    (message) => {
-
-        document.getElementById(
-            "lobbyError"
-        ).textContent =
-            message;
-
-        joinRoom.disabled =
-            false;
-
-        joinRoom.textContent =
-            "ورود";
-
-        createRoom.disabled =
-            false;
-
-        createRoom.textContent =
-            "🏠 ساخت اتاق";
-    }
-);
-
-
-// =================================
-// CANVAS
-// =================================
-
-const canvas =
-    document.getElementById(
-        "gameCanvas"
-    );
-
-const ctx =
-    canvas.getContext(
-        "2d"
-    );
-
-
-function resizeCanvas() {
-
-    canvas.width =
-        window.innerWidth;
-
-    canvas.height =
-        window.innerHeight;
-}
-
-window.addEventListener(
-    "resize",
-    resizeCanvas
-);
-
-resizeCanvas();
-
-
-// =================================
-// شروع بازی
-// =================================
-
-function startGame() {
-
-    gameStarted = true;
-
-    roomScreen.classList.add(
-        "hidden"
-    );
-
-    gameScreen.style.display =
-        "block";
-
-    resizeCanvas();
-
-    gameLoop();
-}
-
-
-// =================================
-// کیبورد
-// =================================
-
-document.addEventListener(
-    "keydown",
-    (event) => {
-
-        keys[
-            event.key.toLowerCase()
-        ] = true;
-
-        if (
-            event.code ===
-            "Space"
-        ) {
-
-            keys["space"] = true;
-        }
-    }
-);
-
-document.addEventListener(
-    "keyup",
-    (event) => {
-
-        keys[
-            event.key.toLowerCase()
-        ] = false;
-
-        if (
-            event.code ===
-            "Space"
-        ) {
-
-            keys["space"] = false;
-        }
-    }
-);
-
-
-// =================================
-// موبایل
-// =================================
-
-function mobileKey(
-    key
-) {
-
-    return {
-        start: () => {
-            keys[key] = true;
-        },
-
-        end: () => {
-            keys[key] = false;
-        }
-    };
-}
-
-
-const left =
-    mobileKey("mobileleft");
-
-const right =
-    mobileKey("mobileright");
-
-const jump =
-    mobileKey("mobilejump");
-
-
-function setupTouch(
-    element,
-    control
-) {
-
-    element.addEventListener(
-        "touchstart",
-        (e) => {
-
-            e.preventDefault();
-
-            control.start();
-        },
-        {
-            passive: false
-        }
-    );
-
-    element.addEventListener(
-        "touchend",
-        (e) => {
-
-            e.preventDefault();
-
-            control.end();
-        },
-        {
-            passive: false
-        }
-    );
-
-    element.addEventListener(
-        "mousedown",
-        () => {
-
-            control.start();
-        }
-    );
-
-    element.addEventListener(
-        "mouseup",
-        () => {
-
-            control.end();
-        }
-    );
-
-    element.addEventListener(
-        "mouseleave",
-        () => {
-
-            control.end();
-        }
-    );
-}
-
-
-setupTouch(
-    document.getElementById(
-        "leftButton"
-    ),
-    left
-);
-
-setupTouch(
-    document.getElementById(
-        "rightButton"
-    ),
-    right
-);
-
-setupTouch(
-    document.getElementById(
-        "jumpButton"
-    ),
-    jump
-);
-
-
-// =================================
-// فیزیک بازیکن
-// =================================
-
-function updatePlayer() {
-
-    if (
-        !myPlayer ||
-        !gameStarted
-    ) {
-        return;
-    }
-
-    let moving = false;
-
-    // چپ
-    if (
-        keys["a"] ||
-        keys["arrowleft"] ||
-        keys["mobileleft"]
-    ) {
-
-        myPlayer.x -=
-            MOVE_SPEED;
-
-        moving = true;
-    }
-
-    // راست
-    if (
-        keys["d"] ||
-        keys["arrowright"] ||
-        keys["mobileright"]
-    ) {
-
-        myPlayer.x +=
-            MOVE_SPEED;
-
-        moving = true;
-    }
-
-
-    // پرش
-    if (
-        (
-            keys["w"] ||
-            keys["arrowup"] ||
-            keys["space"] ||
-            keys["mobilejump"]
-        ) &&
-        onGround
-    ) {
-
-        velocityY =
-            -JUMP_POWER;
-
-        onGround = false;
-    }
-
-
-    // جاذبه
-    velocityY +=
-        GRAVITY;
-
-    myPlayer.y +=
-        velocityY;
-
-
-    // زمین
-    const groundY =
-        canvas.height - 120;
-
-
-    if (
-        myPlayer.y >=
-        groundY
-    ) {
-
-        myPlayer.y =
-            groundY;
-
-        velocityY = 0;
-
-        onGround = true;
-    }
-
-
-    // محدودیت چپ
-    if (
-        myPlayer.x < 30
-    ) {
-
-        myPlayer.x = 30;
-    }
-
-
-    // محدودیت راست
-    if (
-        myPlayer.x >
-        canvas.width - 30
-    ) {
-
-        myPlayer.x =
-            canvas.width - 30;
-    }
-
-
-    if (
-        moving ||
-        !onGround
-    ) {
-
-        players[
-            myPlayer.id
-        ] = myPlayer;
-
-        socket.emit(
-            "playerMovement",
-            {
-                x:
-                    myPlayer.x,
-
-                y:
-                    myPlayer.y
-            }
-        );
-    }
-}
-
-
-// =================================
-// زمین
-// =================================
-
-function drawGround() {
-
-    const groundY =
-        canvas.height - 120;
-
-
-    // چمن
-    ctx.fillStyle =
-        "#22c55e";
-
-    ctx.fillRect(
-        0,
-        groundY,
-        canvas.width,
-        120
-    );
-
-
-    // خاک
-    ctx.fillStyle =
-        "#92400e";
-
-    ctx.fillRect(
-        0,
-        groundY + 20,
-        canvas.width,
-        100
-    );
-
-
-    // خط چمن
-    ctx.fillStyle =
-        "#166534";
-
-    ctx.fillRect(
-        0,
-        groundY,
-        canvas.width,
-        10
-    );
-}
-
-
-// =================================
-// آسمان
-// =================================
-
-function drawSky() {
-
-    const gradient =
-        ctx.createLinearGradient(
-            0,
-            0,
-            0,
-            canvas.height
-        );
-
-    gradient.addColorStop(
-        0,
-        "#38bdf8"
-    );
-
-    gradient.addColorStop(
-        1,
-        "#bae6fd"
-    );
-
-    ctx.fillStyle =
-        gradient;
-
-    ctx.fillRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
-
-
-    // خورشید
-    ctx.fillStyle =
-        "#fde047";
-
-    ctx.beginPath();
-
-    ctx.arc(
-        canvas.width - 100,
-        100,
-        45,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-}
-
-
-// =================================
-// استیکمن
-// =================================
-
-function drawStickman(
-    player
-) {
-
-    const x =
-        player.x;
-
-    const y =
-        player.y;
-
-
-    ctx.strokeStyle =
-        player.id === socket.id
-            ? "#16a34a"
-            : "#1d4ed8";
-
-    ctx.fillStyle =
-        "#111827";
-
-    ctx.lineWidth = 5;
-
-    ctx.lineCap =
-        "round";
-
-
-    // سر
-    ctx.beginPath();
-
-    ctx.arc(
-        x,
-        y - 55,
-        18,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.stroke();
-
-
-    // بدن
-    ctx.beginPath();
-
-    ctx.moveTo(
-        x,
-        y - 37
-    );
-
-    ctx.lineTo(
-        x,
-        y + 15
-    );
-
-    ctx.stroke();
-
-
-    // دست چپ
-    ctx.beginPath();
-
-    ctx.moveTo(
-        x,
-        y - 20
-    );
-
-    ctx.lineTo(
-        x - 30,
-        y + 5
-    );
-
-    ctx.stroke();
-
-
-    // دست راست
-    ctx.beginPath();
-
-    ctx.moveTo(
-        x,
-        y - 20
-    );
-
-    ctx.lineTo(
-        x + 30,
-        y + 5
-    );
-
-    ctx.stroke();
-
-
-    // پای چپ
-    ctx.beginPath();
-
-    ctx.moveTo(
-        x,
-        y + 15
-    );
-
-    ctx.lineTo(
-        x - 25,
-        y + 55
-    );
-
-    ctx.stroke();
-
-
-    // پای راست
-    ctx.beginPath();
-
-    ctx.moveTo(
-        x,
-        y + 15
-    );
-
-    ctx.lineTo(
-        x + 25,
-        y + 55
-    );
-
-    ctx.stroke();
-
-
-    // اسم
-    ctx.fillStyle =
-        "#111827";
-
-    ctx.font =
-        "bold 16px Arial";
-
-    ctx.textAlign =
-        "center";
-
-    ctx.fillText(
-        player.name,
-        x,
-        y - 82
-    );
-}
-
-
-// =================================
-// رسم
-// =================================
-
-function drawGame() {
-
-    if (!gameStarted) {
-        return;
-    }
-
-    drawSky();
-
-    drawGround();
-
-
-    Object.values(
-        players
-    ).forEach(
-        (player) => {
-
-            drawStickman(
-                player
-            );
-        }
-    );
-}
-
-
-// =================================
-// حلقه بازی
-// =================================
-
-function gameLoop() {
-
-    if (!gameStarted) {
-        return;
-    }
-
-    updatePlayer();
-
-    drawGame();
-
-    requestAnimationFrame(
-        gameLoop
-    );
-}
-
-</script>
+<script src="/lobby.js"></script>
 
 </body>
 </html>
