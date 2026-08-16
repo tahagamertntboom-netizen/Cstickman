@@ -1,9 +1,11 @@
 const socket = io();
 
 let playerName = "";
-let roomCode = "";
 
-const box = document.querySelector(".box");
+
+// =====================================
+// عناصر صفحه
+// =====================================
 
 const nameInput =
     document.getElementById("nameInput");
@@ -11,399 +13,409 @@ const nameInput =
 const confirmButton =
     document.getElementById("confirm");
 
-const error =
+const errorBox =
     document.getElementById("error");
 
 
-// ==========================
+// =====================================
+// نمایش خطا
+// =====================================
+
+function showError(message) {
+
+    errorBox.textContent =
+        message || "";
+
+}
+
+
+// =====================================
 // تأیید اسم
-// ==========================
+// =====================================
 
-confirmButton.onclick = function () {
+confirmButton.addEventListener(
+    "click",
+    () => {
 
-    const name =
-        nameInput.value.trim();
+        const name =
+            String(
+                nameInput.value || ""
+            ).trim();
 
-    if (!name) {
 
-        error.textContent =
-            "❌ اول اسمت را وارد کن!";
+        if (!name) {
 
-        return;
+            showError(
+                "⚠️ اول اسمت را وارد کن!"
+            );
+
+            return;
+        }
+
+
+        if (name.length < 2) {
+
+            showError(
+                "⚠️ اسم باید حداقل ۲ حرف باشد."
+            );
+
+            return;
+        }
+
+
+        playerName =
+            name;
+
+
+        // ذخیره اسم
+        localStorage.setItem(
+            "player",
+            playerName
+        );
+
+
+        // رفتن به صفحه انتخاب اتاق
+        showLobby();
+
     }
-
-    playerName = name;
-
-    localStorage.setItem(
-        "player",
-        playerName
-    );
-
-    showLobby();
-};
+);
 
 
-// ==========================
-// ساخت صفحه اتاق
-// ==========================
+// =====================================
+// Enter
+// =====================================
+
+nameInput.addEventListener(
+    "keydown",
+    (event) => {
+
+        if (
+            event.key === "Enter"
+        ) {
+
+            confirmButton.click();
+
+        }
+
+    }
+);
+
+
+// =====================================
+// ساخت صفحه لابی
+// =====================================
 
 function showLobby() {
 
-    box.innerHTML = `
+    document.body.innerHTML = `
 
-        <h1>🏠 لابی</h1>
+        <div class="box">
 
-        <h2>
-            سلام ${escapeHtml(playerName)} 👋
-        </h2>
+            <h1>🎮 STICKMAN</h1>
 
-        <button
-            id="createRoom"
-            type="button"
-            style="
-                background:#22c55e;
-                color:white;
-            "
-        >
-            🏠 ساخت اتاق
-        </button>
+            <p>
+                سلام ${escapeHtml(playerName)} 👋
+            </p>
 
-        <hr style="
-            margin:25px 0;
-            border-color:#334155;
-        ">
+            <button
+                id="createRoom"
+                type="button"
+                style="
+                    background:#22c55e;
+                    color:white;
+                "
+            >
+                🏠 ساخت اتاق
+            </button>
 
-        <input
-            id="roomInput"
-            maxlength="6"
-            inputmode="numeric"
-            placeholder="کد ۶ رقمی اتاق"
-            style="
-                width:100%;
-                padding:16px;
-                border:0;
-                border-radius:12px;
-                font-size:18px;
-            "
-        >
-
-        <button
-            id="joinRoom"
-            type="button"
-            style="
-                background:#6366f1;
-                color:white;
-            "
-        >
-            🚪 ورود به اتاق
-        </button>
-
-        <div id="lobbyError"
-             style="
-                color:#f87171;
-                margin-top:15px;
-             ">
-        </div>
-
-        <div
-            id="roomPanel"
-            style="
-                display:none;
-                margin-top:25px;
-                padding:20px;
-                background:#020617;
-                border-radius:15px;
-            "
-        >
-
-            <div>
-                کد اتاق شما:
+            <div
+                style="
+                    margin:20px 0;
+                    color:#94a3b8;
+                "
+            >
+                یا
             </div>
 
-            <div
+            <input
                 id="roomCode"
-                style="
-                    font-size:40px;
-                    color:#4ade80;
-                    font-weight:bold;
-                    letter-spacing:6px;
-                    margin:15px 0;
-                "
-            ></div>
+                maxlength="6"
+                inputmode="numeric"
+                placeholder="کد ۶ رقمی اتاق"
+                autocomplete="off"
+            >
 
             <button
-                id="copyCode"
+                id="joinRoom"
                 type="button"
                 style="
-                    background:#0ea5e9;
+                    background:#3b82f6;
                     color:white;
                 "
             >
-                📋 کپی کد
+                🚪 رفتن به اتاق
             </button>
 
             <div
-                id="players"
-                style="margin-top:20px;"
-            ></div>
-
-            <button
-                id="playButton"
-                type="button"
+                id="lobbyError"
                 style="
-                    background:#f59e0b;
-                    color:white;
+                    color:#f87171;
+                    min-height:25px;
+                    margin-top:12px;
                 "
-            >
-                🎮 ورود به بازی
-            </button>
+            ></div>
 
         </div>
     `;
 
 
-    document.getElementById(
-        "createRoom"
-    ).onclick = function () {
-
-        socket.emit(
-            "createRoom",
-            playerName
+    document.body.style.cssText = `
+        margin:0;
+        min-height:100vh;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        font-family:Arial;
+        color:white;
+        background:
+        linear-gradient(
+            135deg,
+            #020617,
+            #172554,
+            #312e81
         );
+    `;
 
-    };
+
+    const box =
+        document.querySelector(".box");
 
 
-    document.getElementById(
-        "joinRoom"
-    ).onclick = function () {
+    if (box) {
 
-        const code =
-            document.getElementById(
-                "roomInput"
-            ).value.trim();
+        box.style.cssText = `
+            width:92%;
+            max-width:430px;
+            padding:30px;
+            background:#111827;
+            border-radius:25px;
+            text-align:center;
+            box-shadow:0 20px 70px #000b;
+        `;
 
-        if (!/^\d{6}$/.test(code)) {
+    }
 
-            document.getElementById(
-                "lobbyError"
-            ).textContent =
-                "❌ کد باید ۶ رقمی باشد!";
 
-            return;
-        }
+    document
+        .querySelectorAll("button")
+        .forEach(
+            button => {
 
-        socket.emit(
-            "joinRoom",
-            {
-                roomCode: code,
-                playerName: playerName
+                button.style.cssText += `
+                    width:100%;
+                    padding:16px;
+                    border:none;
+                    border-radius:12px;
+                    margin-top:12px;
+                    font-size:18px;
+                    font-weight:bold;
+                    cursor:pointer;
+                `;
+
             }
         );
 
-    };
+
+    const codeInput =
+        document.getElementById(
+            "roomCode"
+        );
 
 
-    document.getElementById(
-        "copyCode"
-    ).onclick = async function () {
+    const createButton =
+        document.getElementById(
+            "createRoom"
+        );
 
-        try {
 
-            await navigator.clipboard.writeText(
-                roomCode
-            );
+    const joinButton =
+        document.getElementById(
+            "joinRoom"
+        );
 
-            this.textContent =
-                "✅ کپی شد!";
 
-            setTimeout(() => {
+    const lobbyError =
+        document.getElementById(
+            "lobbyError"
+        );
 
-                this.textContent =
-                    "📋 کپی کد";
 
-            }, 1500);
+    // =================================
+    // ساخت اتاق
+    // =================================
 
-        } catch {
+    createButton.addEventListener(
+        "click",
+        () => {
 
-            alert(
-                "کد را دستی کپی کن: " +
-                roomCode
+            lobbyError.textContent =
+                "⏳ در حال ساخت اتاق...";
+
+
+            socket.emit(
+                "createRoom",
+                playerName
             );
 
         }
+    );
 
-    };
+
+    // =================================
+    // ورود به اتاق
+    // =================================
+
+    joinButton.addEventListener(
+        "click",
+        () => {
+
+            const roomCode =
+                String(
+                    codeInput.value || ""
+                ).trim();
 
 
-    document.getElementById(
-        "playButton"
-    ).onclick = function () {
+            if (
+                !/^\d{6}$/.test(
+                    roomCode
+                )
+            ) {
 
-        if (!roomCode) return;
+                lobbyError.textContent =
+                    "⚠️ کد اتاق باید ۶ رقمی باشد.";
 
-        localStorage.setItem(
-            "room",
+                return;
+            }
+
+
+            lobbyError.textContent =
+                "⏳ در حال ورود به اتاق...";
+
+
+            socket.emit(
+                "joinRoom",
+                {
+                    roomCode:
+                        roomCode,
+
+                    playerName:
+                        playerName
+                }
+            );
+
+        }
+    );
+
+
+    // =================================
+    // Enter داخل کد
+    // =================================
+
+    codeInput.addEventListener(
+        "keydown",
+        (event) => {
+
+            if (
+                event.key === "Enter"
+            ) {
+
+                joinButton.click();
+
+            }
+
+        }
+    );
+
+}
+
+
+// =====================================
+// اتاق ساخته شد
+// =====================================
+
+socket.on(
+    "roomCreated",
+    (roomCode) => {
+
+        console.log(
+            "ROOM CREATED:",
             roomCode
         );
+
+
+        showRoomCreated(
+            roomCode
+        );
+
+    }
+);
+
+
+// =====================================
+// وارد اتاق شدیم
+// =====================================
+
+socket.on(
+    "joinedRoom",
+    (roomCode) => {
+
+        console.log(
+            "JOINED ROOM:",
+            roomCode
+        );
+
+
+        localStorage.setItem(
+            "roomCode",
+            roomCode
+        );
+
 
         localStorage.setItem(
             "player",
             playerName
         );
 
+
+        // ورود به بازی
         window.location.href =
             "/game.html";
 
-    };
-
-}
-
-
-// ==========================
-// اتاق ساخته شد
-// ==========================
-
-socket.on(
-    "roomCreated",
-    function (code) {
-
-        openRoom(code);
-
     }
 );
 
 
-// ==========================
-// وارد اتاق شد
-// ==========================
-
-socket.on(
-    "joinedRoom",
-    function (code) {
-
-        openRoom(code);
-
-    }
-);
-
-
-// ==========================
-// نمایش اتاق
-// ==========================
-
-function openRoom(code) {
-
-    roomCode =
-        String(code);
-
-    localStorage.setItem(
-        "room",
-        roomCode
-    );
-
-    const panel =
-        document.getElementById(
-            "roomPanel"
-        );
-
-    const codeElement =
-        document.getElementById(
-            "roomCode"
-        );
-
-    if (panel) {
-
-        panel.style.display =
-            "block";
-
-    }
-
-    if (codeElement) {
-
-        codeElement.textContent =
-            roomCode;
-
-    }
-
-}
-
-
-// ==========================
-// بازیکنان
-// ==========================
-
-socket.on(
-    "players",
-    function (players) {
-
-        const element =
-            document.getElementById(
-                "players"
-            );
-
-        if (!element) return;
-
-        element.innerHTML =
-            "<h3>👥 بازیکنان</h3>";
-
-        players.forEach(
-            player => {
-
-                const div =
-                    document.createElement(
-                        "div"
-                    );
-
-                div.style.cssText = `
-                    background:#1e293b;
-                    padding:10px;
-                    margin:6px 0;
-                    border-radius:10px;
-                `;
-
-                div.textContent =
-                    "👤 " +
-                    player.name;
-
-                if (player.admin) {
-
-                    div.textContent +=
-                        " 👑 ادمین";
-
-                }
-
-                element.appendChild(div);
-
-            }
-        );
-
-    }
-);
-
-
-// ==========================
-// خطا
-// ==========================
+// =====================================
+// خطای سرور
+// =====================================
 
 socket.on(
     "errorMessage",
-    function (message) {
+    (message) => {
 
-        const element =
+        const box =
             document.getElementById(
                 "lobbyError"
+            ) ||
+            document.getElementById(
+                "error"
             );
 
-        if (element) {
 
-            element.textContent =
+        if (box) {
+
+            box.textContent =
                 "❌ " + message;
-
-        } else {
-
-            error.textContent =
-                message;
 
         }
 
@@ -411,17 +423,235 @@ socket.on(
 );
 
 
-// ==========================
-// جلوگیری از HTML در اسم
-// ==========================
+// =====================================
+// نمایش کد اتاق ساخته شده
+// =====================================
+
+function showRoomCreated(
+    roomCode
+) {
+
+    document.body.innerHTML = `
+
+        <div class="box">
+
+            <h1>🏠 اتاق ساخته شد</h1>
+
+            <p>
+                این کد را به دوستت بده:
+            </p>
+
+            <div
+                style="
+                    font-size:42px;
+                    font-weight:bold;
+                    letter-spacing:8px;
+                    padding:20px;
+                    margin:20px 0;
+                    background:#020617;
+                    border-radius:18px;
+                    direction:ltr;
+                "
+            >
+                ${roomCode}
+            </div>
+
+            <p
+                style="
+                    color:#94a3b8;
+                "
+            >
+                دوستت باید همین کد را در
+                «رفتن به اتاق» وارد کند.
+            </p>
+
+            <button
+                id="copyCode"
+                type="button"
+                style="
+                    background:#8b5cf6;
+                    color:white;
+                    width:100%;
+                    padding:16px;
+                    border:0;
+                    border-radius:12px;
+                    margin-top:12px;
+                    font-size:18px;
+                    font-weight:bold;
+                    cursor:pointer;
+                "
+            >
+                📋 کپی کد
+            </button>
+
+            <button
+                id="enterGame"
+                type="button"
+                style="
+                    background:#22c55e;
+                    color:white;
+                    width:100%;
+                    padding:16px;
+                    border:0;
+                    border-radius:12px;
+                    margin-top:12px;
+                    font-size:18px;
+                    font-weight:bold;
+                    cursor:pointer;
+                "
+            >
+                🎮 ورود به بازی
+            </button>
+
+            <div
+                id="roomStatus"
+                style="
+                    margin-top:15px;
+                    color:#94a3b8;
+                "
+            >
+                منتظر بازیکن‌ها...
+            </div>
+
+        </div>
+    `;
+
+
+    document.body.style.cssText = `
+        margin:0;
+        min-height:100vh;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        font-family:Arial;
+        color:white;
+        background:
+        linear-gradient(
+            135deg,
+            #020617,
+            #172554,
+            #312e81
+        );
+    `;
+
+
+    const box =
+        document.querySelector(".box");
+
+
+    if (box) {
+
+        box.style.cssText = `
+            width:92%;
+            max-width:430px;
+            padding:30px;
+            background:#111827;
+            border-radius:25px;
+            text-align:center;
+            box-shadow:0 20px 70px #000b;
+        `;
+
+    }
+
+
+    // -----------------------------
+    // کپی
+    // -----------------------------
+
+    document
+        .getElementById("copyCode")
+        .addEventListener(
+            "click",
+            async () => {
+
+                try {
+
+                    await navigator
+                        .clipboard
+                        .writeText(
+                            roomCode
+                        );
+
+
+                    document
+                        .getElementById(
+                            "roomStatus"
+                        )
+                        .textContent =
+                        "✅ کد کپی شد!";
+
+                }
+                catch {
+
+                    document
+                        .getElementById(
+                            "roomStatus"
+                        )
+                        .textContent =
+                        "کد: " + roomCode;
+
+                }
+
+            }
+        );
+
+
+    // -----------------------------
+    // ورود به بازی
+    // -----------------------------
+
+    document
+        .getElementById("enterGame")
+        .addEventListener(
+            "click",
+            () => {
+
+                localStorage.setItem(
+                    "roomCode",
+                    roomCode
+                );
+
+                localStorage.setItem(
+                    "player",
+                    playerName
+                );
+
+
+                window.location.href =
+                    "/game.html";
+
+            }
+        );
+
+}
+
+
+// =====================================
+// HTML امن
+// =====================================
 
 function escapeHtml(text) {
 
-    const div =
-        document.createElement("div");
+    return String(text)
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
 
-    div.textContent =
-        text;
-
-    return div.innerHTML;
 }
