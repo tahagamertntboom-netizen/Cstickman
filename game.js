@@ -1,1314 +1,411 @@
 const socket = io();
 
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+let myPlayer = null;
+let roomCode = null;
+let players = {};
 
+const createRoomButton =
+  document.getElementById(
+    "createRoom"
+  );
 
-// =====================================
-// اندازه صفحه
-// =====================================
+const joinRoomButton =
+  document.getElementById(
+    "joinRoom"
+  );
 
-function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+const roomCodeInput =
+  document.getElementById(
+    "roomCode"
+  );
+
+const playerNameInput =
+  document.getElementById(
+    "playerName"
+  );
+
+const roomCodeDisplay =
+  document.getElementById(
+    "roomCodeDisplay"
+  );
+
+function getPlayerName() {
+  if (
+    playerNameInput &&
+    playerNameInput.value.trim()
+  ) {
+    return playerNameInput.value
+      .trim()
+      .substring(0, 20);
+  }
+
+  return "Player";
 }
 
-resize();
-
-window.addEventListener("resize", resize);
-
-
 // =====================================
-// اطلاعات بازیکن
+// ساخت اتاق
 // =====================================
 
-const savedName = localStorage.getItem("player");
+if (createRoomButton) {
+  createRoomButton.addEventListener(
+    "click",
+    () => {
+      createRoomButton.disabled = true;
 
-const myName =
-    savedName &&
-    savedName !== "undefined" &&
-    savedName !== "null"
-        ? String(savedName).trim()
-        : "Player";
+      createRoomButton.textContent =
+        "در حال ساخت اتاق...";
 
-
-const roomCode =
-    String(
-        localStorage.getItem("roomCode") || ""
-    ).trim();
-
-
-console.log("PLAYER:", myName);
-console.log("ROOM:", roomCode);
-
-
-// =====================================
-// بازیکن خودمان
-// =====================================
-
-const me = {
-
-    id: "",
-
-    name: myName,
-
-    x: 250,
-
-    y: 300,
-
-    vx: 0,
-
-    vy: 0,
-
-    onGround: false,
-
-    admin:
-        myName.toLowerCase() ===
-        "tahagamertnt"
-
-};
-
+      socket.emit(
+        "createRoom",
+        {
+          name: getPlayerName(),
+          color: "#ffffff"
+        }
+      );
+    }
+  );
+}
 
 // =====================================
-// بازیکنان دیگر
+// اتاق ساخته شد
 // =====================================
 
-const players = {};
+socket.on(
+  "roomCreated",
+  (data) => {
+    roomCode =
+      data.roomCode;
 
+    myPlayer =
+      data.player;
 
-// =====================================
-// کنترل
-// =====================================
+    players = {};
 
-const keys = {
+    data.players.forEach(
+      (player) => {
+        players[player.id] =
+          player;
+      }
+    );
 
-    left: false,
-
-    right: false
-
-};
-
-
-// =====================================
-// اتصال Socket
-// =====================================
-
-socket.on("connect", () => {
-
-    me.id = socket.id;
+    showRoomCode(roomCode);
 
     console.log(
-        "CONNECTED:",
-        socket.id
+      "Room created:",
+      roomCode
     );
 
+    if (createRoomButton) {
+      createRoomButton.disabled =
+        false;
 
-    // ---------------------------------
-    // ورود دوباره به همان اتاق
-    // ---------------------------------
-
-    if (
-        roomCode &&
-        /^\d{6}$/.test(roomCode)
-    ) {
-
-        console.log(
-            "JOINING ROOM:",
-            roomCode
-        );
-
-
-        socket.emit(
-            "joinRoom",
-            {
-
-                roomCode:
-                    roomCode,
-
-                playerName:
-                    myName
-
-            }
-        );
-
-    }
-    else {
-
-        console.log(
-            "NO ROOM CODE"
-        );
-
+      createRoomButton.textContent =
+        "ساخت اتاق";
     }
 
-});
-
+    startGame();
+  }
+);
 
 // =====================================
-// ورود موفق به اتاق
+// نمایش کد اتاق
+// =====================================
+
+function showRoomCode(code) {
+  if (!roomCodeDisplay) return;
+
+  roomCodeDisplay.textContent =
+    code;
+
+  roomCodeDisplay.style.display =
+    "block";
+}
+
+// =====================================
+// ورود به اتاق
+// =====================================
+
+if (joinRoomButton) {
+  joinRoomButton.addEventListener(
+    "click",
+    () => {
+      let code =
+        roomCodeInput
+          ? roomCodeInput.value
+          : "";
+
+      // فقط عدد
+      code = String(code)
+        .replace(/\D/g, "");
+
+      if (code.length !== 6) {
+        alert(
+          "کد اتاق باید ۶ رقمی باشد."
+        );
+
+        return;
+      }
+
+      joinRoomButton.disabled =
+        true;
+
+      joinRoomButton.textContent =
+        "در حال ورود...";
+
+      socket.emit(
+        "joinRoom",
+        {
+          roomCode: code,
+          name: getPlayerName(),
+          color: "#ffffff"
+        }
+      );
+    }
+  );
+}
+
+// =====================================
+// ورود موفق
 // =====================================
 
 socket.on(
-    "joinedRoom",
-    (code) => {
+  "roomJoined",
+  (data) => {
+    roomCode =
+      data.roomCode;
 
-        console.log(
-            "JOINED ROOM:",
-            code
-        );
+    myPlayer =
+      data.player;
 
-        localStorage.setItem(
-            "roomCode",
-            code
-        );
+    players = {};
 
+    data.players.forEach(
+      (player) => {
+        players[player.id] =
+          player;
+      }
+    );
+
+    showRoomCode(roomCode);
+
+    console.log(
+      "Joined room:",
+      roomCode
+    );
+
+    if (joinRoomButton) {
+      joinRoomButton.disabled =
+        false;
+
+      joinRoomButton.textContent =
+        "ورود به اتاق";
     }
+
+    startGame();
+  }
 );
 
-
 // =====================================
-// لیست بازیکنان
+// خطای اتاق
 // =====================================
 
 socket.on(
-    "players",
-    (list) => {
+  "roomError",
+  (message) => {
+    alert(message);
 
-        console.log(
-            "PLAYERS:",
-            list
-        );
+    if (createRoomButton) {
+      createRoomButton.disabled =
+        false;
 
-
-        if (
-            !Array.isArray(list)
-        ) {
-            return;
-        }
-
-
-        const ids = [];
-
-
-        list.forEach(
-            (player) => {
-
-                if (
-                    !player ||
-                    !player.id
-                ) {
-                    return;
-                }
-
-
-                ids.push(
-                    player.id
-                );
-
-
-                // -------------------------
-                // خودمان
-                // -------------------------
-
-                if (
-                    player.id ===
-                    socket.id
-                ) {
-
-                    me.name =
-                        player.name ||
-                        myName;
-
-
-                    me.admin =
-                        player.admin === true;
-
-
-                    if (
-                        typeof player.x ===
-                        "number"
-                    ) {
-
-                        me.x =
-                            player.x;
-
-                    }
-
-
-                    if (
-                        typeof player.y ===
-                        "number"
-                    ) {
-
-                        me.y =
-                            player.y;
-
-                    }
-
-
-                    return;
-                }
-
-
-                // -------------------------
-                // بازیکن جدید
-                // -------------------------
-
-                if (
-                    !players[player.id]
-                ) {
-
-                    players[player.id] = {
-
-                        id:
-                            player.id,
-
-                        name:
-                            player.name ||
-                            "Player",
-
-                        admin:
-                            player.admin === true,
-
-                        x:
-                            typeof player.x ===
-                            "number"
-                                ? player.x
-                                : 300,
-
-                        y:
-                            typeof player.y ===
-                            "number"
-                                ? player.y
-                                : 400,
-
-                        vx: 0,
-
-                        vy: 0
-
-                    };
-
-                }
-                else {
-
-                    // اسم را همیشه به‌روز کن
-
-                    players[player.id].name =
-                        player.name ||
-                        "Player";
-
-
-                    players[player.id].admin =
-                        player.admin === true;
-
-
-                    if (
-                        typeof player.x ===
-                        "number"
-                    ) {
-
-                        players[player.id].x =
-                            player.x;
-
-                    }
-
-
-                    if (
-                        typeof player.y ===
-                        "number"
-                    ) {
-
-                        players[player.id].y =
-                            player.y;
-
-                    }
-
-                }
-
-            }
-        );
-
-
-        // -----------------------------
-        // حذف بازیکنان خارج‌شده
-        // -----------------------------
-
-        Object.keys(
-            players
-        ).forEach(
-            (id) => {
-
-                if (
-                    !ids.includes(id)
-                ) {
-
-                    delete players[id];
-
-                }
-
-            }
-        );
-
+      createRoomButton.textContent =
+        "ساخت اتاق";
     }
+
+    if (joinRoomButton) {
+      joinRoomButton.disabled =
+        false;
+
+      joinRoomButton.textContent =
+        "ورود به اتاق";
+    }
+  }
 );
 
-
 // =====================================
-// حرکت بازیکنان دیگر
+// بازیکنان فعلی
 // =====================================
 
 socket.on(
-    "playerMoved",
-    (data) => {
+  "roomPlayers",
+  (list) => {
+    players = {};
 
-        if (
-            !data ||
-            !data.id
-        ) {
+    list.forEach(
+      (player) => {
+        players[player.id] =
+          player;
+      }
+    );
 
-            return;
-
-        }
-
-
-        // اگر هنوز اطلاعاتش را نداریم
-        if (
-            !players[data.id]
-        ) {
-
-            players[data.id] = {
-
-                id:
-                    data.id,
-
-                name:
-                    data.name ||
-                    "Player",
-
-                admin:
-                    data.admin === true,
-
-                x:
-                    typeof data.x ===
-                    "number"
-                        ? data.x
-                        : 300,
-
-                y:
-                    typeof data.y ===
-                    "number"
-                        ? data.y
-                        : 400,
-
-                vx: 0,
-
-                vy: 0
-
-            };
-
-        }
-
-
-        if (
-            typeof data.x ===
-            "number"
-        ) {
-
-            players[data.id].x =
-                data.x;
-
-        }
-
-
-        if (
-            typeof data.y ===
-            "number"
-        ) {
-
-            players[data.id].y =
-                data.y;
-
-        }
-
-
-        if (
-            typeof data.vx ===
-            "number"
-        ) {
-
-            players[data.id].vx =
-                data.vx;
-
-        }
-
-
-        if (
-            typeof data.vy ===
-            "number"
-        ) {
-
-            players[data.id].vy =
-                data.vy;
-
-        }
-
-
-        // اگر سرور اسم را هم فرستاد
-        if (
-            typeof data.name ===
-            "string"
-        ) {
-
-            players[data.id].name =
-                data.name;
-
-        }
-
-
-        if (
-            typeof data.admin ===
-            "boolean"
-        ) {
-
-            players[data.id].admin =
-                data.admin;
-
-        }
-
-    }
+    updateGamePlayers();
+  }
 );
 
-
 // =====================================
-// کیبورد
-// A / D
-// فارسی ش / ی
+// بازیکن جدید
 // =====================================
 
-window.addEventListener(
-    "keydown",
-    (e) => {
+socket.on(
+  "playerJoined",
+  (player) => {
+    players[player.id] =
+      player;
 
-        if (
-            e.code === "KeyA"
-        ) {
-
-            keys.left = true;
-
-            e.preventDefault();
-
-        }
-
-
-        if (
-            e.code === "KeyD"
-        ) {
-
-            keys.right = true;
-
-            e.preventDefault();
-
-        }
-
-
-        if (
-            e.code === "KeyW" ||
-            e.code === "Space" ||
-            e.code === "ArrowUp"
-        ) {
-
-            jump();
-
-            e.preventDefault();
-
-        }
-
-    }
+    updateGamePlayers();
+  }
 );
 
+// =====================================
+// حرکت بازیکن
+// =====================================
 
-window.addEventListener(
-    "keyup",
-    (e) => {
+socket.on(
+  "playerMoved",
+  (player) => {
+    players[player.id] =
+      player;
 
-        if (
-            e.code === "KeyA"
-        ) {
-
-            keys.left = false;
-
-            e.preventDefault();
-
-        }
-
-
-        if (
-            e.code === "KeyD"
-        ) {
-
-            keys.right = false;
-
-            e.preventDefault();
-
-        }
-
-    }
+    updateGamePlayers();
+  }
 );
 
+// =====================================
+// تغییر بازیکن
+// =====================================
+
+socket.on(
+  "playerUpdated",
+  (player) => {
+    players[player.id] =
+      player;
+
+    updateGamePlayers();
+  }
+);
 
 // =====================================
-// کنترل لمسی
+// بازیکن خارج شد
 // =====================================
 
-const leftButton =
-    document.getElementById("left");
+socket.on(
+  "playerLeft",
+  (playerId) => {
+    delete players[playerId];
 
-const rightButton =
-    document.getElementById("right");
+    updateGamePlayers();
+  }
+);
 
-const jumpButton =
-    document.getElementById("jump");
+// =====================================
+// شروع بازی
+// =====================================
 
+function startGame() {
+  console.log(
+    "Game started"
+  );
 
-if (leftButton) {
-
-    leftButton.addEventListener(
-        "pointerdown",
-        (e) => {
-
-            e.preventDefault();
-
-            keys.left = true;
-
-        }
-    );
-
-
-    leftButton.addEventListener(
-        "pointerup",
-        (e) => {
-
-            e.preventDefault();
-
-            keys.left = false;
-
-        }
-    );
-
-
-    leftButton.addEventListener(
-        "pointercancel",
-        () => {
-
-            keys.left = false;
-
-        }
-    );
-
-
-    leftButton.addEventListener(
-        "pointerleave",
-        () => {
-
-            keys.left = false;
-
-        }
-    );
-
+  updateGamePlayers();
 }
 
+// =====================================
+// آپدیت بازی
+// =====================================
 
-if (rightButton) {
+function updateGamePlayers() {
+  /*
+   این قسمت را می‌توانی با
+   سیستم گرافیکی فعلی بازی‌ات
+   وصل کنی.
 
-    rightButton.addEventListener(
-        "pointerdown",
-        (e) => {
+   اطلاعات بازیکنان داخل:
+   players
+   قرار دارد.
+  */
 
-            e.preventDefault();
-
-            keys.right = true;
-
-        }
-    );
-
-
-    rightButton.addEventListener(
-        "pointerup",
-        (e) => {
-
-            e.preventDefault();
-
-            keys.right = false;
-
-        }
-    );
-
-
-    rightButton.addEventListener(
-        "pointercancel",
-        () => {
-
-            keys.right = false;
-
-        }
-    );
-
-
-    rightButton.addEventListener(
-        "pointerleave",
-        () => {
-
-            keys.right = false;
-
-        }
-    );
-
+  Object.values(players).forEach(
+    (player) => {
+      // بازیکنان اینجا مدیریت می‌شوند
+    }
+  );
 }
 
+// =====================================
+// حرکت بازیکن خودمان
+// =====================================
 
-if (jumpButton) {
+function sendMovement(x, y) {
+  if (!roomCode) return;
 
-    jumpButton.addEventListener(
-        "pointerdown",
-        (e) => {
-
-            e.preventDefault();
-
-            jump();
-
-        }
-    );
-
+  socket.emit(
+    "playerMovement",
+    {
+      x: x,
+      y: y
+    }
+  );
 }
 
-
 // =====================================
-// پرش
+// تغییر نام
 // =====================================
 
-function jump() {
-
-    if (
-        me.onGround
-    ) {
-
-        me.vy = -13;
-
-        me.onGround = false;
-
+function updatePlayerName(name) {
+  socket.emit(
+    "updatePlayer",
+    {
+      name: name
     }
-
+  );
 }
 
-
 // =====================================
-// حرکت
+// چت
 // =====================================
 
-function update() {
+function sendChat(message) {
+  if (!roomCode) return;
 
-    if (
-        keys.left
-    ) {
-
-        me.vx = -5;
-
-    }
-    else if (
-        keys.right
-    ) {
-
-        me.vx = 5;
-
-    }
-    else {
-
-        me.vx *= 0.8;
-
-    }
-
-
-    me.x += me.vx;
-
-
-    // -----------------------------
-    // جاذبه
-    // -----------------------------
-
-    me.vy += 0.6;
-
-    me.y += me.vy;
-
-
-    // -----------------------------
-    // زمین
-    // -----------------------------
-
-    const ground =
-        canvas.height * 0.65;
-
-
-    if (
-        me.y + 55 >=
-        ground
-    ) {
-
-        me.y =
-            ground - 55;
-
-        me.vy = 0;
-
-        me.onGround = true;
-
-    }
-    else {
-
-        me.onGround = false;
-
-    }
-
-
-    // -----------------------------
-    // مرز صفحه
-    // -----------------------------
-
-    if (
-        me.x < 30
-    ) {
-
-        me.x = 30;
-
-    }
-
-
-    if (
-        me.x >
-        canvas.width - 30
-    ) {
-
-        me.x =
-            canvas.width - 30;
-
-    }
-
-
-    // -----------------------------
-    // ارسال حرکت
-    // -----------------------------
-
-    if (
-        socket.connected
-    ) {
-
-        socket.emit(
-            "move",
-            {
-
-                x:
-                    me.x,
-
-                y:
-                    me.y,
-
-                vx:
-                    me.vx,
-
-                vy:
-                    me.vy
-
-            }
-        );
-
-    }
-
+  socket.emit(
+    "chatMessage",
+    message
+  );
 }
 
+socket.on(
+  "chatMessage",
+  (data) => {
+    console.log(
+      data.name +
+      ": " +
+      data.message
+    );
+  }
+);
 
 // =====================================
-// رسم استیکمن
+// میزبان جدید
 // =====================================
 
-function drawStickman(
-    x,
-    y,
-    name,
-    admin,
-    mine
-) {
-
-    const safeName =
-        typeof name === "string" &&
-        name.trim() !== ""
-            ? name
-            : "Player";
-
-
-    ctx.save();
-
-
-    ctx.translate(
-        x,
-        y
-    );
-
-
-    // -----------------------------
-    // سایه
-    // -----------------------------
-
-    ctx.beginPath();
-
-    ctx.ellipse(
-        0,
-        58,
-        25,
-        7,
-        0,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fillStyle =
-        "rgba(0,0,0,.3)";
-
-    ctx.fill();
-
-
-    // -----------------------------
-    // سر
-    // -----------------------------
-
-    ctx.beginPath();
-
-    ctx.arc(
-        0,
-        -35,
-        18,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fillStyle =
-        "#ffffff";
-
-    ctx.fill();
-
-    ctx.strokeStyle =
-        "#111827";
-
-    ctx.lineWidth = 4;
-
-    ctx.stroke();
-
-
-    // -----------------------------
-    // چشم چپ
-    // -----------------------------
-
-    ctx.fillStyle =
-        "#111827";
-
-    ctx.beginPath();
-
-    ctx.arc(
-        -6,
-        -37,
-        3,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-
-    // -----------------------------
-    // چشم راست
-    // -----------------------------
-
-    ctx.beginPath();
-
-    ctx.arc(
-        6,
-        -37,
-        3,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-
-    // -----------------------------
-    // بدن
-    // -----------------------------
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        0,
-        -17
-    );
-
-    ctx.lineTo(
-        0,
-        25
-    );
-
-    ctx.strokeStyle =
-        mine
-            ? "#22c55e"
-            : "#ef4444";
-
-    ctx.lineWidth = 8;
-
-    ctx.lineCap =
-        "round";
-
-    ctx.stroke();
-
-
-    // -----------------------------
-    // دست چپ
-    // -----------------------------
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        0,
-        -7
-    );
-
-    ctx.lineTo(
-        -27,
-        12
-    );
-
-    ctx.strokeStyle =
-        "#111827";
-
-    ctx.lineWidth = 7;
-
-    ctx.stroke();
-
-
-    // -----------------------------
-    // دست راست
-    // -----------------------------
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        0,
-        -7
-    );
-
-    ctx.lineTo(
-        27,
-        12
-    );
-
-    ctx.stroke();
-
-
-    // -----------------------------
-    // پای چپ
-    // -----------------------------
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        0,
-        25
-    );
-
-    ctx.lineTo(
-        -20,
-        55
-    );
-
-    ctx.stroke();
-
-
-    // -----------------------------
-    // پای راست
-    // -----------------------------
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        0,
-        25
-    );
-
-    ctx.lineTo(
-        20,
-        55
-    );
-
-    ctx.stroke();
-
-
-    // -----------------------------
-    // اسم
-    // -----------------------------
-
-    ctx.font =
-        "bold 16px Arial";
-
-    ctx.textAlign =
-        "center";
-
-
-    const displayName =
-        safeName +
-        (
-            admin
-                ? " 👑"
-                : ""
-        );
-
-
-    ctx.lineWidth = 4;
-
-    ctx.strokeStyle =
-        "#000000";
-
-    ctx.strokeText(
-        displayName,
-        0,
-        -68
-    );
-
-
-    ctx.fillStyle =
-        admin
-            ? "#22c55e"
-            : "#ffffff";
-
-    ctx.fillText(
-        displayName,
-        0,
-        -68
-    );
-
-
-    // -----------------------------
-    // ADMIN
-    // -----------------------------
-
-    if (
-        admin
-    ) {
-
-        ctx.font =
-            "bold 14px Arial";
-
-        ctx.strokeStyle =
-            "#000000";
-
-        ctx.lineWidth = 4;
-
-        ctx.strokeText(
-            "ADMIN",
-            0,
-            -88
-        );
-
-        ctx.fillStyle =
-            "#facc15";
-
-        ctx.fillText(
-            "ADMIN",
-            0,
-            -88
-        );
-
+socket.on(
+  "newHost",
+  (playerId) => {
+    if (players[playerId]) {
+      players[playerId].isHost =
+        true;
     }
 
-
-    ctx.restore();
-
-}
-
-
-// =====================================
-// دنیای بازی
-// =====================================
-
-function drawWorld() {
-
-    const ground =
-        canvas.height * 0.65;
-
-
-    // -----------------------------
-    // آسمان
-    // -----------------------------
-
-    const sky =
-        ctx.createLinearGradient(
-            0,
-            0,
-            0,
-            ground
-        );
-
-
-    sky.addColorStop(
-        0,
-        "#38bdf8"
-    );
-
-
-    sky.addColorStop(
-        1,
-        "#bae6fd"
-    );
-
-
-    ctx.fillStyle =
-        sky;
-
-
-    ctx.fillRect(
-        0,
-        0,
-        canvas.width,
-        ground
-    );
-
-
-    // -----------------------------
-    // خورشید
-    // -----------------------------
-
-    ctx.beginPath();
-
-    ctx.arc(
-        canvas.width - 120,
-        90,
-        45,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fillStyle =
-        "#fde047";
-
-    ctx.fill();
-
-
-    // -----------------------------
-    // زمین
-    // -----------------------------
-
-    ctx.fillStyle =
-        "#365314";
-
-    ctx.fillRect(
-        0,
-        ground,
-        canvas.width,
-        canvas.height - ground
-    );
-
-
-    // -----------------------------
-    // چمن
-    // -----------------------------
-
-    ctx.fillStyle =
-        "#84cc16";
-
-    ctx.fillRect(
-        0,
-        ground,
-        canvas.width,
-        8
-    );
-
-}
-
-
-// =====================================
-// رسم بازی
-// =====================================
-
-function draw() {
-
-    ctx.clearRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
-
-
-    drawWorld();
-
-
-    // -----------------------------
-    // بازیکنان دیگر
-    // -----------------------------
-
-    Object.values(
-        players
-    ).forEach(
-        (player) => {
-
-            drawStickman(
-
-                player.x,
-
-                player.y,
-
-                player.name,
-
-                player.admin,
-
-                false
-
-            );
-
-        }
-    );
-
-
-    // -----------------------------
-    // خودمان
-    // -----------------------------
-
-    drawStickman(
-
-        me.x,
-
-        me.y,
-
-        me.name,
-
-        me.admin,
-
-        true
-
-    );
-
-}
-
-
-// =====================================
-// حلقه بازی
-// =====================================
-
-function loop() {
-
-    update();
-
-    draw();
-
-    requestAnimationFrame(
-        loop
-    );
-
-}
-
-
-loop();
+    updateGamePlayers();
+  }
+);
