@@ -15,7 +15,7 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(__dirname));
 
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
@@ -35,18 +35,14 @@ function makeRoomCode() {
     return code;
 }
 
-function roomPlayers(room) {
-    return Object.values(room.players);
-}
-
-function sendPlayers(roomCode) {
-    const room = rooms[roomCode];
+function sendPlayers(code) {
+    const room = rooms[code];
 
     if (!room) return;
 
-    io.to(roomCode).emit(
+    io.to(code).emit(
         "playersUpdate",
-        roomPlayers(room)
+        Object.values(room.players)
     );
 }
 
@@ -62,13 +58,8 @@ function leaveRoom(socket) {
         return;
     }
 
-    const wasHost = room.host === socket.id;
-
     delete room.players[socket.id];
-
-    if (room.readyPlayers) {
-        delete room.readyPlayers[socket.id];
-    }
+    delete room.readyPlayers[socket.id];
 
     socket.leave(code);
     socket.roomCode = null;
@@ -78,30 +69,39 @@ function leaveRoom(socket) {
         socket.id
     );
 
-    if (wasHost) {
-        const ids = Object.keys(room.players);
+    const ids = Object.keys(room.players);
 
-        if (ids.length > 0) {
-            room.host = ids[0];
+    if (ids.length > 0 && room.host === socket.id) {
 
-            io.to(code).emit(
-                "newHost",
-                room.host
-            );
-        }
+        room.host = ids[0];
+
+        room.players[room.host].isHost = true;
+
+        io.to(code).emit(
+            "newHost",
+            room.host
+        );
     }
 
     sendPlayers(code);
 
-    if (Object.keys(room.players).length === 0) {
+    if (ids.length === 0) {
         delete rooms[code];
-        console.log("Room deleted:", code);
+
+        console.log(
+            "ROOM DELETED:",
+            code
+        );
     }
 }
 
 io.on("connection", (socket) => {
 
-    console.log("Connected:", socket.id);
+    console.log(
+        "CONNECTED:",
+        socket.id
+    );
+
 
     // ================================
     // ساخت اتاق
@@ -111,15 +111,28 @@ io.on("connection", (socket) => {
 
         const code = makeRoomCode();
 
+        let name = "Player";
+
+        if (
+            data &&
+            typeof data.name === "string"
+        ) {
+            name =
+                data.name
+                    .trim()
+                    .substring(0, 20);
+
+            if (!name) {
+                name = "Player";
+            }
+        }
+
         const player = {
             id: socket.id,
-            name:
-                typeof data?.name === "string"
-                    ? data.name.substring(0, 20)
-                    : "Player",
+            name: name,
 
             x: 250,
-            y: 300,
+            y: 0,
 
             color: "#22c55e",
 
@@ -129,23 +142,36 @@ io.on("connection", (socket) => {
 
         rooms[code] = {
             code: code,
+
             host: socket.id,
-            players: {},
+
+            players: {
+                [socket.id]: player
+            },
+
             readyPlayers: {}
         };
 
-        rooms[code].players[socket.id] = player;
-
         socket.join(code);
+
         socket.roomCode = code;
 
-        console.log("ROOM CREATED:", code);
+        console.log(
+            "ROOM CREATED:",
+            code
+        );
 
-        socket.emit("roomCreated", {
-            roomCode: code,
-            player: player
-        });
+        socket.emit(
+            "roomCreated",
+            {
+                roomCode: code,
+                player: player
+            }
+        );
+
+        sendPlayers(code);
     });
+
 
     // ================================
     // ورود به اتاق
@@ -154,47 +180,67 @@ io.on("connection", (socket) => {
     socket.on("joinRoom", (data) => {
 
         const code = String(
-            data?.roomCode || ""
+            data && data.roomCode
+                ? data.roomCode
+                : ""
         ).replace(/\D/g, "");
 
         if (code.length !== 6) {
+
             socket.emit(
                 "roomError",
                 "کد اتاق باید ۶ رقمی باشد."
             );
+
             return;
         }
 
         const room = rooms[code];
 
         if (!room) {
+
             socket.emit(
                 "roomError",
-                "این اتاق پیدا نشد."
+                "این اتاق وجود ندارد."
             );
+
             return;
         }
 
         if (
             Object.keys(room.players).length >= 10
         ) {
+
             socket.emit(
                 "roomError",
                 "اتاق پر است."
             );
+
             return;
+        }
+
+        let name = "Player";
+
+        if (
+            data &&
+            typeof data.name === "string"
+        ) {
+            name =
+                data.name
+                    .trim()
+                    .substring(0, 20);
+
+            if (!name) {
+                name = "Player";
+            }
         }
 
         const player = {
             id: socket.id,
-
-            name:
-                typeof data?.name === "string"
-                    ? data.name.substring(0, 20)
-                    : "Player",
+            name: name,
 
             x: 550,
-            y: 300,
+            y: 0,
 
             color: "#3b82f6",
 
@@ -205,6 +251,7 @@ io.on("connection", (socket) => {
         room.players[socket.id] = player;
 
         socket.join(code);
+
         socket.roomCode = code;
 
         console.log(
@@ -213,16 +260,20 @@ io.on("connection", (socket) => {
             code
         );
 
-        socket.emit("roomJoined", {
-            roomCode: code,
-            player: player
-        });
+        socket.emit(
+            "roomJoined",
+            {
+                roomCode: code,
+                player: player
+            }
+        );
 
         sendPlayers(code);
     });
 
+
     // ================================
-    // آماده شدن برای بازی
+    // آماده برای بازی
     // ================================
 
     socket.on("readyForGame", () => {
@@ -235,139 +286,136 @@ io.on("connection", (socket) => {
 
         if (!room) return;
 
-        if (!room.readyPlayers) {
-            room.readyPlayers = {};
-        }
-
         room.readyPlayers[socket.id] = true;
 
-        const totalPlayers =
+        if (room.players[socket.id]) {
+            room.players[socket.id].ready = true;
+        }
+
+        const total =
             Object.keys(room.players).length;
 
-        const readyPlayers =
+        const ready =
             Object.keys(room.readyPlayers).length;
 
         io.to(code).emit(
             "readyUpdate",
             {
-                ready: readyPlayers,
-                total: totalPlayers
+                ready: ready,
+                total: total
             }
         );
 
-        // وقتی حداقل دو نفر آماده باشند
+        sendPlayers(code);
+
         if (
-            totalPlayers >= 2 &&
-            readyPlayers >= 2
+            total >= 2 &&
+            ready >= 2
         ) {
+
             io.to(code).emit(
                 "startGame"
             );
         }
     });
 
+
     // ================================
     // حرکت
     // ================================
 
-    socket.on("playerMovement", (data) => {
+    socket.on(
+        "playerMovement",
+        (data) => {
 
-        const code = socket.roomCode;
+            const code =
+                socket.roomCode;
 
-        if (!code) return;
+            if (!code) return;
 
-        const room = rooms[code];
+            const room =
+                rooms[code];
 
-        if (!room) return;
+            if (!room) return;
 
-        const player =
-            room.players[socket.id];
+            const player =
+                room.players[socket.id];
 
-        if (!player) return;
+            if (!player) return;
 
-        if (typeof data?.x === "number") {
-            player.x = data.x;
-        }
-
-        if (typeof data?.y === "number") {
-            player.y = data.y;
-        }
-
-        socket.to(code).emit(
-            "playerMoved",
-            {
-                id: player.id,
-                x: player.x,
-                y: player.y
+            if (
+                data &&
+                typeof data.x === "number"
+            ) {
+                player.x = data.x;
             }
-        );
-    });
 
-    // ================================
-    // چت
-    // ================================
-
-    socket.on("chatMessage", (message) => {
-
-        const code = socket.roomCode;
-
-        if (!code) return;
-
-        const room = rooms[code];
-
-        if (!room) return;
-
-        const player =
-            room.players[socket.id];
-
-        if (!player) return;
-
-        if (typeof message !== "string") return;
-
-        message =
-            message.trim().substring(0, 200);
-
-        if (!message) return;
-
-        io.to(code).emit(
-            "chatMessage",
-            {
-                name: player.name,
-                message: message
+            if (
+                data &&
+                typeof data.y === "number"
+            ) {
+                player.y = data.y;
             }
-        );
-    });
+
+            socket.to(code).emit(
+                "playerMoved",
+                {
+                    id: player.id,
+                    x: player.x,
+                    y: player.y
+                }
+            );
+        }
+    );
+
 
     // ================================
     // خروج
     // ================================
 
-    socket.on("leaveRoom", () => {
-        leaveRoom(socket);
-    });
+    socket.on(
+        "leaveRoom",
+        () => {
+            leaveRoom(socket);
+        }
+    );
 
-    socket.on("disconnect", () => {
 
-        console.log(
-            "Disconnected:",
-            socket.id
-        );
+    // ================================
+    // قطع اتصال
+    // ================================
 
-        leaveRoom(socket);
-    });
+    socket.on(
+        "disconnect",
+        () => {
+
+            console.log(
+                "DISCONNECTED:",
+                socket.id
+            );
+
+            leaveRoom(socket);
+        }
+    );
 });
 
+
 // ================================
-// وضعیت
+// وضعیت سرور
 // ================================
 
 app.get("/status", (req, res) => {
 
     let players = 0;
 
-    Object.values(rooms).forEach((room) => {
-        players += Object.keys(room.players).length;
-    });
+    Object.values(rooms)
+        .forEach((room) => {
+
+            players +=
+                Object.keys(
+                    room.players
+                ).length;
+        });
 
     res.json({
         online: true,
@@ -375,6 +423,7 @@ app.get("/status", (req, res) => {
         players: players
     });
 });
+
 
 // ================================
 // شروع سرور
@@ -384,8 +433,10 @@ server.listen(
     PORT,
     "0.0.0.0",
     () => {
+
         console.log(
-            "Server running on port " + PORT
+            "SERVER RUNNING ON PORT " +
+            PORT
         );
     }
 );
