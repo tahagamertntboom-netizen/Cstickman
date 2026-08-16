@@ -2,13 +2,12 @@
 <html lang="fa" dir="rtl">
 
 <head>
-
 <meta charset="UTF-8">
 
 <meta name="viewport"
 content="width=device-width, initial-scale=1.0">
 
-<title>Stickman</title>
+<title>Stickman Multiplayer</title>
 
 <style>
 
@@ -17,19 +16,14 @@ content="width=device-width, initial-scale=1.0">
 }
 
 body {
-
     margin: 0;
-
     min-height: 100vh;
 
     display: flex;
-
     justify-content: center;
-
     align-items: center;
 
-    font-family: Arial;
-
+    font-family: Arial, sans-serif;
     color: white;
 
     background:
@@ -42,9 +36,7 @@ body {
 }
 
 .box {
-
     width: 92%;
-
     max-width: 430px;
 
     padding: 30px;
@@ -60,41 +52,36 @@ body {
 }
 
 h1 {
-
     font-size: 42px;
-
     margin-bottom: 10px;
 }
 
 input {
-
     width: 100%;
 
     padding: 16px;
 
     border: none;
-
     border-radius: 12px;
 
     margin-top: 10px;
 
     font-size: 18px;
+
+    outline: none;
 }
 
 button {
-
     width: 100%;
 
     padding: 16px;
 
     border: none;
-
     border-radius: 12px;
 
     margin-top: 12px;
 
     font-size: 18px;
-
     font-weight: bold;
 
     cursor: pointer;
@@ -103,22 +90,72 @@ button {
 }
 
 button:active {
-
     transform: scale(.97);
 }
 
 #confirm {
-
     background: #22c55e;
 }
 
-#error {
+#createRoom {
+    background: #2563eb;
+}
 
+#joinRoom {
+    background: #7c3aed;
+}
+
+#backButton {
+    background: #374151;
+}
+
+#error {
     color: #f87171;
 
     min-height: 25px;
 
     margin-top: 10px;
+}
+
+#nameSection,
+#lobbySection {
+    display: block;
+}
+
+#lobbySection {
+    display: none;
+}
+
+#roomCodeBox {
+    margin-top: 20px;
+
+    padding: 20px;
+
+    background: #020617;
+
+    border-radius: 15px;
+}
+
+#roomCodeDisplay {
+    display: block;
+
+    direction: ltr;
+
+    font-size: 38px;
+
+    font-weight: bold;
+
+    letter-spacing: 8px;
+
+    color: #22c55e;
+
+    margin-top: 10px;
+}
+
+.small {
+    color: #9ca3af;
+
+    margin-top: 15px;
 }
 
 </style>
@@ -129,29 +166,102 @@ button:active {
 
 <div class="box">
 
-<h1>🎮 STICKMAN</h1>
+    <!-- ========================= -->
+    <!-- NAME -->
+    <!-- ========================= -->
 
-<p>
-برای شروع اسمت را وارد کن
-</p>
+    <div id="nameSection">
 
-<input
-    id="nameInput"
-    maxlength="20"
-    placeholder="اسم بازیکن"
-    autocomplete="off"
->
+        <h1>🎮 STICKMAN</h1>
 
-<button
-    id="confirm"
-    type="button"
->
-✅ تأیید اسم
-</button>
+        <p>
+            برای شروع اسمت را وارد کن
+        </p>
 
-<div id="error"></div>
+        <input
+            id="nameInput"
+            maxlength="20"
+            placeholder="اسم بازیکن"
+            autocomplete="off"
+        >
+
+        <button
+            id="confirm"
+            type="button"
+        >
+            ✅ تأیید اسم
+        </button>
+
+    </div>
+
+
+    <!-- ========================= -->
+    <!-- LOBBY -->
+    <!-- ========================= -->
+
+    <div id="lobbySection">
+
+        <h1>🎮 لابی</h1>
+
+        <p id="welcomeText"></p>
+
+
+        <button
+            id="createRoom"
+            type="button"
+        >
+            🏠 ساخت اتاق
+        </button>
+
+
+        <div id="roomCodeBox">
+
+            <div>
+                کد اتاق شما:
+            </div>
+
+            <span id="roomCodeDisplay">
+                ------
+            </span>
+
+        </div>
+
+
+        <input
+            id="roomCode"
+            maxlength="6"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            placeholder="کد ۶ رقمی اتاق"
+            autocomplete="off"
+        >
+
+
+        <button
+            id="joinRoom"
+            type="button"
+        >
+            🚪 ورود به اتاق
+        </button>
+
+
+        <button
+            id="backButton"
+            type="button"
+        >
+            ↩️ تغییر اسم
+        </button>
+
+        <div id="error"></div>
+
+        <p class="small">
+            کد اتاق فقط عدد ۶ رقمی است.
+        </p>
+
+    </div>
 
 </div>
+
 
 <script src="/socket.io/socket.io.js"></script>
 
