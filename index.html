@@ -2,11 +2,10 @@
 <html lang="fa" dir="rtl">
 
 <head>
-
 <meta charset="UTF-8">
 
 <meta name="viewport"
-content="width=device-width, initial-scale=1.0">
+content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <title>Stickman Multiplayer</title>
 
@@ -14,14 +13,32 @@ content="width=device-width, initial-scale=1.0">
 
 * {
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
     margin: 0;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background: #87ceeb;
+}
 
+.hidden {
+    display: none !important;
+}
+
+/* =========================
+   صفحه ها
+========================= */
+
+.screen {
     min-height: 100vh;
 
-    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    padding: 20px;
 
     color: white;
 
@@ -34,21 +51,8 @@ body {
         );
 }
 
-.screen {
-    min-height: 100vh;
-
-    display: flex;
-
-    justify-content: center;
-
-    align-items: center;
-
-    padding: 20px;
-}
-
 .box {
     width: 92%;
-
     max-width: 430px;
 
     padding: 30px;
@@ -59,14 +63,7 @@ body {
 
     text-align: center;
 
-    box-shadow:
-        0 20px 70px #000b;
-}
-
-h1 {
-    font-size: 40px;
-
-    margin-top: 0;
+    box-shadow: 0 20px 70px #000b;
 }
 
 input {
@@ -77,14 +74,11 @@ input {
     margin-top: 10px;
 
     border: none;
-
     border-radius: 12px;
 
     font-size: 18px;
 
     text-align: center;
-
-    outline: none;
 }
 
 button {
@@ -95,20 +89,14 @@ button {
     margin-top: 12px;
 
     border: none;
-
     border-radius: 12px;
-
-    font-size: 18px;
-
-    font-weight: bold;
 
     color: white;
 
-    cursor: pointer;
-}
+    font-size: 18px;
+    font-weight: bold;
 
-button:active {
-    transform: scale(.97);
+    cursor: pointer;
 }
 
 .green {
@@ -123,27 +111,16 @@ button:active {
     background: #7c3aed;
 }
 
-.gray {
-    background: #374151;
-}
-
-.hidden {
-    display: none !important;
-}
-
 .error {
     color: #f87171;
-
     min-height: 25px;
-
-    margin-top: 12px;
+    margin-top: 10px;
 }
 
 .roomCode {
     direction: ltr;
 
     font-size: 48px;
-
     font-weight: bold;
 
     letter-spacing: 10px;
@@ -155,55 +132,144 @@ button:active {
 
 .waiting {
     color: #fbbf24;
-
     margin-top: 15px;
 }
+
+/* =========================
+   بازی
+========================= */
 
 #gameScreen {
     display: none;
 
-    padding: 0;
+    position: fixed;
+
+    inset: 0;
+
+    overflow: hidden;
+
+    background: #87ceeb;
 }
 
-canvas {
-    display: block;
+#gameCanvas {
+    position: absolute;
+
+    left: 0;
+    top: 0;
 
     width: 100vw;
-
     height: 100vh;
 
-    background:
-        linear-gradient(
-            #38bdf8,
-            #bae6fd
-        );
+    touch-action: none;
 }
+
+/* =========================
+   اطلاعات بازی
+========================= */
 
 #gameInfo {
     position: fixed;
 
     top: 15px;
-
     left: 15px;
 
-    z-index: 10;
-
-    background: #0009;
+    z-index: 20;
 
     padding: 10px 15px;
 
+    color: white;
+
+    background: #0008;
+
     border-radius: 12px;
+
+    direction: rtl;
+}
+
+/* =========================
+   کنترل موبایل
+========================= */
+
+#mobileControls {
+    position: fixed;
+
+    left: 0;
+    right: 0;
+    bottom: 25px;
+
+    z-index: 30;
+
+    display: none;
+
+    justify-content: space-between;
+
+    align-items: flex-end;
+
+    padding: 0 25px;
+
+    direction: ltr;
+
+    pointer-events: none;
+}
+
+.controlGroup {
+    display: flex;
+
+    gap: 12px;
+
+    pointer-events: auto;
+}
+
+.mobileButton {
+    width: 70px;
+    height: 70px;
+
+    padding: 0;
+    margin: 0;
+
+    border-radius: 20px;
+
+    background: #111827dd;
+
+    border: 2px solid #ffffff55;
+
+    font-size: 30px;
+
+    user-select: none;
+
+    touch-action: none;
+}
+
+.mobileButton:active {
+    background: #2563eb;
+    transform: scale(.92);
+}
+
+#jumpButton {
+    background: #22c55edd;
+}
+
+/* موبایل */
+
+@media (max-width: 700px) {
+
+    #mobileControls {
+        display: flex;
+    }
+
+    #gameInfo {
+        font-size: 13px;
+    }
 }
 
 </style>
-
 </head>
 
 <body>
 
-<!-- ============================= -->
-<!-- NAME -->
-<!-- ============================= -->
+<!-- =========================
+     اسم
+========================= -->
 
 <div
     id="nameScreen"
@@ -241,9 +307,9 @@ canvas {
 </div>
 
 
-<!-- ============================= -->
-<!-- LOBBY -->
-<!-- ============================= -->
+<!-- =========================
+     لابی
+========================= -->
 
 <div
     id="lobbyScreen"
@@ -301,9 +367,9 @@ canvas {
 </div>
 
 
-<!-- ============================= -->
-<!-- ROOM -->
-<!-- ============================= -->
+<!-- =========================
+     اتاق
+========================= -->
 
 <div
     id="roomScreen"
@@ -325,8 +391,8 @@ canvas {
 ------
 </div>
 
-<p id="roomStatus">
-کد را به دوستت بده
+<p>
+این کد را به دوستت بده
 </p>
 
 <button
@@ -348,17 +414,51 @@ canvas {
 </div>
 
 
-<!-- ============================= -->
-<!-- GAME -->
-<!-- ============================= -->
+<!-- =========================
+     بازی
+========================= -->
 
 <div id="gameScreen">
 
+<canvas
+    id="gameCanvas"
+></canvas>
+
 <div id="gameInfo">
-    🎮 Stickman Multiplayer
+🎮 Stickman
 </div>
 
-<canvas id="gameCanvas"></canvas>
+
+<!-- کنترل موبایل -->
+
+<div id="mobileControls">
+
+<div class="controlGroup">
+
+<button
+    id="leftButton"
+    class="mobileButton"
+>
+⬅️
+</button>
+
+<button
+    id="rightButton"
+    class="mobileButton"
+>
+➡️
+</button>
+
+</div>
+
+<button
+    id="jumpButton"
+    class="mobileButton"
+>
+🦘
+</button>
+
+</div>
 
 </div>
 
@@ -369,13 +469,44 @@ canvas {
 
 const socket = io();
 
+
+// =================================
+// متغیرها
+// =================================
+
 let playerName = "";
+
 let roomCode = "";
+
 let myPlayer = null;
 
 let players = {};
 
 let ready = false;
+
+let gameStarted = false;
+
+
+// =================================
+// فیزیک
+// =================================
+
+const GRAVITY = 0.7;
+
+const MOVE_SPEED = 5;
+
+const JUMP_POWER = 13;
+
+let velocityY = 0;
+
+let onGround = false;
+
+
+// =================================
+// کلیدها
+// =================================
+
+const keys = {};
 
 
 // =================================
@@ -534,6 +665,8 @@ socket.on(
         myPlayer =
             data.player;
 
+        players = {};
+
         players[
             myPlayer.id
         ] = myPlayer;
@@ -556,7 +689,7 @@ showJoin.onclick = () => {
 
 
 // =================================
-// ورود به اتاق
+// ورود
 // =================================
 
 joinRoom.onclick = () => {
@@ -609,6 +742,8 @@ socket.on(
         myPlayer =
             data.player;
 
+        players = {};
+
         players[
             myPlayer.id
         ] = myPlayer;
@@ -619,7 +754,7 @@ socket.on(
 
 
 // =================================
-// باز کردن صفحه اتاق
+// صفحه اتاق
 // =================================
 
 function openRoomScreen() {
@@ -637,7 +772,8 @@ function openRoomScreen() {
 
     ready = false;
 
-    readyButton.disabled = false;
+    readyButton.disabled =
+        false;
 
     readyButton.textContent =
         "🎮 بزن بریم تو بازی";
@@ -648,20 +784,21 @@ function openRoomScreen() {
 
 
 // =================================
-// بزن بریم تو بازی
+// آماده
 // =================================
 
 readyButton.onclick = () => {
 
     ready = true;
 
-    readyButton.disabled = true;
+    readyButton.disabled =
+        true;
 
     readyButton.textContent =
         "✅ آماده شدی";
 
     readyStatus.textContent =
-        "منتظر بازیکن دیگر...";
+        "⏳ منتظر بازیکن دیگر...";
 
     socket.emit(
         "readyForGame"
@@ -670,35 +807,7 @@ readyButton.onclick = () => {
 
 
 // =================================
-// وضعیت آماده
-// =================================
-
-socket.on(
-    "readyUpdate",
-    (data) => {
-
-        if (data.total < 2) {
-
-            readyStatus.textContent =
-                "👤 منتظر بازیکن دوم...";
-
-            return;
-        }
-
-        if (
-            data.ready <
-            data.total
-        ) {
-
-            readyStatus.textContent =
-                "⏳ منتظر آماده شدن بازیکن دیگر...";
-        }
-    }
-);
-
-
-// =================================
-// شروع واقعی بازی
+// شروع بازی
 // =================================
 
 socket.on(
@@ -711,7 +820,7 @@ socket.on(
 
 
 // =================================
-// بازیکن‌ها
+// بازیکنان
 // =================================
 
 socket.on(
@@ -726,33 +835,23 @@ socket.on(
                 players[
                     player.id
                 ] = player;
+
+                if (
+                    player.id ===
+                    socket.id
+                ) {
+
+                    myPlayer =
+                        player;
+                }
             }
         );
-
-        drawGame();
     }
 );
 
 
 // =================================
-// بازیکن جدید
-// =================================
-
-socket.on(
-    "playerJoined",
-    (player) => {
-
-        players[
-            player.id
-        ] = player;
-
-        drawGame();
-    }
-);
-
-
-// =================================
-// حرکت
+// حرکت بازیکن دیگر
 // =================================
 
 socket.on(
@@ -773,8 +872,6 @@ socket.on(
                 player.id
             ].y = player.y;
         }
-
-        drawGame();
     }
 );
 
@@ -788,8 +885,6 @@ socket.on(
     (id) => {
 
         delete players[id];
-
-        drawGame();
     }
 );
 
@@ -823,7 +918,7 @@ socket.on(
 
 
 // =================================
-// بازی
+// CANVAS
 // =================================
 
 const canvas =
@@ -836,6 +931,7 @@ const ctx =
         "2d"
     );
 
+
 function resizeCanvas() {
 
     canvas.width =
@@ -843,8 +939,6 @@ function resizeCanvas() {
 
     canvas.height =
         window.innerHeight;
-
-    drawGame();
 }
 
 window.addEventListener(
@@ -855,7 +949,13 @@ window.addEventListener(
 resizeCanvas();
 
 
+// =================================
+// شروع بازی
+// =================================
+
 function startGame() {
+
+    gameStarted = true;
 
     roomScreen.classList.add(
         "hidden"
@@ -866,67 +966,455 @@ function startGame() {
 
     resizeCanvas();
 
-    drawGame();
+    gameLoop();
 }
 
 
 // =================================
-// رسم استیکمن
+// کیبورد
+// =================================
+
+document.addEventListener(
+    "keydown",
+    (event) => {
+
+        keys[
+            event.key.toLowerCase()
+        ] = true;
+
+        if (
+            event.code ===
+            "Space"
+        ) {
+
+            keys["space"] = true;
+        }
+    }
+);
+
+document.addEventListener(
+    "keyup",
+    (event) => {
+
+        keys[
+            event.key.toLowerCase()
+        ] = false;
+
+        if (
+            event.code ===
+            "Space"
+        ) {
+
+            keys["space"] = false;
+        }
+    }
+);
+
+
+// =================================
+// موبایل
+// =================================
+
+function mobileKey(
+    key
+) {
+
+    return {
+        start: () => {
+            keys[key] = true;
+        },
+
+        end: () => {
+            keys[key] = false;
+        }
+    };
+}
+
+
+const left =
+    mobileKey("mobileleft");
+
+const right =
+    mobileKey("mobileright");
+
+const jump =
+    mobileKey("mobilejump");
+
+
+function setupTouch(
+    element,
+    control
+) {
+
+    element.addEventListener(
+        "touchstart",
+        (e) => {
+
+            e.preventDefault();
+
+            control.start();
+        },
+        {
+            passive: false
+        }
+    );
+
+    element.addEventListener(
+        "touchend",
+        (e) => {
+
+            e.preventDefault();
+
+            control.end();
+        },
+        {
+            passive: false
+        }
+    );
+
+    element.addEventListener(
+        "mousedown",
+        () => {
+
+            control.start();
+        }
+    );
+
+    element.addEventListener(
+        "mouseup",
+        () => {
+
+            control.end();
+        }
+    );
+
+    element.addEventListener(
+        "mouseleave",
+        () => {
+
+            control.end();
+        }
+    );
+}
+
+
+setupTouch(
+    document.getElementById(
+        "leftButton"
+    ),
+    left
+);
+
+setupTouch(
+    document.getElementById(
+        "rightButton"
+    ),
+    right
+);
+
+setupTouch(
+    document.getElementById(
+        "jumpButton"
+    ),
+    jump
+);
+
+
+// =================================
+// فیزیک بازیکن
+// =================================
+
+function updatePlayer() {
+
+    if (
+        !myPlayer ||
+        !gameStarted
+    ) {
+        return;
+    }
+
+    let moving = false;
+
+    // چپ
+    if (
+        keys["a"] ||
+        keys["arrowleft"] ||
+        keys["mobileleft"]
+    ) {
+
+        myPlayer.x -=
+            MOVE_SPEED;
+
+        moving = true;
+    }
+
+    // راست
+    if (
+        keys["d"] ||
+        keys["arrowright"] ||
+        keys["mobileright"]
+    ) {
+
+        myPlayer.x +=
+            MOVE_SPEED;
+
+        moving = true;
+    }
+
+
+    // پرش
+    if (
+        (
+            keys["w"] ||
+            keys["arrowup"] ||
+            keys["space"] ||
+            keys["mobilejump"]
+        ) &&
+        onGround
+    ) {
+
+        velocityY =
+            -JUMP_POWER;
+
+        onGround = false;
+    }
+
+
+    // جاذبه
+    velocityY +=
+        GRAVITY;
+
+    myPlayer.y +=
+        velocityY;
+
+
+    // زمین
+    const groundY =
+        canvas.height - 120;
+
+
+    if (
+        myPlayer.y >=
+        groundY
+    ) {
+
+        myPlayer.y =
+            groundY;
+
+        velocityY = 0;
+
+        onGround = true;
+    }
+
+
+    // محدودیت چپ
+    if (
+        myPlayer.x < 30
+    ) {
+
+        myPlayer.x = 30;
+    }
+
+
+    // محدودیت راست
+    if (
+        myPlayer.x >
+        canvas.width - 30
+    ) {
+
+        myPlayer.x =
+            canvas.width - 30;
+    }
+
+
+    if (
+        moving ||
+        !onGround
+    ) {
+
+        players[
+            myPlayer.id
+        ] = myPlayer;
+
+        socket.emit(
+            "playerMovement",
+            {
+                x:
+                    myPlayer.x,
+
+                y:
+                    myPlayer.y
+            }
+        );
+    }
+}
+
+
+// =================================
+// زمین
+// =================================
+
+function drawGround() {
+
+    const groundY =
+        canvas.height - 120;
+
+
+    // چمن
+    ctx.fillStyle =
+        "#22c55e";
+
+    ctx.fillRect(
+        0,
+        groundY,
+        canvas.width,
+        120
+    );
+
+
+    // خاک
+    ctx.fillStyle =
+        "#92400e";
+
+    ctx.fillRect(
+        0,
+        groundY + 20,
+        canvas.width,
+        100
+    );
+
+
+    // خط چمن
+    ctx.fillStyle =
+        "#166534";
+
+    ctx.fillRect(
+        0,
+        groundY,
+        canvas.width,
+        10
+    );
+}
+
+
+// =================================
+// آسمان
+// =================================
+
+function drawSky() {
+
+    const gradient =
+        ctx.createLinearGradient(
+            0,
+            0,
+            0,
+            canvas.height
+        );
+
+    gradient.addColorStop(
+        0,
+        "#38bdf8"
+    );
+
+    gradient.addColorStop(
+        1,
+        "#bae6fd"
+    );
+
+    ctx.fillStyle =
+        gradient;
+
+    ctx.fillRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    // خورشید
+    ctx.fillStyle =
+        "#fde047";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        canvas.width - 100,
+        100,
+        45,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+}
+
+
+// =================================
+// استیکمن
 // =================================
 
 function drawStickman(
     player
 ) {
 
-    const x = player.x;
-    const y = player.y;
+    const x =
+        player.x;
+
+    const y =
+        player.y;
+
 
     ctx.strokeStyle =
         player.id === socket.id
-            ? "#22c55e"
-            : "#2563eb";
+            ? "#16a34a"
+            : "#1d4ed8";
 
     ctx.fillStyle =
-        player.id === socket.id
-            ? "#22c55e"
-            : "#2563eb";
+        "#111827";
 
     ctx.lineWidth = 5;
+
+    ctx.lineCap =
+        "round";
+
 
     // سر
     ctx.beginPath();
 
     ctx.arc(
         x,
-        y - 45,
-        15,
+        y - 55,
+        18,
         0,
         Math.PI * 2
     );
 
     ctx.stroke();
 
+
     // بدن
     ctx.beginPath();
 
     ctx.moveTo(
         x,
-        y - 30
+        y - 37
     );
 
     ctx.lineTo(
         x,
-        y + 20
+        y + 15
     );
 
     ctx.stroke();
 
-    // دست‌ها
+
+    // دست چپ
     ctx.beginPath();
 
     ctx.moveTo(
         x,
-        y - 15
+        y - 20
     );
 
     ctx.lineTo(
@@ -934,9 +1422,15 @@ function drawStickman(
         y + 5
     );
 
+    ctx.stroke();
+
+
+    // دست راست
+    ctx.beginPath();
+
     ctx.moveTo(
         x,
-        y - 15
+        y - 20
     );
 
     ctx.lineTo(
@@ -946,12 +1440,13 @@ function drawStickman(
 
     ctx.stroke();
 
-    // پاها
+
+    // پای چپ
     ctx.beginPath();
 
     ctx.moveTo(
         x,
-        y + 20
+        y + 15
     );
 
     ctx.lineTo(
@@ -959,9 +1454,15 @@ function drawStickman(
         y + 55
     );
 
+    ctx.stroke();
+
+
+    // پای راست
+    ctx.beginPath();
+
     ctx.moveTo(
         x,
-        y + 20
+        y + 15
     );
 
     ctx.lineTo(
@@ -970,6 +1471,7 @@ function drawStickman(
     );
 
     ctx.stroke();
+
 
     // اسم
     ctx.fillStyle =
@@ -984,41 +1486,25 @@ function drawStickman(
     ctx.fillText(
         player.name,
         x,
-        y - 70
+        y - 82
     );
 }
 
 
 // =================================
-// رسم بازی
+// رسم
 // =================================
 
 function drawGame() {
 
-    if (
-        gameScreen.style.display !==
-        "block"
-    ) {
+    if (!gameStarted) {
         return;
     }
 
-    ctx.clearRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
+    drawSky();
 
-    // زمین
-    ctx.fillStyle =
-        "#22c55e";
+    drawGround();
 
-    ctx.fillRect(
-        0,
-        canvas.height - 100,
-        canvas.width,
-        100
-    );
 
     Object.values(
         players
@@ -1034,125 +1520,23 @@ function drawGame() {
 
 
 // =================================
-// کنترل کیبورد
+// حلقه بازی
 // =================================
 
-const keys = {};
+function gameLoop() {
 
-document.addEventListener(
-    "keydown",
-    (event) => {
-
-        keys[
-            event.key.toLowerCase()
-        ] = true;
+    if (!gameStarted) {
+        return;
     }
-);
 
-document.addEventListener(
-    "keyup",
-    (event) => {
+    updatePlayer();
 
-        keys[
-            event.key.toLowerCase()
-        ] = false;
-    }
-);
+    drawGame();
 
-
-setInterval(
-    () => {
-
-        if (
-            !myPlayer ||
-            gameScreen.style.display !==
-                "block"
-        ) {
-            return;
-        }
-
-        let moved = false;
-
-        const speed = 5;
-
-        if (
-            keys["arrowleft"] ||
-            keys["a"]
-        ) {
-
-            myPlayer.x -= speed;
-
-            moved = true;
-        }
-
-        if (
-            keys["arrowright"] ||
-            keys["d"]
-        ) {
-
-            myPlayer.x += speed;
-
-            moved = true;
-        }
-
-        if (
-            keys["arrowup"] ||
-            keys["w"]
-        ) {
-
-            myPlayer.y -= speed;
-
-            moved = true;
-        }
-
-        if (
-            keys["arrowdown"] ||
-            keys["s"]
-        ) {
-
-            myPlayer.y += speed;
-
-            moved = true;
-        }
-
-        if (moved) {
-
-            myPlayer.x =
-                Math.max(
-                    30,
-                    Math.min(
-                        canvas.width - 30,
-                        myPlayer.x
-                    )
-                );
-
-            myPlayer.y =
-                Math.max(
-                    100,
-                    Math.min(
-                        canvas.height - 150,
-                        myPlayer.y
-                    )
-                );
-
-            players[
-                myPlayer.id
-            ] = myPlayer;
-
-            socket.emit(
-                "playerMovement",
-                {
-                    x: myPlayer.x,
-                    y: myPlayer.y
-                }
-            );
-
-            drawGame();
-        }
-
-    },
-    30
-);
+    requestAnimationFrame(
+        gameLoop
+    );
+}
 
 </script>
 
