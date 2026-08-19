@@ -13,22 +13,16 @@ let gameMode = "";
 let gameRunning = false;
 
 let velocityY = 0;
-let onGround = false;
+let onGround = true;
 
 const SPEED = 5;
 const GRAVITY = 0.7;
 const JUMP = 13;
 
-// مپ
-const MAP_WIDTH = 5000;
-
-// دوربین
-let cameraX = 0;
-
 // AI
 let ai = null;
 let aiVelocityY = 0;
-let aiOnGround = false;
+let aiOnGround = true;
 let aiDirectionTimer = 0;
 
 
@@ -66,8 +60,7 @@ const readyButton = document.getElementById("readyButton");
 const roomCodeElement = document.getElementById("roomCode");
 const roomStatus = document.getElementById("roomStatus");
 
-const backFromOnline =
-    document.getElementById("backFromOnline");
+const backFromOnline = document.getElementById("backFromOnline");
 
 
 // =======================================
@@ -110,8 +103,7 @@ if (confirmName) {
 
     confirmName.onclick = function () {
 
-        const name =
-            nameInput.value.trim();
+        const name = nameInput.value.trim();
 
         if (!name) {
 
@@ -119,10 +111,8 @@ if (confirmName) {
                 document.getElementById("nameError");
 
             if (error) {
-
                 error.textContent =
                     "اول اسمت رو وارد کن.";
-
             }
 
             return;
@@ -242,7 +232,7 @@ if (soloCard) {
 
 
 // =======================================
-// START OFFLINE
+// START OFFLINE GAME
 // =======================================
 
 function startOfflineGame(withAI) {
@@ -260,7 +250,8 @@ function startOfflineGame(withAI) {
 
     gameRunning = true;
 
-    cameraX = 0;
+    velocityY = 0;
+    onGround = true;
 
     setupOfflinePlayers(withAI);
 
@@ -279,6 +270,12 @@ function setupOfflinePlayers(withAI) {
 
     players = {};
 
+    const ground = getGroundY();
+
+    // ===================================
+    // PLAYER
+    // ===================================
+
     myPlayer = {
 
         id: "player",
@@ -286,15 +283,20 @@ function setupOfflinePlayers(withAI) {
         name:
             playerName || "Player",
 
-        // مختصات جهانی
-        x: 500,
+        // سمت چپ مپ
+        x: 100,
 
-        y: 0
+        // دقیقاً روی زمین
+        y: ground
 
     };
 
-    players.player =
-        myPlayer;
+    players.player = myPlayer;
+
+
+    // ===================================
+    // AI
+    // ===================================
 
     if (withAI) {
 
@@ -304,22 +306,30 @@ function setupOfflinePlayers(withAI) {
 
             name: "AI",
 
-            x: 800,
+            // سمت راست مپ
+            x:
+                Math.max(
+                    350,
+                    window.innerWidth - 180
+                ),
 
-            y: 0,
+            y: ground,
 
             health: 100
 
         };
 
-        aiOnGround = false;
         aiVelocityY = 0;
+        aiOnGround = true;
+
+        aiDirectionTimer = 100;
 
     } else {
 
         ai = null;
 
     }
+
 
     const modeText =
         document.getElementById("gameMode");
@@ -607,7 +617,8 @@ socket.on(
 
         gameRunning = true;
 
-        cameraX = 0;
+        velocityY = 0;
+        onGround = true;
 
         resizeCanvas();
 
@@ -640,6 +651,44 @@ function resizeCanvas() {
     canvas.height =
         window.innerHeight;
 
+    const ground =
+        getGroundY();
+
+
+    // فقط اگر بازیکن تازه ساخته شده
+    // یا خارج از محدوده است، اصلاحش کن
+
+    if (myPlayer) {
+
+        if (
+            !Number.isFinite(
+                Number(myPlayer.y)
+            ) ||
+            myPlayer.y > ground + 100
+        ) {
+
+            myPlayer.y = ground;
+
+        }
+
+    }
+
+
+    if (ai) {
+
+        if (
+            !Number.isFinite(
+                Number(ai.y)
+            ) ||
+            ai.y > ground + 100
+        ) {
+
+            ai.y = ground;
+
+        }
+
+    }
+
 }
 
 
@@ -650,7 +699,7 @@ window.addEventListener(
 
 
 // =======================================
-// WORLD GROUND
+// GROUND
 // =======================================
 
 function getGroundY() {
@@ -672,6 +721,9 @@ function fixPlayerSpawn(player) {
 
     if (!player) return;
 
+    const ground =
+        getGroundY();
+
     if (
         player.y === undefined ||
         player.y === null ||
@@ -680,7 +732,7 @@ function fixPlayerSpawn(player) {
         )
     ) {
 
-        player.y = 0;
+        player.y = ground;
 
     }
 
@@ -699,48 +751,32 @@ socket.on(
             return;
         }
 
-        const oldPlayers = players;
-
-        players = {};
-
         list.forEach(
-            function (serverPlayer) {
+            function (player) {
 
-                if (!serverPlayer) return;
+                if (!player) return;
 
-                /*
-                 * مختصات Y سرور جهانی است.
-                 */
-                fixPlayerSpawn(
-                    serverPlayer
-                );
+                fixPlayerSpawn(player);
 
-                players[
-                    serverPlayer.id
-                ] =
-                    serverPlayer;
+                players[player.id] =
+                    player;
 
                 if (
-                    serverPlayer.id ===
+                    player.id ===
                     socket.id
                 ) {
 
-                    /*
-                     * مختصات محلی خودمان را نگه می‌داریم
-                     * تا هنگام Sync پرش نکند.
-                     */
-                    if (myPlayer) {
+                    myPlayer =
+                        player;
 
-                        myPlayer.x =
-                            serverPlayer.x;
+                    if (
+                        !Number.isFinite(
+                            Number(myPlayer.y)
+                        )
+                    ) {
 
                         myPlayer.y =
-                            serverPlayer.y;
-
-                    } else {
-
-                        myPlayer =
-                            serverPlayer;
+                            getGroundY();
 
                     }
 
@@ -763,14 +799,12 @@ socket.on(
 
         if (!player) return;
 
+        fixPlayerSpawn(player);
+
         if (!players[player.id]) {
 
-            players[player.id] = {
-                id: player.id,
-                name: player.name || "Player",
-                x: player.x,
-                y: player.y
-            };
+            players[player.id] =
+                player;
 
         } else {
 
@@ -865,9 +899,8 @@ document.addEventListener(
     "keydown",
     function (e) {
 
-        keys[
-            e.key.toLowerCase()
-        ] = true;
+        keys[e.key.toLowerCase()] =
+            true;
 
         if (e.code === "Space") {
             keys.space = true;
@@ -881,9 +914,8 @@ document.addEventListener(
     "keyup",
     function (e) {
 
-        keys[
-            e.key.toLowerCase()
-        ] = false;
+        keys[e.key.toLowerCase()] =
+            false;
 
         if (e.code === "Space") {
             keys.space = false;
@@ -897,7 +929,10 @@ document.addEventListener(
 // MOBILE CONTROLS
 // =======================================
 
-function setupMobileButton(id, key) {
+function setupMobileButton(
+    id,
+    key
+) {
 
     const button =
         document.getElementById(id);
@@ -1004,7 +1039,9 @@ function updatePlayer() {
     let moving = false;
 
 
+    // ===================================
     // LEFT
+    // ===================================
 
     if (
         keys.a ||
@@ -1019,7 +1056,9 @@ function updatePlayer() {
     }
 
 
+    // ===================================
     // RIGHT
+    // ===================================
 
     if (
         keys.d ||
@@ -1034,25 +1073,9 @@ function updatePlayer() {
     }
 
 
-    // =================================
-    // WORLD BORDERS
-    // =================================
-
-    if (myPlayer.x < 50) {
-
-        myPlayer.x = 50;
-
-    }
-
-    if (myPlayer.x > MAP_WIDTH - 50) {
-
-        myPlayer.x =
-            MAP_WIDTH - 50;
-
-    }
-
-
+    // ===================================
     // JUMP
+    // ===================================
 
     if (
         (
@@ -1072,17 +1095,22 @@ function updatePlayer() {
     }
 
 
+    // ===================================
     // GRAVITY
+    // ===================================
 
     velocityY += GRAVITY;
 
     myPlayer.y += velocityY;
 
 
-    // GROUND
-
     const ground =
         getGroundY();
+
+
+    // ===================================
+    // GROUND
+    // ===================================
 
     if (
         myPlayer.y >= ground
@@ -1098,9 +1126,39 @@ function updatePlayer() {
     }
 
 
-    // =================================
+    // ===================================
+    // MAP BORDERS
+    // کل عرض مپ
+    // ===================================
+
+    const playerMargin = 45;
+
+    if (
+        myPlayer.x <
+        playerMargin
+    ) {
+
+        myPlayer.x =
+            playerMargin;
+
+    }
+
+
+    if (
+        canvas &&
+        myPlayer.x >
+        canvas.width - playerMargin
+    ) {
+
+        myPlayer.x =
+            canvas.width - playerMargin;
+
+    }
+
+
+    // ===================================
     // ONLINE SYNC
-    // =================================
+    // ===================================
 
     if (
         gameMode === "ONLINE" &&
@@ -1124,113 +1182,104 @@ function updatePlayer() {
 
 
 // =======================================
-// CAMERA
-// =======================================
-
-function updateCamera() {
-
-    if (!myPlayer || !canvas) {
-        return;
-    }
-
-    /*
-     * دوربین بازیکن را دنبال می‌کند.
-     */
-
-    const target =
-        myPlayer.x -
-        canvas.width / 2;
-
-    cameraX =
-        target;
-
-    /*
-     * ابتدای مپ
-     */
-
-    if (cameraX < 0) {
-        cameraX = 0;
-    }
-
-    /*
-     * انتهای مپ
-     */
-
-    const maxCamera =
-        Math.max(
-            0,
-            MAP_WIDTH -
-            canvas.width
-        );
-
-    if (cameraX > maxCamera) {
-        cameraX = maxCamera;
-    }
-
-}
-
-
-// =======================================
 // AI
 // =======================================
 
 function updateAI() {
 
-    if (!ai || !myPlayer) {
+    if (
+        !ai ||
+        !myPlayer ||
+        !canvas
+    ) {
+
         return;
+
     }
 
 
     const ground =
         getGroundY();
 
+
     const distance =
-        myPlayer.x -
-        ai.x;
+        myPlayer.x - ai.x;
 
 
+    // ===================================
+    // AI SPEED
+    // ===================================
+
+    const aiSpeed = 2.3;
+
+
+    // ===================================
     // FOLLOW PLAYER
+    // ===================================
 
     if (
-        Math.abs(distance) > 25
+        Math.abs(distance) > 35
     ) {
 
         if (distance > 0) {
 
-            ai.x += 2.3;
+            ai.x += aiSpeed;
 
         } else {
 
-            ai.x -= 2.3;
+            ai.x -= aiSpeed;
 
         }
 
     }
 
 
-    // AI WORLD LIMITS
+    // ===================================
+    // AI MAP LIMITS
+    // ===================================
 
-    if (ai.x < 50) {
-        ai.x = 50;
+    const margin = 45;
+
+
+    if (
+        ai.x < margin
+    ) {
+
+        ai.x = margin;
+
     }
 
-    if (ai.x > MAP_WIDTH - 50) {
-        ai.x = MAP_WIDTH - 50;
+
+    if (
+        ai.x >
+        canvas.width - margin
+    ) {
+
+        ai.x =
+            canvas.width - margin;
+
     }
 
 
+    // ===================================
     // GRAVITY
+    // ===================================
 
     aiVelocityY += GRAVITY;
 
     ai.y += aiVelocityY;
 
 
-    // GROUND
+    // ===================================
+    // AI GROUND
+    // ===================================
 
-    if (ai.y >= ground) {
+    if (
+        ai.y >= ground
+    ) {
 
-        ai.y = ground;
+        ai.y =
+            ground;
 
         aiVelocityY = 0;
 
@@ -1239,11 +1288,16 @@ function updateAI() {
     }
 
 
+    // ===================================
     // AI JUMP
+    // ===================================
 
     aiDirectionTimer--;
 
-    if (aiDirectionTimer <= 0) {
+
+    if (
+        aiDirectionTimer <= 0
+    ) {
 
         aiDirectionTimer =
             100 +
@@ -1251,8 +1305,9 @@ function updateAI() {
                 Math.random() * 150
             );
 
+
         if (
-            Math.abs(distance) < 300 &&
+            Math.abs(distance) < 350 &&
             aiOnGround
         ) {
 
@@ -1294,7 +1349,10 @@ function updateGameUI() {
                 ai.x
             );
 
-        if (distance < 75) {
+
+        if (
+            distance < 75
+        ) {
 
             score.textContent =
                 "🤖 حریف نزدیکته!";
@@ -1322,9 +1380,7 @@ function updateGameUI() {
 
 function drawSky() {
 
-    if (!ctx || !canvas) {
-        return;
-    }
+    if (!ctx || !canvas) return;
 
 
     const gradient =
@@ -1340,6 +1396,7 @@ function drawSky() {
         0,
         "#38bdf8"
     );
+
 
     gradient.addColorStop(
         1,
@@ -1380,37 +1437,13 @@ function drawSky() {
     // CLOUDS
 
     drawCloud(
-        130 - cameraX * 0.15,
+        130,
         110,
         1
     );
 
     drawCloud(
-        700 - cameraX * 0.15,
-        160,
-        0.8
-    );
-
-    drawCloud(
-        1400 - cameraX * 0.15,
-        100,
-        1
-    );
-
-    drawCloud(
-        2200 - cameraX * 0.15,
-        150,
-        0.9
-    );
-
-    drawCloud(
-        3300 - cameraX * 0.15,
-        110,
-        1
-    );
-
-    drawCloud(
-        4400 - cameraX * 0.15,
+        420,
         160,
         0.8
     );
@@ -1427,18 +1460,12 @@ function drawCloud(
     if (!ctx) return;
 
 
-    if (
-        x < -150 ||
-        x > canvas.width + 150
-    ) {
-        return;
-    }
-
-
     ctx.fillStyle =
         "#ffffffcc";
 
+
     ctx.beginPath();
+
 
     ctx.arc(
         x,
@@ -1448,6 +1475,7 @@ function drawCloud(
         Math.PI * 2
     );
 
+
     ctx.arc(
         x + 25 * scale,
         y - 8 * scale,
@@ -1455,6 +1483,7 @@ function drawCloud(
         0,
         Math.PI * 2
     );
+
 
     ctx.arc(
         x + 55 * scale,
@@ -1464,12 +1493,14 @@ function drawCloud(
         Math.PI * 2
     );
 
+
     ctx.fillRect(
         x - 5 * scale,
         y,
         65 * scale,
         20 * scale
     );
+
 
     ctx.fill();
 
@@ -1482,21 +1513,16 @@ function drawCloud(
 
 function drawGround() {
 
-    if (!ctx || !canvas) {
-        return;
-    }
+    if (!ctx || !canvas) return;
 
 
     const ground =
         getGroundY();
 
 
-    /*
-     * زمین بر اساس دوربین رسم می‌شود.
-     */
-
     ctx.fillStyle =
         "#22c55e";
+
 
     ctx.fillRect(
         0,
@@ -1509,6 +1535,7 @@ function drawGround() {
     ctx.fillStyle =
         "#166534";
 
+
     ctx.fillRect(
         0,
         ground,
@@ -1520,6 +1547,7 @@ function drawGround() {
     ctx.fillStyle =
         "#92400e";
 
+
     ctx.fillRect(
         0,
         ground + 9,
@@ -1528,36 +1556,27 @@ function drawGround() {
     );
 
 
-    /*
-     * سنگ‌های روی زمین
-     */
-
     ctx.fillStyle =
         "#6b3f1f";
 
 
-    const start =
-        Math.floor(cameraX / 85) * 85;
-
-
     for (
-        let worldX = start;
-        worldX < cameraX + canvas.width + 85;
-        worldX += 85
+        let x = 20;
+        x < canvas.width;
+        x += 85
     ) {
-
-        const screenX =
-            worldX - cameraX;
 
         ctx.beginPath();
 
+
         ctx.arc(
-            screenX,
+            x,
             ground + 42,
             5,
             0,
             Math.PI * 2
         );
+
 
         ctx.fill();
 
@@ -1575,34 +1594,14 @@ function drawStickman(
     isAI = false
 ) {
 
-    if (!ctx || !player) {
-        return;
-    }
+    if (!ctx || !player) return;
 
-
-    /*
-     * مختصات جهانی → مختصات صفحه
-     */
 
     const x =
-        player.x - cameraX;
+        player.x;
 
     const y =
         player.y;
-
-
-    /*
-     * اگر خارج صفحه است اصلاً رسم نکن
-     */
-
-    if (
-        x < -150 ||
-        x > canvas.width + 150
-    ) {
-
-        return;
-
-    }
 
 
     const minScreen =
@@ -1654,11 +1653,8 @@ function drawStickman(
     ctx.save();
 
 
-    ctx.lineCap =
-        "round";
-
-    ctx.lineJoin =
-        "round";
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
 
 
     // SHADOW
@@ -1666,7 +1662,9 @@ function drawStickman(
     ctx.fillStyle =
         "rgba(0,0,0,0.20)";
 
+
     ctx.beginPath();
+
 
     ctx.ellipse(
         x,
@@ -1678,6 +1676,7 @@ function drawStickman(
         Math.PI * 2
     );
 
+
     ctx.fill();
 
 
@@ -1686,36 +1685,43 @@ function drawStickman(
     ctx.strokeStyle =
         "#1f2937";
 
+
     ctx.lineWidth =
         8 * s;
 
 
     ctx.beginPath();
 
+
     ctx.moveTo(
         x,
         y + 20 * s
     );
+
 
     ctx.lineTo(
         x - 18 * s,
         y + 53 * s
     );
 
+
     ctx.stroke();
 
 
     ctx.beginPath();
+
 
     ctx.moveTo(
         x,
         y + 20 * s
     );
 
+
     ctx.lineTo(
         x + 18 * s,
         y + 53 * s
     );
+
 
     ctx.stroke();
 
@@ -1725,6 +1731,7 @@ function drawStickman(
     ctx.fillStyle =
         shoe;
 
+
     roundRect(
         x - 32 * s,
         y + 49 * s,
@@ -1732,6 +1739,7 @@ function drawStickman(
         10 * s,
         5 * s
     );
+
 
     ctx.fill();
 
@@ -1744,6 +1752,7 @@ function drawStickman(
         5 * s
     );
 
+
     ctx.fill();
 
 
@@ -1751,6 +1760,7 @@ function drawStickman(
 
     ctx.fillStyle =
         shirt;
+
 
     roundRect(
         x - 19 * s,
@@ -1760,6 +1770,7 @@ function drawStickman(
         12 * s
     );
 
+
     ctx.fill();
 
 
@@ -1767,6 +1778,7 @@ function drawStickman(
 
     ctx.fillStyle =
         bodyColor;
+
 
     roundRect(
         x - 13 * s,
@@ -1776,6 +1788,7 @@ function drawStickman(
         8 * s
     );
 
+
     ctx.fill();
 
 
@@ -1784,36 +1797,43 @@ function drawStickman(
     ctx.strokeStyle =
         bodyDark;
 
+
     ctx.lineWidth =
         8 * s;
 
 
     ctx.beginPath();
 
+
     ctx.moveTo(
         x - 16 * s,
         y - 15 * s
     );
+
 
     ctx.lineTo(
         x - 38 * s,
         y + 8 * s
     );
 
+
     ctx.stroke();
 
 
     ctx.beginPath();
+
 
     ctx.moveTo(
         x + 16 * s,
         y - 15 * s
     );
 
+
     ctx.lineTo(
         x + 38 * s,
         y + 8 * s
     );
+
 
     ctx.stroke();
 
@@ -1826,6 +1846,7 @@ function drawStickman(
 
     ctx.beginPath();
 
+
     ctx.arc(
         x - 40 * s,
         y + 10 * s,
@@ -1834,10 +1855,12 @@ function drawStickman(
         Math.PI * 2
     );
 
+
     ctx.fill();
 
 
     ctx.beginPath();
+
 
     ctx.arc(
         x + 40 * s,
@@ -1847,6 +1870,7 @@ function drawStickman(
         Math.PI * 2
     );
 
+
     ctx.fill();
 
 
@@ -1854,6 +1878,7 @@ function drawStickman(
 
     ctx.fillStyle =
         skin;
+
 
     roundRect(
         x - 8 * s,
@@ -1863,12 +1888,14 @@ function drawStickman(
         5 * s
     );
 
+
     ctx.fill();
 
 
     // HEAD
 
     ctx.beginPath();
+
 
     ctx.arc(
         x,
@@ -1878,6 +1905,11 @@ function drawStickman(
         Math.PI * 2
     );
 
+
+    ctx.fillStyle =
+        skin;
+
+
     ctx.fill();
 
 
@@ -1886,7 +1918,9 @@ function drawStickman(
     ctx.fillStyle =
         "#111827";
 
+
     ctx.beginPath();
+
 
     ctx.arc(
         x,
@@ -1895,6 +1929,7 @@ function drawStickman(
         Math.PI,
         Math.PI * 2
     );
+
 
     ctx.fill();
 
@@ -1907,6 +1942,7 @@ function drawStickman(
 
     ctx.beginPath();
 
+
     ctx.arc(
         x - 8 * s,
         y - 59 * s,
@@ -1915,10 +1951,12 @@ function drawStickman(
         Math.PI * 2
     );
 
+
     ctx.fill();
 
 
     ctx.beginPath();
+
 
     ctx.arc(
         x + 8 * s,
@@ -1928,6 +1966,7 @@ function drawStickman(
         Math.PI * 2
     );
 
+
     ctx.fill();
 
 
@@ -1935,7 +1974,11 @@ function drawStickman(
 
     const name =
         player.name ||
-        (isAI ? "AI" : "Player");
+        (
+            isAI
+                ? "AI"
+                : "Player"
+        );
 
 
     const fontSize =
@@ -1958,12 +2001,16 @@ function drawStickman(
 
 
     roundRect(
-        x - textWidth / 2 - 8,
-        y - 105 * s,
+        x -
+            textWidth / 2 -
+            8,
+        y -
+            105 * s,
         textWidth + 16,
         24 * s,
         8
     );
+
 
     ctx.fill();
 
@@ -1971,8 +2018,10 @@ function drawStickman(
     ctx.fillStyle =
         "#ffffff";
 
+
     ctx.textAlign =
         "center";
+
 
     ctx.textBaseline =
         "middle";
@@ -1981,7 +2030,8 @@ function drawStickman(
     ctx.fillText(
         name,
         x,
-        y - 93 * s
+        y -
+            93 * s
     );
 
 
@@ -1992,13 +2042,16 @@ function drawStickman(
         ctx.fillStyle =
             "#facc15";
 
+
         ctx.font =
             `bold ${12 * s}px Arial`;
+
 
         ctx.fillText(
             "🤖",
             x,
-            y - 118 * s
+            y -
+                118 * s
         );
 
     }
@@ -2034,11 +2087,13 @@ function roundRect(
 
     ctx.beginPath();
 
+
     ctx.moveTo(
         x + r,
         y
     );
 
+
     ctx.arcTo(
         x + width,
         y,
@@ -2046,6 +2101,7 @@ function roundRect(
         y + height,
         r
     );
+
 
     ctx.arcTo(
         x + width,
@@ -2055,6 +2111,7 @@ function roundRect(
         r
     );
 
+
     ctx.arcTo(
         x,
         y + height,
@@ -2063,6 +2120,7 @@ function roundRect(
         r
     );
 
+
     ctx.arcTo(
         x,
         y,
@@ -2070,89 +2128,9 @@ function roundRect(
         y,
         r
     );
+
 
     ctx.closePath();
-
-}
-
-
-// =======================================
-// MAP DECORATIONS
-// =======================================
-
-function drawMapDecorations() {
-
-    if (!ctx || !canvas) {
-        return;
-    }
-
-
-    const ground =
-        getGroundY();
-
-
-    const objects = [
-        { x: 300, type: "tree" },
-        { x: 950, type: "tree" },
-        { x: 1500, type: "tree" },
-        { x: 2100, type: "tree" },
-        { x: 2850, type: "tree" },
-        { x: 3500, type: "tree" },
-        { x: 4200, type: "tree" },
-        { x: 4750, type: "tree" }
-    ];
-
-
-    objects.forEach(
-        function (obj) {
-
-            const x =
-                obj.x - cameraX;
-
-            if (
-                x < -100 ||
-                x > canvas.width + 100
-            ) {
-                return;
-            }
-
-
-            if (obj.type === "tree") {
-
-                // تنه
-
-                ctx.fillStyle =
-                    "#78350f";
-
-                ctx.fillRect(
-                    x - 10,
-                    ground - 80,
-                    20,
-                    80
-                );
-
-
-                // برگ
-
-                ctx.fillStyle =
-                    "#15803d";
-
-                ctx.beginPath();
-
-                ctx.arc(
-                    x,
-                    ground - 100,
-                    42,
-                    0,
-                    Math.PI * 2
-                );
-
-                ctx.fill();
-
-            }
-
-        }
-    );
 
 }
 
@@ -2163,16 +2141,12 @@ function drawMapDecorations() {
 
 function drawGame() {
 
-    if (!ctx || !canvas) {
-        return;
-    }
+    if (!ctx || !canvas) return;
 
 
     drawSky();
 
     drawGround();
-
-    drawMapDecorations();
 
 
     // PLAYER
@@ -2201,7 +2175,9 @@ function drawGame() {
 
     // ONLINE PLAYERS
 
-    if (gameMode === "ONLINE") {
+    if (
+        gameMode === "ONLINE"
+    ) {
 
         Object.values(players)
             .forEach(
@@ -2216,6 +2192,7 @@ function drawGame() {
 
                     }
 
+
                     drawStickman(
                         player,
                         false
@@ -2225,35 +2202,6 @@ function drawGame() {
             );
 
     }
-
-
-    // MAP POSITION
-
-    ctx.save();
-
-    ctx.fillStyle =
-        "#00000099";
-
-    ctx.font =
-        "bold 14px Arial";
-
-    ctx.textAlign =
-        "left";
-
-    ctx.fillText(
-        "MAP: " +
-        Math.round(
-            myPlayer
-                ? myPlayer.x
-                : 0
-        ) +
-        " / " +
-        MAP_WIDTH,
-        15,
-        canvas.height - 15
-    );
-
-    ctx.restore();
 
 }
 
@@ -2272,14 +2220,14 @@ function gameLoop() {
     updatePlayer();
 
 
-    if (gameMode === "AI") {
+    if (
+        gameMode === "AI"
+    ) {
 
         updateAI();
 
     }
 
-
-    updateCamera();
 
     updateGameUI();
 
