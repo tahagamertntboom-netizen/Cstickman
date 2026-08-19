@@ -1,11 +1,21 @@
 const socket = io();
 
+
+// =======================================
+// WORLD
+// =======================================
+
+const WORLD_WIDTH = 3000;
+const WORLD_GROUND_Y = 600;
+
+
 // =======================================
 // STATE
 // =======================================
 
 let playerName = "";
 let roomCode = "";
+
 let myPlayer = null;
 let players = {};
 
@@ -13,16 +23,18 @@ let gameMode = "";
 let gameRunning = false;
 
 let velocityY = 0;
-let onGround = false;
+let onGround = true;
 
 const SPEED = 5;
 const GRAVITY = 0.7;
 const JUMP = 13;
 
+
 // AI
+
 let ai = null;
 let aiVelocityY = 0;
-let aiOnGround = false;
+let aiOnGround = true;
 let aiDirectionTimer = 0;
 
 
@@ -113,9 +125,10 @@ async function enterGameFullscreen() {
             document.documentElement.requestFullscreen
         ) {
 
-            await document.documentElement.requestFullscreen({
-                navigationUI: "hide"
-            });
+            await document.documentElement
+                .requestFullscreen({
+                    navigationUI: "hide"
+                });
 
         }
 
@@ -157,10 +170,13 @@ if (confirmName) {
             }
 
             return;
+
         }
+
 
         playerName =
             name.substring(0, 20);
+
 
         nameScreen.classList.add(
             "hidden"
@@ -310,36 +326,26 @@ function startOfflineGame(withAI) {
             ? "AI"
             : "SOLO";
 
-    nameScreen.classList.add(
-        "hidden"
-    );
 
-    modeScreen.classList.add(
-        "hidden"
-    );
+    nameScreen.classList.add("hidden");
+    modeScreen.classList.add("hidden");
+    offlineScreen.classList.add("hidden");
+    onlineScreen.classList.add("hidden");
+    roomScreen.classList.add("hidden");
 
-    offlineScreen.classList.add(
-        "hidden"
-    );
-
-    onlineScreen.classList.add(
-        "hidden"
-    );
-
-    roomScreen.classList.add(
-        "hidden"
-    );
 
     gameScreen.style.display =
         "block";
 
+
     gameRunning = true;
 
-    setupOfflinePlayers(
-        withAI
-    );
+
+    setupOfflinePlayers(withAI);
+
 
     resizeCanvas();
+
 
     requestAnimationFrame(
         gameLoop
@@ -356,6 +362,7 @@ function setupOfflinePlayers(withAI) {
 
     players = {};
 
+
     myPlayer = {
 
         id: "player",
@@ -363,14 +370,21 @@ function setupOfflinePlayers(withAI) {
         name:
             playerName || "Player",
 
-        x: 250,
+        // WORLD COORDINATES
+        x: 500,
 
-        y: 0
+        y: WORLD_GROUND_Y
 
     };
 
+
     players.player =
         myPlayer;
+
+
+    velocityY = 0;
+    onGround = true;
+
 
     if (withAI) {
 
@@ -382,11 +396,14 @@ function setupOfflinePlayers(withAI) {
 
             x: 700,
 
-            y: 0,
+            y: WORLD_GROUND_Y,
 
             health: 100
 
         };
+
+        aiVelocityY = 0;
+        aiOnGround = true;
 
     } else {
 
@@ -394,10 +411,12 @@ function setupOfflinePlayers(withAI) {
 
     }
 
+
     const modeText =
         document.getElementById(
             "gameMode"
         );
+
 
     if (modeText) {
 
@@ -412,7 +431,7 @@ function setupOfflinePlayers(withAI) {
 
 
 // =======================================
-// ONLINE
+// ONLINE JOIN UI
 // =======================================
 
 if (showJoin) {
@@ -449,6 +468,10 @@ if (roomInput) {
 }
 
 
+// =======================================
+// CREATE ROOM
+// =======================================
+
 if (createRoom) {
 
     createRoom.onclick = function () {
@@ -457,6 +480,7 @@ if (createRoom) {
 
         createRoom.textContent =
             "⏳ در حال ساخت...";
+
 
         socket.emit(
             "createRoom",
@@ -486,10 +510,13 @@ socket.on(
                 ""
             );
 
+
         myPlayer =
             data.player;
 
+
         players = {};
+
 
         if (myPlayer) {
 
@@ -498,7 +525,12 @@ socket.on(
             ] =
                 myPlayer;
 
+            // مطمئن شو روی زمین است
+            myPlayer.y =
+                WORLD_GROUND_Y;
+
         }
+
 
         onlineScreen.classList.add(
             "hidden"
@@ -508,12 +540,14 @@ socket.on(
             "hidden"
         );
 
+
         if (roomCodeElement) {
 
             roomCodeElement.textContent =
                 roomCode;
 
         }
+
 
         if (createRoom) {
 
@@ -544,6 +578,7 @@ if (joinRoom) {
                     .substring(0, 6)
                 : "";
 
+
         if (code.length !== 6) {
 
             const error =
@@ -559,12 +594,15 @@ if (joinRoom) {
             }
 
             return;
+
         }
+
 
         joinRoom.disabled = true;
 
         joinRoom.textContent =
             "⏳ در حال ورود...";
+
 
         socket.emit(
             "joinRoom",
@@ -595,10 +633,13 @@ socket.on(
                 ""
             );
 
+
         myPlayer =
             data.player;
 
+
         players = {};
+
 
         if (myPlayer) {
 
@@ -607,7 +648,11 @@ socket.on(
             ] =
                 myPlayer;
 
+            myPlayer.y =
+                WORLD_GROUND_Y;
+
         }
+
 
         onlineScreen.classList.add(
             "hidden"
@@ -617,12 +662,14 @@ socket.on(
             "hidden"
         );
 
+
         if (roomCodeElement) {
 
             roomCodeElement.textContent =
                 roomCode;
 
         }
+
 
         if (joinRoom) {
 
@@ -639,7 +686,7 @@ socket.on(
 
 
 // =======================================
-// READY ONLINE
+// READY
 // =======================================
 
 if (readyButton) {
@@ -648,11 +695,14 @@ if (readyButton) {
 
         await enterGameFullscreen();
 
+
         readyButton.disabled =
             true;
 
+
         readyButton.textContent =
             "✅ آماده شدی";
+
 
         if (roomStatus) {
 
@@ -660,6 +710,7 @@ if (readyButton) {
                 "⏳ منتظر بازیکن دیگر...";
 
         }
+
 
         socket.emit(
             "readyForGame"
@@ -680,6 +731,7 @@ socket.on(
 
         if (!roomStatus) return;
 
+
         roomStatus.textContent =
             "بازیکنان آماده: " +
             data.ready +
@@ -691,7 +743,7 @@ socket.on(
 
 
 // =======================================
-// START ONLINE GAME
+// START ONLINE
 // =======================================
 
 socket.on(
@@ -700,24 +752,35 @@ socket.on(
 
         await enterGameFullscreen();
 
+
         gameMode =
             "ONLINE";
 
-        if (roomScreen) {
 
-            roomScreen.classList.add(
-                "hidden"
-            );
+        roomScreen.classList.add(
+            "hidden"
+        );
 
-        }
 
         gameScreen.style.display =
             "block";
 
-        gameRunning =
-            true;
+
+        gameRunning = true;
+
+
+        // مهم:
+        // مختصات دنیا دیگر با صفحه تغییر نمی‌کند
+        if (myPlayer) {
+
+            myPlayer.y =
+                WORLD_GROUND_Y;
+
+        }
+
 
         resizeCanvas();
+
 
         requestAnimationFrame(
             gameLoop
@@ -746,34 +809,12 @@ function resizeCanvas() {
 
     if (!canvas) return;
 
+
     canvas.width =
         window.innerWidth;
 
     canvas.height =
         window.innerHeight;
-
-    const ground =
-        getGroundY();
-
-    if (
-        myPlayer &&
-        onGround
-    ) {
-
-        myPlayer.y =
-            ground;
-
-    }
-
-    if (
-        ai &&
-        aiOnGround
-    ) {
-
-        ai.y =
-            ground;
-
-    }
 
 }
 
@@ -785,16 +826,84 @@ window.addEventListener(
 
 
 // =======================================
-// GROUND
+// CAMERA
 // =======================================
 
-function getGroundY() {
+function getCameraX() {
+
+    if (!myPlayer || !canvas) {
+        return 0;
+    }
+
+
+    let camera =
+        myPlayer.x -
+        canvas.width / 2;
+
+
+    camera =
+        Math.max(
+            0,
+            Math.min(
+                WORLD_WIDTH -
+                canvas.width,
+                camera
+            )
+        );
+
+
+    return camera;
+
+}
+
+
+// =======================================
+// WORLD -> SCREEN
+// =======================================
+
+function worldToScreenX(
+    worldX
+) {
+
+    return (
+        worldX -
+        getCameraX()
+    );
+
+}
+
+
+function worldToScreenY(
+    worldY
+) {
+
+    /*
+     * WORLD_GROUND_Y = 600
+     *
+     * این مقدار در همه دستگاه‌ها ثابت است.
+     *
+     * فقط نمایش آن نسبت به صفحه تغییر می‌کند.
+     */
+
+    return (
+        worldY -
+        WORLD_GROUND_Y +
+        getGroundScreenY()
+    );
+
+}
+
+
+// =======================================
+// SCREEN GROUND
+// =======================================
+
+function getGroundScreenY() {
 
     if (!canvas) {
-
         return 500;
-
     }
+
 
     return canvas.height - 120;
 
@@ -802,30 +911,46 @@ function getGroundY() {
 
 
 // =======================================
-// FIX PLAYER SPAWN
+// FIX PLAYER
 // =======================================
 
 function fixPlayerSpawn(player) {
 
     if (!player) return;
 
-    const ground =
-        getGroundY();
-
-    // بازیکن تازه وارد
-    // همیشه روی زمین قرار بگیرد
 
     if (
-        player.y === undefined ||
-        player.y === null ||
+        !Number.isFinite(
+            Number(player.x)
+        )
+    ) {
+
+        player.x = 500;
+
+    }
+
+
+    if (
         !Number.isFinite(
             Number(player.y)
-        ) ||
-        Number(player.y) <= 0
+        )
     ) {
 
         player.y =
-            ground;
+            WORLD_GROUND_Y;
+
+    }
+
+
+    // اگر بازیکن در شروع بازی است
+    // روی زمین قرار بگیرد
+
+    if (
+        Number(player.y) > WORLD_GROUND_Y
+    ) {
+
+        player.y =
+            WORLD_GROUND_Y;
 
     }
 
@@ -833,48 +958,144 @@ function fixPlayerSpawn(player) {
 
 
 // =======================================
-// ONLINE PLAYERS
+// PLAYERS UPDATE
 // =======================================
 
 socket.on(
     "playersUpdate",
     function (list) {
 
+        if (!Array.isArray(list)) {
+            return;
+        }
+
+
+        const oldPlayers =
+            players;
+
+
         players = {};
 
-        if (!Array.isArray(list)) {
-
-            return;
-
-        }
 
         list.forEach(
             function (player) {
 
                 if (!player) return;
 
-                fixPlayerSpawn(
-                    player
-                );
 
-                players[
-                    player.id
-                ] =
-                    player;
+                fixPlayerSpawn(player);
 
+
+                // اگر بازیکن خودمان است
                 if (
                     player.id ===
                     socket.id
                 ) {
 
-                    myPlayer =
-                        player;
+                    if (myPlayer) {
+
+                        // مختصات سرور
+                        myPlayer.id =
+                            player.id;
+
+                        myPlayer.name =
+                            player.name;
+
+                        myPlayer.x =
+                            player.x;
+
+                        myPlayer.y =
+                            player.y;
+
+                        myPlayer.color =
+                            player.color;
+
+                        myPlayer.isHost =
+                            player.isHost;
+
+                        myPlayer.ready =
+                            player.ready;
+
+                    } else {
+
+                        myPlayer =
+                            player;
+
+                    }
+
 
                     onGround =
-                        true;
+                        myPlayer.y >=
+                        WORLD_GROUND_Y;
 
-                    velocityY =
-                        0;
+
+                    if (onGround) {
+                        velocityY = 0;
+                    }
+
+
+                    players[
+                        player.id
+                    ] =
+                        myPlayer;
+
+
+                    return;
+
+                }
+
+
+                // بازیکن دیگر
+                // مختصات واقعی سرور
+
+                if (
+                    oldPlayers[player.id]
+                ) {
+
+                    oldPlayers[
+                        player.id
+                    ].x =
+                        player.x;
+
+                    oldPlayers[
+                        player.id
+                    ].y =
+                        player.y;
+
+                    oldPlayers[
+                        player.id
+                    ].name =
+                        player.name;
+
+                    oldPlayers[
+                        player.id
+                    ].color =
+                        player.color;
+
+                    oldPlayers[
+                        player.id
+                    ].isHost =
+                        player.isHost;
+
+                    oldPlayers[
+                        player.id
+                    ].ready =
+                        player.ready;
+
+
+                    players[
+                        player.id
+                    ] =
+                        oldPlayers[
+                            player.id
+                        ];
+
+                } else {
+
+                    players[
+                        player.id
+                    ] =
+                        player;
 
                 }
 
@@ -895,17 +1116,18 @@ socket.on(
 
         if (!player) return;
 
-        /*
-         * مختصات بازیکن از موبایل/Nokia
-         * می‌تواند با ارتفاع صفحه PC متفاوت باشد.
-         *
-         * اگر بازیکن تازه وارد باشد،
-         * آن را روی زمین قرار می‌دهیم.
-         */
 
-        fixPlayerSpawn(
-            player
-        );
+        if (
+            player.id ===
+            socket.id
+        ) {
+
+            return;
+
+        }
+
+
+        fixPlayerSpawn(player);
 
 
         if (
@@ -914,8 +1136,17 @@ socket.on(
 
             players[
                 player.id
-            ] =
-                player;
+            ] = {
+
+                id: player.id,
+
+                name: "Player",
+
+                x: player.x,
+
+                y: player.y
+
+            };
 
         } else {
 
@@ -950,6 +1181,25 @@ socket.on(
 
 
 // =======================================
+// NEW HOST
+// =======================================
+
+socket.on(
+    "newHost",
+    function (id) {
+
+        if (players[id]) {
+
+            players[id].isHost =
+                true;
+
+        }
+
+    }
+);
+
+
+// =======================================
 // ROOM ERROR
 // =======================================
 
@@ -961,6 +1211,7 @@ socket.on(
             document.getElementById(
                 "onlineError"
             );
+
 
         if (error) {
 
@@ -983,6 +1234,7 @@ socket.on(
 
         }
 
+
         if (joinRoom) {
 
             joinRoom.disabled =
@@ -992,6 +1244,7 @@ socket.on(
                 "🚪 ورود";
 
         }
+
 
         if (createRoom) {
 
@@ -1022,6 +1275,7 @@ document.addEventListener(
             e.key.toLowerCase()
         ] = true;
 
+
         if (
             e.code === "Space"
         ) {
@@ -1042,6 +1296,7 @@ document.addEventListener(
             e.key.toLowerCase()
         ] = false;
 
+
         if (
             e.code === "Space"
         ) {
@@ -1055,7 +1310,7 @@ document.addEventListener(
 
 
 // =======================================
-// MOBILE BUTTONS
+// MOBILE BUTTON
 // =======================================
 
 function setupMobileButton(
@@ -1065,6 +1320,7 @@ function setupMobileButton(
 
     const button =
         document.getElementById(id);
+
 
     if (!button) return;
 
@@ -1165,8 +1421,8 @@ function updatePlayer() {
 
     if (!myPlayer) return;
 
-    let moving =
-        false;
+
+    let moving = false;
 
 
     // LEFT
@@ -1180,8 +1436,7 @@ function updatePlayer() {
         myPlayer.x -=
             SPEED;
 
-        moving =
-            true;
+        moving = true;
 
     }
 
@@ -1197,10 +1452,21 @@ function updatePlayer() {
         myPlayer.x +=
             SPEED;
 
-        moving =
-            true;
+        moving = true;
 
     }
+
+
+    // WORLD BORDER
+
+    myPlayer.x =
+        Math.max(
+            50,
+            Math.min(
+                WORLD_WIDTH - 50,
+                myPlayer.x
+            )
+        );
 
 
     // JUMP
@@ -1229,23 +1495,20 @@ function updatePlayer() {
     velocityY +=
         GRAVITY;
 
+
     myPlayer.y +=
         velocityY;
-
-
-    const ground =
-        getGroundY();
 
 
     // GROUND
 
     if (
         myPlayer.y >=
-        ground
+        WORLD_GROUND_Y
     ) {
 
         myPlayer.y =
-            ground;
+            WORLD_GROUND_Y;
 
         velocityY =
             0;
@@ -1256,33 +1519,7 @@ function updatePlayer() {
     }
 
 
-    // LEFT BORDER
-
-    if (
-        myPlayer.x < 35
-    ) {
-
-        myPlayer.x =
-            35;
-
-    }
-
-
-    // RIGHT BORDER
-
-    if (
-        canvas &&
-        myPlayer.x >
-        canvas.width - 35
-    ) {
-
-        myPlayer.x =
-            canvas.width - 35;
-
-    }
-
-
-    // ONLINE SYNC
+    // SYNC
 
     if (
         gameMode === "ONLINE" &&
@@ -1322,14 +1559,15 @@ function updateAI() {
 
 
     const ground =
-        getGroundY();
+        WORLD_GROUND_Y;
+
 
     const distance =
         myPlayer.x -
         ai.x;
 
 
-    // FOLLOW PLAYER
+    // FOLLOW
 
     if (
         Math.abs(distance) >
@@ -1353,10 +1591,21 @@ function updateAI() {
     }
 
 
+    ai.x =
+        Math.max(
+            50,
+            Math.min(
+                WORLD_WIDTH - 50,
+                ai.x
+            )
+        );
+
+
     // GRAVITY
 
     aiVelocityY +=
         GRAVITY;
+
 
     ai.y +=
         aiVelocityY;
@@ -1381,7 +1630,7 @@ function updateAI() {
     }
 
 
-    // AI JUMP
+    // JUMP
 
     aiDirectionTimer--;
 
@@ -1428,6 +1677,7 @@ function updateGameUI() {
         document.getElementById(
             "gameScore"
         );
+
 
     if (!score) return;
 
@@ -1499,7 +1749,6 @@ function drawSky() {
         "#38bdf8"
     );
 
-
     gradient.addColorStop(
         1,
         "#bae6fd"
@@ -1522,6 +1771,7 @@ function drawSky() {
 
     ctx.fillStyle =
         "#fde047";
+
 
     ctx.beginPath();
 
@@ -1554,6 +1804,10 @@ function drawSky() {
 
 }
 
+
+// =======================================
+// CLOUD
+// =======================================
 
 function drawCloud(
     x,
@@ -1627,11 +1881,12 @@ function drawGround() {
     }
 
 
+    // مهم:
+    // زمین روی صفحه هر دستگاه در جای مناسب نمایش داده می‌شود
+
     const ground =
-        getGroundY();
+        getGroundScreenY();
 
-
-    // GRASS
 
     ctx.fillStyle =
         "#22c55e";
@@ -1645,8 +1900,6 @@ function drawGround() {
     );
 
 
-    // GRASS EDGE
-
     ctx.fillStyle =
         "#166534";
 
@@ -1659,8 +1912,6 @@ function drawGround() {
     );
 
 
-    // DIRT
-
     ctx.fillStyle =
         "#92400e";
 
@@ -1672,8 +1923,6 @@ function drawGround() {
         111
     );
 
-
-    // ROCKS
 
     ctx.fillStyle =
         "#6b3f1f";
@@ -1705,7 +1954,7 @@ function drawGround() {
 
 
 // =======================================
-// PLAYER
+// STICKMAN
 // =======================================
 
 function drawStickman(
@@ -1723,11 +1972,18 @@ function drawStickman(
     }
 
 
+    // WORLD COORDINATES -> SCREEN
+
     const x =
-        player.x;
+        worldToScreenX(
+            player.x
+        );
+
 
     const y =
-        player.y;
+        worldToScreenY(
+            player.y
+        );
 
 
     const minScreen =
@@ -1870,7 +2126,6 @@ function drawStickman(
         5 * s
     );
 
-
     ctx.fill();
 
 
@@ -1881,7 +2136,6 @@ function drawStickman(
         10 * s,
         5 * s
     );
-
 
     ctx.fill();
 
@@ -1900,7 +2154,6 @@ function drawStickman(
         12 * s
     );
 
-
     ctx.fill();
 
 
@@ -1917,7 +2170,6 @@ function drawStickman(
         35 * s,
         8 * s
     );
-
 
     ctx.fill();
 
@@ -1985,7 +2237,6 @@ function drawStickman(
         Math.PI * 2
     );
 
-
     ctx.fill();
 
 
@@ -1999,7 +2250,6 @@ function drawStickman(
         0,
         Math.PI * 2
     );
-
 
     ctx.fill();
 
@@ -2017,7 +2267,6 @@ function drawStickman(
         14 * s,
         5 * s
     );
-
 
     ctx.fill();
 
@@ -2039,7 +2288,6 @@ function drawStickman(
         Math.PI * 2
     );
 
-
     ctx.fill();
 
 
@@ -2059,7 +2307,6 @@ function drawStickman(
         Math.PI,
         Math.PI * 2
     );
-
 
     ctx.fill();
 
@@ -2081,7 +2328,6 @@ function drawStickman(
         Math.PI * 2
     );
 
-
     ctx.fill();
 
 
@@ -2095,7 +2341,6 @@ function drawStickman(
         0,
         Math.PI * 2
     );
-
 
     ctx.fill();
 
@@ -2288,7 +2533,7 @@ function drawGame() {
     drawGround();
 
 
-    // PLAYER
+    // MY PLAYER
 
     if (myPlayer) {
 
@@ -2353,9 +2598,7 @@ function drawGame() {
 function gameLoop() {
 
     if (!gameRunning) {
-
         return;
-
     }
 
 
@@ -2373,6 +2616,7 @@ function gameLoop() {
 
     updateGameUI();
 
+
     drawGame();
 
 
@@ -2381,8 +2625,3 @@ function gameLoop() {
     );
 
 }
-
-
-// =======================================
-// END
-// =======================================
