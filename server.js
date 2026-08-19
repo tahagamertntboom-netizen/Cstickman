@@ -1,19 +1,17 @@
 const express = require("express");
 const http = require("http");
-const path = require("path");
 const { Server } = require("socket.io");
+const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
+const io = new Server(server);
 
-const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
-});
+const PORT = process.env.PORT || 8080;
 
-const PORT = process.env.PORT || 3000;
+// ======================================================
+// EXPRESS
+// ======================================================
 
 app.use(express.static(__dirname));
 
@@ -21,732 +19,475 @@ app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
+// ======================================================
+// ROOMS
+// ======================================================
+
 const rooms = {};
 
-function makeRoomCode() {
+// ======================================================
+// RANDOM ROOM CODE
+// ======================================================
+
+function generateRoomCode() {
+
     let code;
 
     do {
+
         code = String(
-            Math.floor(100000 + Math.random() * 900000)
+            Math.floor(
+                100000 +
+                Math.random() * 900000
+            )
         );
+
     } while (rooms[code]);
 
     return code;
 }
 
-function sendPlayers(code) {
-    const room = rooms[code];
-    if (!room) return;
+// ======================================================
+// PLAYER
+// ======================================================
 
-    io.to(code).emit(
-        "playersUpdate",
-        Object.values(room.players)
-    );
-}
+function createPlayer(socket, name) {
 
-function sendEnemies(code) {
-    const room = rooms[code];
-    if (!room) return;
+    return {
 
-    io.to(code).emit(
-        "enemiesUpdate",
-        Object.values(room.enemies)
-    );
-}
+        id: socket.id,
 
-function createEnemy(room, level) {
-    const types = {
-        1: {
-            name: "موجود سبز",
-            emoji: "👹",
-            color: "#ef4444",
-            health: 50,
-            damage: 5,
-            speed: 1.2
-        },
+        name:
+            String(name || "Player")
+                .substring(0, 20),
 
-        2: {
-            name: "گرگ",
-            emoji: "🐺",
-            color: "#64748b",
-            health: 80,
-            damage: 8,
-            speed: 1.6
-        },
-
-        3: {
-            name: "خفاش",
-            emoji: "🦇",
-            color: "#7c3aed",
-            health: 110,
-            damage: 10,
-            speed: 2
-        },
-
-        4: {
-            name: "هیولای آتش",
-            emoji: "🔥",
-            color: "#f97316",
-            health: 160,
-            damage: 14,
-            speed: 2.2
-        },
-
-        5: {
-            name: "باس نهایی",
-            emoji: "👿",
-            color: "#991b1b",
-            health: 400,
-            damage: 20,
-            speed: 2.5
-        }
-    };
-
-    const type =
-        types[Math.min(level, 5)] ||
-        types[1];
-
-    const enemy = {
-        id:
-            "enemy_" +
-            Date.now() +
-            "_" +
-            Math.random()
-                .toString(36)
-                .substring(2, 8),
-
-        name: type.name,
-        emoji: type.emoji,
-
-        x:
-            300 +
-            Math.random() * 1200,
+        x: 300,
 
         y: 0,
 
-        health: type.health,
-        maxHealth: type.health,
+        health: 100,
 
-        damage: type.damage,
-        speed: type.speed,
+        level: 1,
 
-        level: level
+        ready: false
+
     };
-
-    room.enemies[enemy.id] = enemy;
-
-    return enemy;
 }
 
-function setupEnemies(room) {
-    room.enemies = {};
-
-    const count =
-        Math.min(
-            2 + room.level,
-            8
-        );
-
-    for (let i = 0; i < count; i++) {
-        createEnemy(
-            room,
-            room.level
-        );
-    }
-}
-
-function leaveRoom(socket) {
-    const code = socket.roomCode;
-
-    if (!code) return;
-
-    const room = rooms[code];
-
-    if (!room) {
-        socket.roomCode = null;
-        return;
-    }
-
-    delete room.players[socket.id];
-    delete room.readyPlayers[socket.id];
-
-    socket.leave(code);
-    socket.roomCode = null;
-
-    io.to(code).emit(
-        "playerLeft",
-        socket.id
-    );
-
-    const ids =
-        Object.keys(room.players);
-
-    if (
-        ids.length > 0 &&
-        room.host === socket.id
-    ) {
-        room.host = ids[0];
-
-        room.players[room.host].isHost =
-            true;
-
-        io.to(code).emit(
-            "newHost",
-            room.host
-        );
-    }
-
-    sendPlayers(code);
-
-    if (ids.length === 0) {
-        delete rooms[code];
-
-        console.log(
-            "ROOM DELETED:",
-            code
-        );
-    }
-}
+// ======================================================
+// SOCKET.IO
+// ======================================================
 
 io.on("connection", (socket) => {
 
     console.log(
-        "CONNECTED:",
+        "Player connected:",
         socket.id
     );
 
-    // ============================
+    // ==================================================
     // CREATE ROOM
-    // ============================
+    // ==================================================
 
-    socket.on(
-        "createRoom",
-        (data) => {
+    socket.on("createRoom", (data) => {
 
-            const code =
-                makeRoomCode();
+        const roomCode =
+            generateRoomCode();
 
-            let name = "Player";
-
-            if (
-                data &&
-                typeof data.name === "string"
-            ) {
-                name =
-                    data.name
-                        .trim()
-                        .substring(0, 20);
-
-                if (!name) {
-                    name = "Player";
-                }
-            }
-
-            const player = {
-                id: socket.id,
-
-                name,
-
-                x: 250,
-                y: 0,
-
-                color: "#22c55e",
-
-                health: 100,
-                maxHealth: 100,
-
-                level: 1,
-                xp: 0,
-
-                isHost: true,
-                ready: false
-            };
-
-            rooms[code] = {
-
-                code,
-
-                host: socket.id,
-
-                level: 1,
-
-                players: {
-                    [socket.id]: player
-                },
-
-                readyPlayers: {},
-
-                enemies: {}
-            };
-
-            setupEnemies(
-                rooms[code]
+        const player =
+            createPlayer(
+                socket,
+                data && data.name
             );
 
-            socket.join(code);
+        rooms[roomCode] = {
 
-            socket.roomCode =
-                code;
+            players: {},
+
+            ready: {},
+
+            started: false
+
+        };
+
+        rooms[roomCode].players[
+            socket.id
+        ] = player;
+
+        socket.join(roomCode);
+
+        socket.roomCode =
+            roomCode;
+
+        socket.player =
+            player;
+
+        socket.emit(
+            "roomCreated",
+            {
+                roomCode,
+                player
+            }
+        );
+
+        console.log(
+            `Room ${roomCode} created by ${player.name}`
+        );
+
+    });
+
+    // ==================================================
+    // JOIN ROOM
+    // ==================================================
+
+    socket.on("joinRoom", (data) => {
+
+        const roomCode =
+            String(
+                data &&
+                data.roomCode
+                    ? data.roomCode
+                    : ""
+            ).replace(
+                /\D/g,
+                ""
+            ).substring(0, 6);
+
+        if (
+            roomCode.length !== 6
+        ) {
 
             socket.emit(
-                "roomCreated",
-                {
-                    roomCode: code,
-                    player
-                }
+                "roomError",
+                "کد اتاق باید ۶ رقمی باشد."
             );
 
-            sendPlayers(code);
-            sendEnemies(code);
+            return;
         }
-    );
 
-    // ============================
-    // JOIN ROOM
-    // ============================
+        const room =
+            rooms[roomCode];
 
-    socket.on(
-        "joinRoom",
-        (data) => {
+        if (!room) {
 
-            const code =
-                String(
-                    data &&
-                    data.roomCode
-                        ? data.roomCode
-                        : ""
-                )
-                    .replace(/\D/g, "");
+            socket.emit(
+                "roomError",
+                "این اتاق وجود ندارد."
+            );
 
-            if (code.length !== 6) {
+            return;
+        }
 
-                socket.emit(
-                    "roomError",
-                    "کد اتاق باید ۶ رقمی باشد."
-                );
+        if (
+            Object.keys(room.players).length >= 15
+        ) {
 
-                return;
+            socket.emit(
+                "roomError",
+                "اتاق پر است."
+            );
+
+            return;
+        }
+
+        if (room.started) {
+
+            socket.emit(
+                "roomError",
+                "بازی این اتاق شروع شده است."
+            );
+
+            return;
+        }
+
+        const player =
+            createPlayer(
+                socket,
+                data && data.name
+            );
+
+        room.players[
+            socket.id
+        ] = player;
+
+        socket.join(roomCode);
+
+        socket.roomCode =
+            roomCode;
+
+        socket.player =
+            player;
+
+        socket.emit(
+            "roomJoined",
+            {
+                roomCode,
+                player
             }
+        );
 
-            const room =
-                rooms[code];
+        io.to(roomCode).emit(
+            "playersUpdate",
+            Object.values(
+                room.players
+            )
+        );
 
-            if (!room) {
+        console.log(
+            `${player.name} joined room ${roomCode}`
+        );
 
-                socket.emit(
-                    "roomError",
-                    "این اتاق وجود ندارد."
-                );
+    });
 
-                return;
-            }
+    // ==================================================
+    // READY
+    // ==================================================
 
-            if (
-                Object.keys(
-                    room.players
-                ).length >= 10
-            ) {
+    socket.on("readyForGame", () => {
 
-                socket.emit(
-                    "roomError",
-                    "اتاق پر است."
-                );
+        const roomCode =
+            socket.roomCode;
 
-                return;
-            }
+        if (!roomCode) {
+            return;
+        }
 
-            let name = "Player";
+        const room =
+            rooms[roomCode];
 
-            if (
-                data &&
-                typeof data.name === "string"
-            ) {
+        if (!room) {
+            return;
+        }
 
-                name =
-                    data.name
-                        .trim()
-                        .substring(0, 20);
-
-                if (!name) {
-                    name = "Player";
-                }
-            }
-
-            const player = {
-
-                id: socket.id,
-
-                name,
-
-                x:
-                    350 +
-                    Math.random() * 500,
-
-                y: 0,
-
-                color: "#3b82f6",
-
-                health: 100,
-                maxHealth: 100,
-
-                level: 1,
-                xp: 0,
-
-                isHost: false,
-                ready: false
-            };
-
+        const player =
             room.players[
                 socket.id
-            ] = player;
+            ];
 
-            socket.join(code);
+        if (!player) {
+            return;
+        }
 
-            socket.roomCode =
-                code;
+        player.ready = true;
 
-            socket.emit(
-                "roomJoined",
-                {
-                    roomCode: code,
-                    player
+        room.ready[
+            socket.id
+        ] = true;
+
+        const total =
+            Object.keys(
+                room.players
+            ).length;
+
+        const ready =
+            Object.keys(
+                room.ready
+            ).filter(
+                id =>
+                    room.ready[id]
+            ).length;
+
+        io.to(roomCode).emit(
+            "readyUpdate",
+            {
+                ready,
+                total
+            }
+        );
+
+        // حداقل 1 نفر آماده باشد بازی شروع می‌شود
+        if (
+            ready >= 1 &&
+            total >= 1 &&
+            !room.started
+        ) {
+
+            room.started = true;
+
+            const groundY = 500;
+
+            Object.values(
+                room.players
+            ).forEach(
+                (p, index) => {
+
+                    p.x =
+                        250 +
+                        index * 100;
+
+                    p.y =
+                        groundY;
+
+                    p.health =
+                        100;
+
+                    p.level =
+                        1;
+
                 }
             );
 
-            sendPlayers(code);
-            sendEnemies(code);
-        }
-    );
-
-    // ============================
-    // READY
-    // ============================
-
-    socket.on(
-        "readyForGame",
-        () => {
-
-            const code =
-                socket.roomCode;
-
-            if (!code) return;
-
-            const room =
-                rooms[code];
-
-            if (!room) return;
-
-            room.readyPlayers[
-                socket.id
-            ] = true;
-
-            if (
-                room.players[
-                    socket.id
-                ]
-            ) {
-
-                room.players[
-                    socket.id
-                ].ready = true;
-            }
-
-            const total =
-                Object.keys(
+            io.to(roomCode).emit(
+                "playersUpdate",
+                Object.values(
                     room.players
-                ).length;
-
-            const ready =
-                Object.keys(
-                    room.readyPlayers
-                ).length;
-
-            io.to(code).emit(
-                "readyUpdate",
-                {
-                    ready,
-                    total
-                }
+                )
             );
 
-            sendPlayers(code);
+            io.to(roomCode).emit(
+                "startGame"
+            );
 
-            if (
-                total >= 2 &&
-                ready >= 2
-            ) {
+            console.log(
+                `Game started in room ${roomCode}`
+            );
 
-                io.to(code).emit(
-                    "startGame"
-                );
-            }
         }
-    );
 
-    // ============================
-    // MOVEMENT
-    // ============================
+    });
+
+    // ==================================================
+    // PLAYER MOVEMENT
+    // ==================================================
 
     socket.on(
         "playerMovement",
         (data) => {
 
-            const code =
+            const roomCode =
                 socket.roomCode;
 
-            if (!code) return;
+            if (!roomCode) {
+                return;
+            }
 
             const room =
-                rooms[code];
+                rooms[roomCode];
 
-            if (!room) return;
+            if (!room) {
+                return;
+            }
 
             const player =
                 room.players[
                     socket.id
                 ];
 
-            if (!player) return;
-
-            if (
-                data &&
-                Number.isFinite(
-                    Number(data.x)
-                )
-            ) {
-
-                player.x =
-                    Number(data.x);
+            if (!player) {
+                return;
             }
 
             if (
-                data &&
-                Number.isFinite(
-                    Number(data.y)
-                )
+                !data ||
+                typeof data.x !== "number" ||
+                typeof data.y !== "number"
             ) {
 
-                player.y =
-                    Number(data.y);
+                return;
+
             }
 
-            socket.to(code).emit(
+            // جلوگیری از مختصات خراب
+            player.x =
+                Math.max(
+                    0,
+                    Math.min(
+                        100000,
+                        data.x
+                    )
+                );
+
+            player.y =
+                Math.max(
+                    -5000,
+                    Math.min(
+                        5000,
+                        data.y
+                    )
+                );
+
+            socket.to(roomCode).emit(
                 "playerMoved",
-                {
-                    id: player.id,
-                    x: player.x,
-                    y: player.y
-                }
-            );
-        }
-    );
-
-    // ============================
-    // ATTACK
-    // ============================
-
-    socket.on(
-        "playerAttack",
-        () => {
-
-            const code =
-                socket.roomCode;
-
-            if (!code) return;
-
-            const room =
-                rooms[code];
-
-            if (!room) return;
-
-            const player =
-                room.players[
-                    socket.id
-                ];
-
-            if (!player) return;
-
-            const ATTACK_RANGE = 100;
-            const ATTACK_DAMAGE = 25;
-
-            Object.values(
-                room.enemies
-            ).forEach(
-                (enemy) => {
-
-                    const distance =
-                        Math.abs(
-                            player.x -
-                            enemy.x
-                        );
-
-                    if (
-                        distance <=
-                        ATTACK_RANGE
-                    ) {
-
-                        enemy.health -=
-                            ATTACK_DAMAGE;
-
-                        io.to(code).emit(
-                            "enemyHit",
-                            {
-                                id: enemy.id,
-                                health:
-                                    Math.max(
-                                        0,
-                                        enemy.health
-                                    )
-                            }
-                        );
-
-                        if (
-                            enemy.health <= 0
-                        ) {
-
-                            delete room.enemies[
-                                enemy.id
-                            ];
-
-                            player.xp += 25;
-
-                            const needed =
-                                player.level *
-                                100;
-
-                            if (
-                                player.xp >=
-                                needed
-                            ) {
-
-                                player.xp -=
-                                    needed;
-
-                                player.level++;
-
-                                io.to(code).emit(
-                                    "playerLevelUp",
-                                    {
-                                        id:
-                                            player.id,
-                                        level:
-                                            player.level
-                                    }
-                                );
-                            }
-
-                            socket.emit(
-                                "playerStats",
-                                {
-                                    health:
-                                        player.health,
-                                    level:
-                                        player.level,
-                                    xp:
-                                        player.xp
-                                }
-                            );
-
-                            setTimeout(
-                                () => {
-
-                                    if (
-                                        rooms[code]
-                                    ) {
-
-                                        createEnemy(
-                                            rooms[code],
-                                            player.level
-                                        );
-
-                                        sendEnemies(
-                                            code
-                                        );
-                                    }
-
-                                },
-                                1000
-                            );
-                        }
-                    }
-                }
+                player
             );
 
-            sendEnemies(code);
-            sendPlayers(code);
         }
     );
 
-    // ============================
-    // LEAVE
-    // ============================
-
-    socket.on(
-        "leaveRoom",
-        () => {
-
-            leaveRoom(socket);
-
-        }
-    );
-
-    // ============================
+    // ==================================================
     // DISCONNECT
-    // ============================
+    // ==================================================
 
-    socket.on(
-        "disconnect",
-        () => {
+    socket.on("disconnect", () => {
 
-            console.log(
-                "DISCONNECTED:",
-                socket.id
-            );
-
-            leaveRoom(socket);
-        }
-    );
-});
-
-
-// ============================
-// STATUS
-// ============================
-
-app.get(
-    "/status",
-    (req, res) => {
-
-        let players = 0;
-
-        Object.values(
-            rooms
-        ).forEach(
-            (room) => {
-
-                players +=
-                    Object.keys(
-                        room.players
-                    ).length;
-            }
+        console.log(
+            "Player disconnected:",
+            socket.id
         );
 
-        res.json({
-            online: true,
-            rooms:
-                Object.keys(
-                    rooms
-                ).length,
-            players
-        });
-    }
-);
+        const roomCode =
+            socket.roomCode;
 
+        if (!roomCode) {
+            return;
+        }
 
-// ============================
-// SERVER
-// ============================
+        const room =
+            rooms[roomCode];
+
+        if (!room) {
+            return;
+        }
+
+        delete room.players[
+            socket.id
+        ];
+
+        delete room.ready[
+            socket.id
+        ];
+
+        io.to(roomCode).emit(
+            "playerLeft",
+            socket.id
+        );
+
+        const remaining =
+            Object.keys(
+                room.players
+            ).length;
+
+        if (remaining > 0) {
+
+            io.to(roomCode).emit(
+                "playersUpdate",
+                Object.values(
+                    room.players
+                )
+            );
+
+        }
+
+        // اگر اتاق خالی شد حذفش کن
+        if (remaining === 0) {
+
+            delete rooms[
+                roomCode
+            ];
+
+            console.log(
+                `Room ${roomCode} deleted`
+            );
+
+        }
+
+    });
+
+});
+
+// ======================================================
+// START SERVER
+// ======================================================
 
 server.listen(
     PORT,
@@ -754,8 +495,8 @@ server.listen(
     () => {
 
         console.log(
-            "SERVER RUNNING ON PORT " +
-            PORT
+            `🎮 Stickman server running on port ${PORT}`
         );
+
     }
 );
