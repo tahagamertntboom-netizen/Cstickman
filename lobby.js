@@ -99,98 +99,250 @@ const backFromOnline =
 
 
 // =======================================
+// FULLSCREEN
+// =======================================
+
+async function enterGameFullscreen() {
+
+    try {
+
+        if (document.fullscreenElement) {
+            return true;
+        }
+
+        if (
+            document.documentElement.requestFullscreen
+        ) {
+
+            await document.documentElement.requestFullscreen({
+                navigationUI: "hide"
+            });
+
+            return true;
+        }
+
+    } catch (error) {
+
+        console.log(
+            "Fullscreen unavailable:",
+            error
+        );
+    }
+
+    return false;
+}
+
+
+// =======================================
+// LOCK PORTRAIT WHEN POSSIBLE
+// =======================================
+
+async function lockPortrait() {
+
+    try {
+
+        if (
+            screen.orientation &&
+            screen.orientation.lock
+        ) {
+
+            await screen.orientation.lock(
+                "portrait"
+            );
+        }
+
+    } catch (error) {
+
+        // بعضی مرورگرها اجازه نمی‌دهند
+        console.log(
+            "Orientation lock unavailable"
+        );
+    }
+}
+
+
+// =======================================
+// EXIT FULLSCREEN
+// =======================================
+
+async function exitGameFullscreen() {
+
+    try {
+
+        if (
+            document.fullscreenElement &&
+            document.exitFullscreen
+        ) {
+
+            await document.exitFullscreen();
+        }
+
+    } catch (error) {
+
+        console.log(
+            "Exit fullscreen failed"
+        );
+    }
+}
+
+
+// =======================================
 // NAME
 // =======================================
 
-confirmName.onclick = () => {
+if (confirmName) {
 
-    const name =
-        nameInput.value.trim();
+    confirmName.onclick = () => {
 
-    if (!name) {
+        const name =
+            nameInput.value.trim();
 
-        document.getElementById(
-            "nameError"
-        ).textContent =
-            "اول اسمت رو وارد کن.";
+        if (!name) {
 
-        return;
-    }
+            const error =
+                document.getElementById(
+                    "nameError"
+                );
 
-    playerName =
-        name.substring(0, 20);
+            if (error) {
+                error.textContent =
+                    "اول اسمت رو وارد کن.";
+            }
 
-    nameScreen.classList.add("hidden");
-
-    modeScreen.classList.remove("hidden");
-};
-
-nameInput.addEventListener(
-    "keydown",
-    (e) => {
-
-        if (e.key === "Enter") {
-            confirmName.click();
+            return;
         }
-    }
-);
+
+        playerName =
+            name.substring(0, 20);
+
+        nameScreen.classList.add(
+            "hidden"
+        );
+
+        modeScreen.classList.remove(
+            "hidden"
+        );
+    };
+}
+
+
+if (nameInput) {
+
+    nameInput.addEventListener(
+        "keydown",
+        (e) => {
+
+            if (e.key === "Enter") {
+
+                if (confirmName) {
+                    confirmName.click();
+                }
+            }
+        }
+    );
+}
 
 
 // =======================================
 // MODE
 // =======================================
 
-onlineCard.onclick = () => {
+if (onlineCard) {
 
-    modeScreen.classList.add("hidden");
+    onlineCard.onclick = () => {
 
-    onlineScreen.classList.remove("hidden");
-};
+        modeScreen.classList.add(
+            "hidden"
+        );
 
-offlineCard.onclick = () => {
+        onlineScreen.classList.remove(
+            "hidden"
+        );
+    };
+}
 
-    modeScreen.classList.add("hidden");
 
-    offlineScreen.classList.remove("hidden");
-};
+if (offlineCard) {
 
-backToModes.onclick = () => {
+    offlineCard.onclick = () => {
 
-    offlineScreen.classList.add("hidden");
+        modeScreen.classList.add(
+            "hidden"
+        );
 
-    modeScreen.classList.remove("hidden");
-};
+        offlineScreen.classList.remove(
+            "hidden"
+        );
+    };
+}
 
-backFromOnline.onclick = () => {
 
-    onlineScreen.classList.add("hidden");
+if (backToModes) {
 
-    modeScreen.classList.remove("hidden");
-};
+    backToModes.onclick = () => {
+
+        offlineScreen.classList.add(
+            "hidden"
+        );
+
+        modeScreen.classList.remove(
+            "hidden"
+        );
+    };
+}
+
+
+if (backFromOnline) {
+
+    backFromOnline.onclick = () => {
+
+        onlineScreen.classList.add(
+            "hidden"
+        );
+
+        modeScreen.classList.remove(
+            "hidden"
+        );
+    };
+}
 
 
 // =======================================
 // OFFLINE AI
 // =======================================
 
-aiCard.onclick = () => {
+if (aiCard) {
 
-    startOfflineGame(true);
-};
+    aiCard.onclick = async () => {
+
+        await enterGameFullscreen();
+
+        await lockPortrait();
+
+        startOfflineGame(true);
+    };
+}
 
 
 // =======================================
 // OFFLINE SOLO
 // =======================================
 
-soloCard.onclick = () => {
+if (soloCard) {
 
-    startOfflineGame(false);
-};
+    soloCard.onclick = async () => {
+
+        await enterGameFullscreen();
+
+        await lockPortrait();
+
+        startOfflineGame(false);
+    };
+}
 
 
 // =======================================
-// START OFFLINE
+// START OFFLINE GAME
 // =======================================
 
 function startOfflineGame(withAI) {
@@ -200,21 +352,40 @@ function startOfflineGame(withAI) {
             ? "AI"
             : "SOLO";
 
-    nameScreen.classList.add("hidden");
-    modeScreen.classList.add("hidden");
-    offlineScreen.classList.add("hidden");
-    onlineScreen.classList.add("hidden");
-    roomScreen.classList.add("hidden");
+    nameScreen.classList.add(
+        "hidden"
+    );
 
-    gameScreen.style.display = "block";
+    modeScreen.classList.add(
+        "hidden"
+    );
+
+    offlineScreen.classList.add(
+        "hidden"
+    );
+
+    onlineScreen.classList.add(
+        "hidden"
+    );
+
+    roomScreen.classList.add(
+        "hidden"
+    );
+
+    gameScreen.style.display =
+        "block";
 
     gameRunning = true;
 
-    setupOfflinePlayers(withAI);
+    setupOfflinePlayers(
+        withAI
+    );
 
     resizeCanvas();
 
-    requestAnimationFrame(gameLoop);
+    requestAnimationFrame(
+        gameLoop
+    );
 }
 
 
@@ -230,14 +401,16 @@ function setupOfflinePlayers(withAI) {
 
         id: "player",
 
-        name: playerName,
+        name:
+            playerName || "Player",
 
         x: 250,
 
         y: 0
     };
 
-    players.player = myPlayer;
+    players.player =
+        myPlayer;
 
     if (withAI) {
 
@@ -259,12 +432,14 @@ function setupOfflinePlayers(withAI) {
         ai = null;
     }
 
-    const gameModeText =
-        document.getElementById("gameMode");
+    const modeText =
+        document.getElementById(
+            "gameMode"
+        );
 
-    if (gameModeText) {
+    if (modeText) {
 
-        gameModeText.textContent =
+        modeText.textContent =
             withAI
                 ? "🤖 بازی با AI"
                 : "👤 بازی تنهایی";
@@ -276,117 +451,206 @@ function setupOfflinePlayers(withAI) {
 // ONLINE
 // =======================================
 
-showJoin.onclick = () => {
+if (showJoin) {
 
-    joinBox.classList.toggle("hidden");
-};
+    showJoin.onclick = () => {
 
-roomInput.addEventListener(
-    "input",
-    () => {
+        if (joinBox) {
 
-        roomInput.value =
-            roomInput.value
-                .replace(/\D/g, "")
-                .substring(0, 6);
-    }
-);
+            joinBox.classList.toggle(
+                "hidden"
+            );
+        }
+    };
+}
 
-createRoom.onclick = () => {
 
-    createRoom.disabled = true;
+if (roomInput) {
 
-    createRoom.textContent =
-        "⏳ در حال ساخت...";
+    roomInput.addEventListener(
+        "input",
+        () => {
 
-    socket.emit(
-        "createRoom",
-        {
-            name: playerName
+            roomInput.value =
+                roomInput.value
+                    .replace(/\D/g, "")
+                    .substring(0, 6);
         }
     );
-};
+}
+
+
+if (createRoom) {
+
+    createRoom.onclick = () => {
+
+        createRoom.disabled = true;
+
+        createRoom.textContent =
+            "⏳ در حال ساخت...";
+
+        socket.emit(
+            "createRoom",
+            {
+                name: playerName
+            }
+        );
+    };
+}
+
+
+// =======================================
+// ROOM CREATED
+// =======================================
 
 socket.on(
     "roomCreated",
     (data) => {
 
         roomCode =
-            String(data.roomCode)
-                .replace(/\D/g, "");
+            String(
+                data.roomCode
+            ).replace(
+                /\D/g,
+                ""
+            );
 
         myPlayer =
             data.player;
 
         players = {};
 
-        players[
-            myPlayer.id
-        ] = myPlayer;
+        if (myPlayer) {
 
-        onlineScreen.classList.add("hidden");
+            players[
+                myPlayer.id
+            ] = myPlayer;
+        }
 
-        roomScreen.classList.remove("hidden");
+        onlineScreen.classList.add(
+            "hidden"
+        );
 
-        roomCodeElement.textContent =
-            roomCode;
+        roomScreen.classList.remove(
+            "hidden"
+        );
+
+        if (roomCodeElement) {
+
+            roomCodeElement.textContent =
+                roomCode;
+        }
+
+        if (createRoom) {
+
+            createRoom.disabled =
+                false;
+
+            createRoom.textContent =
+                "🏠 ساخت اتاق";
+        }
     }
 );
 
-joinRoom.onclick = () => {
 
-    const code =
-        roomInput.value
-            .replace(/\D/g, "")
-            .substring(0, 6);
+// =======================================
+// JOIN ROOM
+// =======================================
 
-    if (code.length !== 6) {
+if (joinRoom) {
 
-        document.getElementById(
-            "onlineError"
-        ).textContent =
-            "کد باید ۶ رقمی باشد.";
+    joinRoom.onclick = () => {
 
-        return;
-    }
+        const code =
+            roomInput
+                ? roomInput.value
+                    .replace(/\D/g, "")
+                    .substring(0, 6)
+                : "";
 
-    joinRoom.disabled = true;
+        if (code.length !== 6) {
 
-    joinRoom.textContent =
-        "⏳ در حال ورود...";
+            const error =
+                document.getElementById(
+                    "onlineError"
+                );
 
-    socket.emit(
-        "joinRoom",
-        {
-            roomCode: code,
-            name: playerName
+            if (error) {
+
+                error.textContent =
+                    "کد باید ۶ رقمی باشد.";
+            }
+
+            return;
         }
-    );
-};
+
+        joinRoom.disabled =
+            true;
+
+        joinRoom.textContent =
+            "⏳ در حال ورود...";
+
+        socket.emit(
+            "joinRoom",
+            {
+                roomCode: code,
+                name: playerName
+            }
+        );
+    };
+}
+
+
+// =======================================
+// ROOM JOINED
+// =======================================
 
 socket.on(
     "roomJoined",
     (data) => {
 
         roomCode =
-            String(data.roomCode)
-                .replace(/\D/g, "");
+            String(
+                data.roomCode
+            ).replace(
+                /\D/g,
+                ""
+            );
 
         myPlayer =
             data.player;
 
         players = {};
 
-        players[
-            myPlayer.id
-        ] = myPlayer;
+        if (myPlayer) {
 
-        onlineScreen.classList.add("hidden");
+            players[
+                myPlayer.id
+            ] = myPlayer;
+        }
 
-        roomScreen.classList.remove("hidden");
+        onlineScreen.classList.add(
+            "hidden"
+        );
 
-        roomCodeElement.textContent =
-            roomCode;
+        roomScreen.classList.remove(
+            "hidden"
+        );
+
+        if (roomCodeElement) {
+
+            roomCodeElement.textContent =
+                roomCode;
+        }
+
+        if (joinRoom) {
+
+            joinRoom.disabled =
+                false;
+
+            joinRoom.textContent =
+                "🚪 ورود";
+        }
     }
 );
 
@@ -395,34 +659,88 @@ socket.on(
 // READY ONLINE
 // =======================================
 
-readyButton.onclick = () => {
+if (readyButton) {
 
-    readyButton.disabled = true;
+    readyButton.onclick = async () => {
 
-    readyButton.textContent =
-        "✅ آماده شدی";
+        // Fullscreen حتماً از کلیک کاربر
+        // درخواست می‌شود.
 
-    roomStatus.textContent =
-        "⏳ منتظر بازیکن دیگر...";
+        await enterGameFullscreen();
 
-    socket.emit("readyForGame");
-};
+        await lockPortrait();
+
+        readyButton.disabled =
+            true;
+
+        readyButton.textContent =
+            "✅ آماده شدی";
+
+        if (roomStatus) {
+
+            roomStatus.textContent =
+                "⏳ منتظر بازیکن دیگر...";
+        }
+
+        socket.emit(
+            "readyForGame"
+        );
+    };
+}
+
+
+// =======================================
+// READY UPDATE
+// =======================================
+
+socket.on(
+    "readyUpdate",
+    (data) => {
+
+        if (!roomStatus) return;
+
+        roomStatus.textContent =
+            "بازیکنان آماده: " +
+            data.ready +
+            " / " +
+            data.total;
+    }
+);
+
+
+// =======================================
+// START ONLINE GAME
+// =======================================
 
 socket.on(
     "startGame",
-    () => {
+    async () => {
 
-        gameMode = "ONLINE";
+        // Fullscreen را دوباره تلاش می‌کنیم
+        // ولی اگر قبلاً فعال شده باشد کاری نمی‌کند.
 
-        roomScreen.classList.add("hidden");
+        await enterGameFullscreen();
 
-        gameScreen.style.display = "block";
+        gameMode =
+            "ONLINE";
+
+        if (roomScreen) {
+
+            roomScreen.classList.add(
+                "hidden"
+            );
+        }
+
+        gameScreen.style.display =
+            "block";
 
         gameRunning = true;
 
         resizeCanvas();
 
-        requestAnimationFrame(gameLoop);
+        requestAnimationFrame(
+            gameLoop
+        );
     }
 );
 
@@ -437,42 +755,70 @@ socket.on(
 
         players = {};
 
+        if (!Array.isArray(list)) {
+            return;
+        }
+
         list.forEach(
             (player) => {
+
+                if (!player) return;
 
                 players[
                     player.id
                 ] = player;
 
                 if (
-                    player.id === socket.id
+                    player.id ===
+                    socket.id
                 ) {
 
-                    myPlayer = player;
+                    myPlayer =
+                        player;
                 }
             }
         );
     }
 );
 
+
+// =======================================
+// PLAYER MOVED
+// =======================================
+
 socket.on(
     "playerMoved",
     (player) => {
 
-        if (!players[player.id]) {
+        if (!player) return;
 
-            players[player.id] = player;
+        if (
+            !players[player.id]
+        ) {
+
+            players[
+                player.id
+            ] = player;
 
         } else {
 
-            players[player.id].x =
+            players[
+                player.id
+            ].x =
                 player.x;
 
-            players[player.id].y =
+            players[
+                player.id
+            ].y =
                 player.y;
         }
     }
 );
+
+
+// =======================================
+// PLAYER LEFT
+// =======================================
 
 socket.on(
     "playerLeft",
@@ -482,29 +828,55 @@ socket.on(
     }
 );
 
+
+// =======================================
+// ROOM ERROR
+// =======================================
+
 socket.on(
     "roomError",
     (message) => {
 
-        const errorBox =
+        const error =
             document.getElementById(
                 "onlineError"
             );
 
-        if (errorBox) {
-            errorBox.textContent =
-                String(message);
+        if (error) {
+
+            if (
+                typeof message ===
+                "object" &&
+                message !== null
+            ) {
+
+                error.textContent =
+                    message.message ||
+                    "خطا";
+            } else {
+
+                error.textContent =
+                    String(message);
+            }
         }
 
-        joinRoom.disabled = false;
+        if (joinRoom) {
 
-        joinRoom.textContent =
-            "🚪 ورود";
+            joinRoom.disabled =
+                false;
 
-        createRoom.disabled = false;
+            joinRoom.textContent =
+                "🚪 ورود";
+        }
 
-        createRoom.textContent =
-            "🏠 ساخت اتاق";
+        if (createRoom) {
+
+            createRoom.disabled =
+                false;
+
+            createRoom.textContent =
+                "🏠 ساخت اتاق";
+        }
     }
 );
 
@@ -519,9 +891,14 @@ const canvas =
     );
 
 const ctx =
-    canvas.getContext("2d");
+    canvas
+        ? canvas.getContext("2d")
+        : null;
+
 
 function resizeCanvas() {
+
+    if (!canvas) return;
 
     canvas.width =
         window.innerWidth;
@@ -551,12 +928,11 @@ function resizeCanvas() {
     }
 }
 
+
 window.addEventListener(
     "resize",
     resizeCanvas
 );
-
-resizeCanvas();
 
 
 // =======================================
@@ -564,6 +940,10 @@ resizeCanvas();
 // =======================================
 
 function getGroundY() {
+
+    if (!canvas) {
+        return 500;
+    }
 
     return canvas.height - 120;
 }
@@ -583,7 +963,10 @@ document.addEventListener(
             e.key.toLowerCase()
         ] = true;
 
-        if (e.code === "Space") {
+        if (
+            e.code === "Space"
+        ) {
+
             keys.space = true;
         }
     }
@@ -597,7 +980,10 @@ document.addEventListener(
             e.key.toLowerCase()
         ] = false;
 
-        if (e.code === "Space") {
+        if (
+            e.code === "Space"
+        ) {
+
             keys.space = false;
         }
     }
@@ -605,7 +991,7 @@ document.addEventListener(
 
 
 // =======================================
-// MOBILE CONTROLS
+// MOBILE BUTTONS
 // =======================================
 
 function setupMobileButton(
@@ -677,6 +1063,7 @@ function setupMobileButton(
     );
 }
 
+
 setupMobileButton(
     "leftButton",
     "mobileLeft"
@@ -703,6 +1090,8 @@ function updatePlayer() {
 
     let moving = false;
 
+    // LEFT
+
     if (
         keys.a ||
         keys.arrowleft ||
@@ -714,6 +1103,8 @@ function updatePlayer() {
         moving = true;
     }
 
+    // RIGHT
+
     if (
         keys.d ||
         keys.arrowright ||
@@ -724,6 +1115,8 @@ function updatePlayer() {
 
         moving = true;
     }
+
+    // JUMP
 
     if (
         (
@@ -738,36 +1131,50 @@ function updatePlayer() {
         velocityY =
             -JUMP;
 
-        onGround = false;
+        onGround =
+            false;
     }
 
-    velocityY += GRAVITY;
+    // GRAVITY
 
-    myPlayer.y += velocityY;
+    velocityY +=
+        GRAVITY;
+
+    myPlayer.y +=
+        velocityY;
 
     const ground =
         getGroundY();
 
+    // GROUND
+
     if (
-        myPlayer.y >= ground
+        myPlayer.y >=
+        ground
     ) {
 
         myPlayer.y =
             ground;
 
-        velocityY = 0;
+        velocityY =
+            0;
 
-        onGround = true;
+        onGround =
+            true;
     }
+
+    // BORDERS
 
     if (
         myPlayer.x < 35
     ) {
 
-        myPlayer.x = 35;
+        myPlayer.x =
+            35;
     }
 
     if (
+        canvas &&
         myPlayer.x >
         canvas.width - 35
     ) {
@@ -776,9 +1183,14 @@ function updatePlayer() {
             canvas.width - 35;
     }
 
+    // ONLINE SYNC
+
     if (
         gameMode === "ONLINE" &&
-        (moving || !onGround)
+        (
+            moving ||
+            !onGround
+        )
     ) {
 
         socket.emit(
@@ -802,6 +1214,7 @@ function updateAI() {
         !ai ||
         !myPlayer
     ) {
+
         return;
     }
 
@@ -809,58 +1222,82 @@ function updateAI() {
         getGroundY();
 
     const distance =
-        myPlayer.x - ai.x;
+        myPlayer.x -
+        ai.x;
+
+    // حرکت AI به سمت بازیکن
 
     if (
-        Math.abs(distance) > 25
+        Math.abs(distance) >
+        25
     ) {
 
-        if (distance > 0) {
+        if (
+            distance > 0
+        ) {
 
-            ai.x += 2.3;
+            ai.x +=
+                2.3;
 
         } else {
 
-            ai.x -= 2.3;
+            ai.x -=
+                2.3;
         }
     }
 
-    aiVelocityY += GRAVITY;
+    // GRAVITY
 
-    ai.y += aiVelocityY;
+    aiVelocityY +=
+        GRAVITY;
+
+    ai.y +=
+        aiVelocityY;
+
+    // GROUND
 
     if (
-        ai.y >= ground
+        ai.y >=
+        ground
     ) {
 
-        ai.y = ground;
+        ai.y =
+            ground;
 
-        aiVelocityY = 0;
+        aiVelocityY =
+            0;
 
-        aiOnGround = true;
+        aiOnGround =
+            true;
     }
+
+    // AI JUMP
 
     aiDirectionTimer--;
 
     if (
-        aiDirectionTimer <= 0
+        aiDirectionTimer <=
+        0
     ) {
 
         aiDirectionTimer =
             100 +
             Math.floor(
-                Math.random() * 150
+                Math.random() *
+                150
             );
 
         if (
-            Math.abs(distance) < 300 &&
+            Math.abs(distance) <
+            300 &&
             aiOnGround
         ) {
 
             aiVelocityY =
                 -JUMP * 0.85;
 
-            aiOnGround = false;
+            aiOnGround =
+                false;
         }
     }
 }
@@ -881,7 +1318,8 @@ function updateGameUI() {
 
     if (
         gameMode === "AI" &&
-        ai
+        ai &&
+        myPlayer
     ) {
 
         const distance =
@@ -890,10 +1328,13 @@ function updateGameUI() {
                 ai.x
             );
 
-        if (distance < 75) {
+        if (
+            distance <
+            75
+        ) {
 
             score.textContent =
-                "🤖 حریف نزدیکه!";
+                "🤖 حریف نزدیکته!";
 
         } else {
 
@@ -914,6 +1355,8 @@ function updateGameUI() {
 // =======================================
 
 function drawSky() {
+
+    if (!ctx || !canvas) return;
 
     const gradient =
         ctx.createLinearGradient(
@@ -943,7 +1386,7 @@ function drawSky() {
         canvas.height
     );
 
-    // خورشید
+    // SUN
 
     ctx.fillStyle =
         "#fde047";
@@ -960,7 +1403,7 @@ function drawSky() {
 
     ctx.fill();
 
-    // ابرها
+    // CLOUDS
 
     drawCloud(
         130,
@@ -975,11 +1418,14 @@ function drawSky() {
     );
 }
 
+
 function drawCloud(
     x,
     y,
     scale
 ) {
+
+    if (!ctx) return;
 
     ctx.fillStyle =
         "#ffffffcc";
@@ -1016,6 +1462,8 @@ function drawCloud(
         65 * scale,
         20 * scale
     );
+
+    ctx.fill();
 }
 
 
@@ -1025,10 +1473,12 @@ function drawCloud(
 
 function drawGround() {
 
+    if (!ctx || !canvas) return;
+
     const ground =
         getGroundY();
 
-    // چمن
+    // GRASS
 
     ctx.fillStyle =
         "#22c55e";
@@ -1040,7 +1490,7 @@ function drawGround() {
         120
     );
 
-    // لبه چمن
+    // GRASS EDGE
 
     ctx.fillStyle =
         "#166534";
@@ -1052,7 +1502,7 @@ function drawGround() {
         9
     );
 
-    // خاک
+    // DIRT
 
     ctx.fillStyle =
         "#92400e";
@@ -1064,7 +1514,7 @@ function drawGround() {
         111
     );
 
-    // سنگ‌های کوچک
+    // SMALL STONES
 
     ctx.fillStyle =
         "#6b3f1f";
@@ -1099,13 +1549,16 @@ function drawStickman(
     isAI = false
 ) {
 
+    if (!ctx || !player) return;
+
     const x =
         player.x;
 
     const y =
         player.y;
 
-    // اندازه مناسب برای موبایل و PC
+    // SCALE FOR PC AND MOBILE
+
     const minScreen =
         Math.min(
             canvas.width,
@@ -1121,11 +1574,10 @@ function drawStickman(
             )
         );
 
-    const s = scale;
+    const s =
+        scale;
 
-    // ===============================
     // COLORS
-    // ===============================
 
     const bodyColor =
         isAI
@@ -1148,16 +1600,16 @@ function drawStickman(
             ? "#dc2626"
             : "#22c55e";
 
-
     ctx.save();
 
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
+    ctx.lineCap =
+        "round";
+
+    ctx.lineJoin =
+        "round";
 
 
-    // ===============================
     // SHADOW
-    // ===============================
 
     ctx.fillStyle =
         "rgba(0,0,0,0.20)";
@@ -1177,9 +1629,7 @@ function drawStickman(
     ctx.fill();
 
 
-    // ===============================
     // LEGS
-    // ===============================
 
     ctx.strokeStyle =
         "#1f2937";
@@ -1216,9 +1666,7 @@ function drawStickman(
     ctx.stroke();
 
 
-    // ===============================
     // SHOES
-    // ===============================
 
     ctx.fillStyle =
         shoe;
@@ -1244,9 +1692,7 @@ function drawStickman(
     ctx.fill();
 
 
-    // ===============================
-    // BODY SHIRT
-    // ===============================
+    // SHIRT
 
     ctx.fillStyle =
         shirt;
@@ -1262,9 +1708,7 @@ function drawStickman(
     ctx.fill();
 
 
-    // ===============================
     // BODY LIGHT
-    // ===============================
 
     ctx.fillStyle =
         bodyColor;
@@ -1280,9 +1724,7 @@ function drawStickman(
     ctx.fill();
 
 
-    // ===============================
     // ARMS
-    // ===============================
 
     ctx.strokeStyle =
         bodyDark;
@@ -1319,9 +1761,7 @@ function drawStickman(
     ctx.stroke();
 
 
-    // ===============================
     // HANDS
-    // ===============================
 
     ctx.fillStyle =
         skin;
@@ -1351,9 +1791,7 @@ function drawStickman(
     ctx.fill();
 
 
-    // ===============================
     // NECK
-    // ===============================
 
     ctx.fillStyle =
         skin;
@@ -1369,9 +1807,7 @@ function drawStickman(
     ctx.fill();
 
 
-    // ===============================
     // HEAD
-    // ===============================
 
     ctx.fillStyle =
         skin;
@@ -1389,9 +1825,7 @@ function drawStickman(
     ctx.fill();
 
 
-    // ===============================
     // HAIR
-    // ===============================
 
     ctx.fillStyle =
         "#111827";
@@ -1409,9 +1843,7 @@ function drawStickman(
     ctx.fill();
 
 
-    // ===============================
     // EYES
-    // ===============================
 
     ctx.fillStyle =
         "#111827";
@@ -1441,19 +1873,20 @@ function drawStickman(
     ctx.fill();
 
 
-    // ===============================
     // NAME
-    // ===============================
 
     const name =
         player.name ||
         (isAI ? "AI" : "Player");
 
-    ctx.font =
-        `bold ${Math.max(
+    const fontSize =
+        Math.max(
             12,
             15 * s
-        )}px Arial`;
+        );
+
+    ctx.font =
+        `bold ${fontSize}px Arial`;
 
     const textWidth =
         ctx.measureText(name).width;
@@ -1487,9 +1920,7 @@ function drawStickman(
     );
 
 
-    // ===============================
-    // AI INDICATOR
-    // ===============================
+    // AI ICON
 
     if (isAI) {
 
@@ -1506,13 +1937,12 @@ function drawStickman(
         );
     }
 
-
     ctx.restore();
 }
 
 
 // =======================================
-// ROUNDED RECT
+// ROUND RECT
 // =======================================
 
 function roundRect(
@@ -1522,6 +1952,8 @@ function roundRect(
     height,
     radius
 ) {
+
+    if (!ctx) return;
 
     const r =
         Math.min(
@@ -1579,12 +2011,16 @@ function roundRect(
 
 function drawGame() {
 
+    if (!ctx || !canvas) {
+        return;
+    }
+
     drawSky();
 
     drawGround();
 
 
-    // خود بازیکن
+    // PLAYER
 
     if (myPlayer) {
 
@@ -1606,7 +2042,7 @@ function drawGame() {
     }
 
 
-    // بازیکن‌های آنلاین
+    // ONLINE PLAYERS
 
     if (
         gameMode === "ONLINE"
@@ -1660,3 +2096,21 @@ function gameLoop() {
         gameLoop
     );
 }
+
+
+// =======================================
+// FULLSCREEN CHANGE
+// =======================================
+
+document.addEventListener(
+    "fullscreenchange",
+    () => {
+
+        if (!document.fullscreenElement) {
+
+            console.log(
+                "Fullscreen exited"
+            );
+        }
+    }
+);
