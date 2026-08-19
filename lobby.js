@@ -5,7 +5,6 @@ const socket = io();
 // =======================================
 
 let playerName = "";
-
 let roomCode = "";
 let myPlayer = null;
 let players = {};
@@ -729,6 +728,111 @@ socket.on(
 
 
 // =======================================
+// CANVAS
+// =======================================
+
+const canvas =
+    document.getElementById(
+        "gameCanvas"
+    );
+
+const ctx =
+    canvas
+        ? canvas.getContext("2d")
+        : null;
+
+
+function resizeCanvas() {
+
+    if (!canvas) return;
+
+    canvas.width =
+        window.innerWidth;
+
+    canvas.height =
+        window.innerHeight;
+
+    const ground =
+        getGroundY();
+
+    if (
+        myPlayer &&
+        onGround
+    ) {
+
+        myPlayer.y =
+            ground;
+
+    }
+
+    if (
+        ai &&
+        aiOnGround
+    ) {
+
+        ai.y =
+            ground;
+
+    }
+
+}
+
+
+window.addEventListener(
+    "resize",
+    resizeCanvas
+);
+
+
+// =======================================
+// GROUND
+// =======================================
+
+function getGroundY() {
+
+    if (!canvas) {
+
+        return 500;
+
+    }
+
+    return canvas.height - 120;
+
+}
+
+
+// =======================================
+// FIX PLAYER SPAWN
+// =======================================
+
+function fixPlayerSpawn(player) {
+
+    if (!player) return;
+
+    const ground =
+        getGroundY();
+
+    // بازیکن تازه وارد
+    // همیشه روی زمین قرار بگیرد
+
+    if (
+        player.y === undefined ||
+        player.y === null ||
+        !Number.isFinite(
+            Number(player.y)
+        ) ||
+        Number(player.y) <= 0
+    ) {
+
+        player.y =
+            ground;
+
+    }
+
+}
+
+
+// =======================================
 // ONLINE PLAYERS
 // =======================================
 
@@ -739,13 +843,19 @@ socket.on(
         players = {};
 
         if (!Array.isArray(list)) {
+
             return;
+
         }
 
         list.forEach(
             function (player) {
 
                 if (!player) return;
+
+                fixPlayerSpawn(
+                    player
+                );
 
                 players[
                     player.id
@@ -759,6 +869,12 @@ socket.on(
 
                     myPlayer =
                         player;
+
+                    onGround =
+                        true;
+
+                    velocityY =
+                        0;
 
                 }
 
@@ -778,6 +894,19 @@ socket.on(
     function (player) {
 
         if (!player) return;
+
+        /*
+         * مختصات بازیکن از موبایل/Nokia
+         * می‌تواند با ارتفاع صفحه PC متفاوت باشد.
+         *
+         * اگر بازیکن تازه وارد باشد،
+         * آن را روی زمین قرار می‌دهیم.
+         */
+
+        fixPlayerSpawn(
+            player
+        );
+
 
         if (
             !players[player.id]
@@ -876,78 +1005,6 @@ socket.on(
 
     }
 );
-
-
-// =======================================
-// CANVAS
-// =======================================
-
-const canvas =
-    document.getElementById(
-        "gameCanvas"
-    );
-
-const ctx =
-    canvas
-        ? canvas.getContext("2d")
-        : null;
-
-
-function resizeCanvas() {
-
-    if (!canvas) return;
-
-    canvas.width =
-        window.innerWidth;
-
-    canvas.height =
-        window.innerHeight;
-
-    const ground =
-        getGroundY();
-
-    if (
-        myPlayer &&
-        onGround
-    ) {
-
-        myPlayer.y =
-            ground;
-
-    }
-
-    if (
-        ai &&
-        aiOnGround
-    ) {
-
-        ai.y =
-            ground;
-
-    }
-
-}
-
-
-window.addEventListener(
-    "resize",
-    resizeCanvas
-);
-
-
-// =======================================
-// GROUND
-// =======================================
-
-function getGroundY() {
-
-    if (!canvas) {
-        return 500;
-    }
-
-    return canvas.height - 120;
-
-}
 
 
 // =======================================
@@ -1108,7 +1165,8 @@ function updatePlayer() {
 
     if (!myPlayer) return;
 
-    let moving = false;
+    let moving =
+        false;
 
 
     // LEFT
@@ -1122,7 +1180,8 @@ function updatePlayer() {
         myPlayer.x -=
             SPEED;
 
-        moving = true;
+        moving =
+            true;
 
     }
 
@@ -1138,7 +1197,8 @@ function updatePlayer() {
         myPlayer.x +=
             SPEED;
 
-        moving = true;
+        moving =
+            true;
 
     }
 
@@ -1260,6 +1320,7 @@ function updateAI() {
 
     }
 
+
     const ground =
         getGroundY();
 
@@ -1324,6 +1385,7 @@ function updateAI() {
 
     aiDirectionTimer--;
 
+
     if (
         aiDirectionTimer <=
         0
@@ -1335,6 +1397,7 @@ function updateAI() {
                 Math.random() *
                 150
             );
+
 
         if (
             Math.abs(distance) <
@@ -1380,6 +1443,7 @@ function updateGameUI() {
                 myPlayer.x -
                 ai.x
             );
+
 
         if (
             distance < 75
@@ -1435,6 +1499,7 @@ function drawSky() {
         "#38bdf8"
     );
 
+
     gradient.addColorStop(
         1,
         "#bae6fd"
@@ -1460,6 +1525,7 @@ function drawSky() {
 
     ctx.beginPath();
 
+
     ctx.arc(
         canvas.width - 100,
         90,
@@ -1467,6 +1533,7 @@ function drawSky() {
         0,
         Math.PI * 2
     );
+
 
     ctx.fill();
 
@@ -1496,10 +1563,13 @@ function drawCloud(
 
     if (!ctx) return;
 
+
     ctx.fillStyle =
         "#ffffffcc";
 
+
     ctx.beginPath();
+
 
     ctx.arc(
         x,
@@ -1509,6 +1579,7 @@ function drawCloud(
         Math.PI * 2
     );
 
+
     ctx.arc(
         x + 25 * scale,
         y - 8 * scale,
@@ -1516,6 +1587,7 @@ function drawCloud(
         0,
         Math.PI * 2
     );
+
 
     ctx.arc(
         x + 55 * scale,
@@ -1525,6 +1597,7 @@ function drawCloud(
         Math.PI * 2
     );
 
+
     ctx.fillRect(
         x - 5 * scale,
         y,
@@ -1532,13 +1605,14 @@ function drawCloud(
         20 * scale
     );
 
+
     ctx.fill();
 
 }
 
 
 // =======================================
-// GROUND DRAW
+// GROUND
 // =======================================
 
 function drawGround() {
@@ -1552,6 +1626,7 @@ function drawGround() {
 
     }
 
+
     const ground =
         getGroundY();
 
@@ -1560,6 +1635,7 @@ function drawGround() {
 
     ctx.fillStyle =
         "#22c55e";
+
 
     ctx.fillRect(
         0,
@@ -1574,6 +1650,7 @@ function drawGround() {
     ctx.fillStyle =
         "#166534";
 
+
     ctx.fillRect(
         0,
         ground,
@@ -1586,6 +1663,7 @@ function drawGround() {
 
     ctx.fillStyle =
         "#92400e";
+
 
     ctx.fillRect(
         0,
@@ -1600,6 +1678,7 @@ function drawGround() {
     ctx.fillStyle =
         "#6b3f1f";
 
+
     for (
         let x = 20;
         x < canvas.width;
@@ -1607,6 +1686,7 @@ function drawGround() {
     ) {
 
         ctx.beginPath();
+
 
         ctx.arc(
             x,
@@ -1616,6 +1696,7 @@ function drawGround() {
             Math.PI * 2
         );
 
+
         ctx.fill();
 
     }
@@ -1624,7 +1705,7 @@ function drawGround() {
 
 
 // =======================================
-// BEAUTIFUL PLAYER
+// PLAYER
 // =======================================
 
 function drawStickman(
@@ -1649,13 +1730,12 @@ function drawStickman(
         player.y;
 
 
-    // SCALE
-
     const minScreen =
         Math.min(
             canvas.width,
             canvas.height
         );
+
 
     const scale =
         Math.max(
@@ -1666,27 +1746,30 @@ function drawStickman(
             )
         );
 
+
     const s =
         scale;
 
-
-    // COLORS
 
     const bodyColor =
         isAI
             ? "#ef4444"
             : "#2563eb";
 
+
     const bodyDark =
         isAI
             ? "#b91c1c"
             : "#1d4ed8";
 
+
     const skin =
         "#f4c7a1";
 
+
     const shoe =
         "#111827";
+
 
     const shirt =
         isAI
@@ -1695,6 +1778,7 @@ function drawStickman(
 
 
     ctx.save();
+
 
     ctx.lineCap =
         "round";
@@ -1708,7 +1792,9 @@ function drawStickman(
     ctx.fillStyle =
         "rgba(0,0,0,0.20)";
 
+
     ctx.beginPath();
+
 
     ctx.ellipse(
         x,
@@ -1720,6 +1806,7 @@ function drawStickman(
         Math.PI * 2
     );
 
+
     ctx.fill();
 
 
@@ -1728,36 +1815,43 @@ function drawStickman(
     ctx.strokeStyle =
         "#1f2937";
 
+
     ctx.lineWidth =
         8 * s;
 
 
     ctx.beginPath();
 
+
     ctx.moveTo(
         x,
         y + 20 * s
     );
+
 
     ctx.lineTo(
         x - 18 * s,
         y + 53 * s
     );
 
+
     ctx.stroke();
 
 
     ctx.beginPath();
+
 
     ctx.moveTo(
         x,
         y + 20 * s
     );
 
+
     ctx.lineTo(
         x + 18 * s,
         y + 53 * s
     );
+
 
     ctx.stroke();
 
@@ -1776,6 +1870,7 @@ function drawStickman(
         5 * s
     );
 
+
     ctx.fill();
 
 
@@ -1787,6 +1882,7 @@ function drawStickman(
         5 * s
     );
 
+
     ctx.fill();
 
 
@@ -1794,6 +1890,7 @@ function drawStickman(
 
     ctx.fillStyle =
         shirt;
+
 
     roundRect(
         x - 19 * s,
@@ -1803,6 +1900,7 @@ function drawStickman(
         12 * s
     );
 
+
     ctx.fill();
 
 
@@ -1810,6 +1908,7 @@ function drawStickman(
 
     ctx.fillStyle =
         bodyColor;
+
 
     roundRect(
         x - 13 * s,
@@ -1819,6 +1918,7 @@ function drawStickman(
         8 * s
     );
 
+
     ctx.fill();
 
 
@@ -1827,36 +1927,43 @@ function drawStickman(
     ctx.strokeStyle =
         bodyDark;
 
+
     ctx.lineWidth =
         8 * s;
 
 
     ctx.beginPath();
 
+
     ctx.moveTo(
         x - 16 * s,
         y - 15 * s
     );
+
 
     ctx.lineTo(
         x - 38 * s,
         y + 8 * s
     );
 
+
     ctx.stroke();
 
 
     ctx.beginPath();
+
 
     ctx.moveTo(
         x + 16 * s,
         y - 15 * s
     );
 
+
     ctx.lineTo(
         x + 38 * s,
         y + 8 * s
     );
+
 
     ctx.stroke();
 
@@ -1869,6 +1976,7 @@ function drawStickman(
 
     ctx.beginPath();
 
+
     ctx.arc(
         x - 40 * s,
         y + 10 * s,
@@ -1877,10 +1985,12 @@ function drawStickman(
         Math.PI * 2
     );
 
+
     ctx.fill();
 
 
     ctx.beginPath();
+
 
     ctx.arc(
         x + 40 * s,
@@ -1890,6 +2000,7 @@ function drawStickman(
         Math.PI * 2
     );
 
+
     ctx.fill();
 
 
@@ -1897,6 +2008,7 @@ function drawStickman(
 
     ctx.fillStyle =
         skin;
+
 
     roundRect(
         x - 8 * s,
@@ -1906,6 +2018,7 @@ function drawStickman(
         5 * s
     );
 
+
     ctx.fill();
 
 
@@ -1914,7 +2027,9 @@ function drawStickman(
     ctx.fillStyle =
         skin;
 
+
     ctx.beginPath();
+
 
     ctx.arc(
         x,
@@ -1924,6 +2039,7 @@ function drawStickman(
         Math.PI * 2
     );
 
+
     ctx.fill();
 
 
@@ -1932,7 +2048,9 @@ function drawStickman(
     ctx.fillStyle =
         "#111827";
 
+
     ctx.beginPath();
+
 
     ctx.arc(
         x,
@@ -1941,6 +2059,7 @@ function drawStickman(
         Math.PI,
         Math.PI * 2
     );
+
 
     ctx.fill();
 
@@ -1953,6 +2072,7 @@ function drawStickman(
 
     ctx.beginPath();
 
+
     ctx.arc(
         x - 8 * s,
         y - 59 * s,
@@ -1961,10 +2081,12 @@ function drawStickman(
         Math.PI * 2
     );
 
+
     ctx.fill();
 
 
     ctx.beginPath();
+
 
     ctx.arc(
         x + 8 * s,
@@ -1973,6 +2095,7 @@ function drawStickman(
         0,
         Math.PI * 2
     );
+
 
     ctx.fill();
 
@@ -2020,14 +2143,17 @@ function drawStickman(
         8
     );
 
+
     ctx.fill();
 
 
     ctx.fillStyle =
         "#ffffff";
 
+
     ctx.textAlign =
         "center";
+
 
     ctx.textBaseline =
         "middle";
@@ -2048,8 +2174,10 @@ function drawStickman(
         ctx.fillStyle =
             "#facc15";
 
+
         ctx.font =
             `bold ${12 * s}px Arial`;
+
 
         ctx.fillText(
             "🤖",
@@ -2080,6 +2208,7 @@ function roundRect(
 
     if (!ctx) return;
 
+
     const r =
         Math.min(
             radius,
@@ -2089,6 +2218,7 @@ function roundRect(
 
 
     ctx.beginPath();
+
 
     ctx.moveTo(
         x + r,
@@ -2223,7 +2353,9 @@ function drawGame() {
 function gameLoop() {
 
     if (!gameRunning) {
+
         return;
+
     }
 
 
@@ -2253,6 +2385,4 @@ function gameLoop() {
 
 // =======================================
 // END
-// =======================================
-// بخش fullscreenchange حذف شد
 // =======================================
