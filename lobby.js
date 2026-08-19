@@ -106,8 +106,10 @@ async function enterGameFullscreen() {
 
     try {
 
-        if (document.fullscreenElement) {
-            return true;
+        if (
+            document.fullscreenElement
+        ) {
+            return;
         }
 
         if (
@@ -117,8 +119,6 @@ async function enterGameFullscreen() {
             await document.documentElement.requestFullscreen({
                 navigationUI: "hide"
             });
-
-            return true;
         }
 
     } catch (error) {
@@ -126,61 +126,6 @@ async function enterGameFullscreen() {
         console.log(
             "Fullscreen unavailable:",
             error
-        );
-    }
-
-    return false;
-}
-
-
-// =======================================
-// LOCK PORTRAIT WHEN POSSIBLE
-// =======================================
-
-async function lockPortrait() {
-
-    try {
-
-        if (
-            screen.orientation &&
-            screen.orientation.lock
-        ) {
-
-            await screen.orientation.lock(
-                "portrait"
-            );
-        }
-
-    } catch (error) {
-
-        // بعضی مرورگرها اجازه نمی‌دهند
-        console.log(
-            "Orientation lock unavailable"
-        );
-    }
-}
-
-
-// =======================================
-// EXIT FULLSCREEN
-// =======================================
-
-async function exitGameFullscreen() {
-
-    try {
-
-        if (
-            document.fullscreenElement &&
-            document.exitFullscreen
-        ) {
-
-            await document.exitFullscreen();
-        }
-
-    } catch (error) {
-
-        console.log(
-            "Exit fullscreen failed"
         );
     }
 }
@@ -192,7 +137,7 @@ async function exitGameFullscreen() {
 
 if (confirmName) {
 
-    confirmName.onclick = () => {
+    confirmName.onclick = function () {
 
         const name =
             nameInput.value.trim();
@@ -205,6 +150,7 @@ if (confirmName) {
                 );
 
             if (error) {
+
                 error.textContent =
                     "اول اسمت رو وارد کن.";
             }
@@ -230,13 +176,11 @@ if (nameInput) {
 
     nameInput.addEventListener(
         "keydown",
-        (e) => {
+        function (e) {
 
             if (e.key === "Enter") {
 
-                if (confirmName) {
-                    confirmName.click();
-                }
+                confirmName.click();
             }
         }
     );
@@ -249,7 +193,7 @@ if (nameInput) {
 
 if (onlineCard) {
 
-    onlineCard.onclick = () => {
+    onlineCard.onclick = function () {
 
         modeScreen.classList.add(
             "hidden"
@@ -264,7 +208,7 @@ if (onlineCard) {
 
 if (offlineCard) {
 
-    offlineCard.onclick = () => {
+    offlineCard.onclick = function () {
 
         modeScreen.classList.add(
             "hidden"
@@ -279,7 +223,7 @@ if (offlineCard) {
 
 if (backToModes) {
 
-    backToModes.onclick = () => {
+    backToModes.onclick = function () {
 
         offlineScreen.classList.add(
             "hidden"
@@ -294,7 +238,7 @@ if (backToModes) {
 
 if (backFromOnline) {
 
-    backFromOnline.onclick = () => {
+    backFromOnline.onclick = function () {
 
         onlineScreen.classList.add(
             "hidden"
@@ -313,11 +257,9 @@ if (backFromOnline) {
 
 if (aiCard) {
 
-    aiCard.onclick = async () => {
+    aiCard.onclick = async function () {
 
         await enterGameFullscreen();
-
-        await lockPortrait();
 
         startOfflineGame(true);
     };
@@ -330,11 +272,9 @@ if (aiCard) {
 
 if (soloCard) {
 
-    soloCard.onclick = async () => {
+    soloCard.onclick = async function () {
 
         await enterGameFullscreen();
-
-        await lockPortrait();
 
         startOfflineGame(false);
     };
@@ -342,7 +282,7 @@ if (soloCard) {
 
 
 // =======================================
-// START OFFLINE GAME
+// START OFFLINE
 // =======================================
 
 function startOfflineGame(withAI) {
@@ -453,7 +393,7 @@ function setupOfflinePlayers(withAI) {
 
 if (showJoin) {
 
-    showJoin.onclick = () => {
+    showJoin.onclick = function () {
 
         if (joinBox) {
 
@@ -469,7 +409,7 @@ if (roomInput) {
 
     roomInput.addEventListener(
         "input",
-        () => {
+        function () {
 
             roomInput.value =
                 roomInput.value
@@ -482,7 +422,7 @@ if (roomInput) {
 
 if (createRoom) {
 
-    createRoom.onclick = () => {
+    createRoom.onclick = function () {
 
         createRoom.disabled = true;
 
@@ -505,7 +445,7 @@ if (createRoom) {
 
 socket.on(
     "roomCreated",
-    (data) => {
+    function (data) {
 
         roomCode =
             String(
@@ -559,7 +499,7 @@ socket.on(
 
 if (joinRoom) {
 
-    joinRoom.onclick = () => {
+    joinRoom.onclick = function () {
 
         const code =
             roomInput
@@ -584,8 +524,7 @@ if (joinRoom) {
             return;
         }
 
-        joinRoom.disabled =
-            true;
+        joinRoom.disabled = true;
 
         joinRoom.textContent =
             "⏳ در حال ورود...";
@@ -607,7 +546,7 @@ if (joinRoom) {
 
 socket.on(
     "roomJoined",
-    (data) => {
+    function (data) {
 
         roomCode =
             String(
@@ -661,17 +600,11 @@ socket.on(
 
 if (readyButton) {
 
-    readyButton.onclick = async () => {
-
-        // Fullscreen حتماً از کلیک کاربر
-        // درخواست می‌شود.
+    readyButton.onclick = async function () {
 
         await enterGameFullscreen();
 
-        await lockPortrait();
-
-        readyButton.disabled =
-            true;
+        readyButton.disabled = true;
 
         readyButton.textContent =
             "✅ آماده شدی";
@@ -695,7 +628,7 @@ if (readyButton) {
 
 socket.on(
     "readyUpdate",
-    (data) => {
+    function (data) {
 
         if (!roomStatus) return;
 
@@ -714,10 +647,7 @@ socket.on(
 
 socket.on(
     "startGame",
-    async () => {
-
-        // Fullscreen را دوباره تلاش می‌کنیم
-        // ولی اگر قبلاً فعال شده باشد کاری نمی‌کند.
+    async function () {
 
         await enterGameFullscreen();
 
@@ -751,7 +681,7 @@ socket.on(
 
 socket.on(
     "playersUpdate",
-    (list) => {
+    function (list) {
 
         players = {};
 
@@ -760,7 +690,7 @@ socket.on(
         }
 
         list.forEach(
-            (player) => {
+            function (player) {
 
                 if (!player) return;
 
@@ -788,7 +718,7 @@ socket.on(
 
 socket.on(
     "playerMoved",
-    (player) => {
+    function (player) {
 
         if (!player) return;
 
@@ -822,7 +752,7 @@ socket.on(
 
 socket.on(
     "playerLeft",
-    (id) => {
+    function (id) {
 
         delete players[id];
     }
@@ -835,7 +765,7 @@ socket.on(
 
 socket.on(
     "roomError",
-    (message) => {
+    function (message) {
 
         const error =
             document.getElementById(
@@ -853,6 +783,7 @@ socket.on(
                 error.textContent =
                     message.message ||
                     "خطا";
+
             } else {
 
                 error.textContent =
@@ -957,7 +888,7 @@ const keys = {};
 
 document.addEventListener(
     "keydown",
-    (e) => {
+    function (e) {
 
         keys[
             e.key.toLowerCase()
@@ -972,9 +903,10 @@ document.addEventListener(
     }
 );
 
+
 document.addEventListener(
     "keyup",
-    (e) => {
+    function (e) {
 
         keys[
             e.key.toLowerCase()
@@ -1006,7 +938,7 @@ function setupMobileButton(
 
     button.addEventListener(
         "touchstart",
-        (e) => {
+        function (e) {
 
             e.preventDefault();
 
@@ -1019,7 +951,7 @@ function setupMobileButton(
 
     button.addEventListener(
         "touchend",
-        (e) => {
+        function (e) {
 
             e.preventDefault();
 
@@ -1032,7 +964,7 @@ function setupMobileButton(
 
     button.addEventListener(
         "touchcancel",
-        () => {
+        function () {
 
             keys[key] = false;
         }
@@ -1040,7 +972,7 @@ function setupMobileButton(
 
     button.addEventListener(
         "mousedown",
-        () => {
+        function () {
 
             keys[key] = true;
         }
@@ -1048,7 +980,7 @@ function setupMobileButton(
 
     button.addEventListener(
         "mouseup",
-        () => {
+        function () {
 
             keys[key] = false;
         }
@@ -1056,7 +988,7 @@ function setupMobileButton(
 
     button.addEventListener(
         "mouseleave",
-        () => {
+        function () {
 
             keys[key] = false;
         }
@@ -1090,6 +1022,7 @@ function updatePlayer() {
 
     let moving = false;
 
+
     // LEFT
 
     if (
@@ -1103,6 +1036,7 @@ function updatePlayer() {
         moving = true;
     }
 
+
     // RIGHT
 
     if (
@@ -1115,6 +1049,7 @@ function updatePlayer() {
 
         moving = true;
     }
+
 
     // JUMP
 
@@ -1135,6 +1070,7 @@ function updatePlayer() {
             false;
     }
 
+
     // GRAVITY
 
     velocityY +=
@@ -1143,8 +1079,10 @@ function updatePlayer() {
     myPlayer.y +=
         velocityY;
 
+
     const ground =
         getGroundY();
+
 
     // GROUND
 
@@ -1163,7 +1101,8 @@ function updatePlayer() {
             true;
     }
 
-    // BORDERS
+
+    // LEFT BORDER
 
     if (
         myPlayer.x < 35
@@ -1172,6 +1111,9 @@ function updatePlayer() {
         myPlayer.x =
             35;
     }
+
+
+    // RIGHT BORDER
 
     if (
         canvas &&
@@ -1182,6 +1124,7 @@ function updatePlayer() {
         myPlayer.x =
             canvas.width - 35;
     }
+
 
     // ONLINE SYNC
 
@@ -1225,7 +1168,8 @@ function updateAI() {
         myPlayer.x -
         ai.x;
 
-    // حرکت AI به سمت بازیکن
+
+    // FOLLOW PLAYER
 
     if (
         Math.abs(distance) >
@@ -1246,6 +1190,7 @@ function updateAI() {
         }
     }
 
+
     // GRAVITY
 
     aiVelocityY +=
@@ -1253,6 +1198,7 @@ function updateAI() {
 
     ai.y +=
         aiVelocityY;
+
 
     // GROUND
 
@@ -1270,6 +1216,7 @@ function updateAI() {
         aiOnGround =
             true;
     }
+
 
     // AI JUMP
 
@@ -1316,6 +1263,7 @@ function updateGameUI() {
 
     if (!score) return;
 
+
     if (
         gameMode === "AI" &&
         ai &&
@@ -1329,8 +1277,7 @@ function updateGameUI() {
             );
 
         if (
-            distance <
-            75
+            distance < 75
         ) {
 
             score.textContent =
@@ -1356,7 +1303,12 @@ function updateGameUI() {
 
 function drawSky() {
 
-    if (!ctx || !canvas) return;
+    if (
+        !ctx ||
+        !canvas
+    ) {
+        return;
+    }
 
     const gradient =
         ctx.createLinearGradient(
@@ -1386,6 +1338,7 @@ function drawSky() {
         canvas.height
     );
 
+
     // SUN
 
     ctx.fillStyle =
@@ -1402,6 +1355,7 @@ function drawSky() {
     );
 
     ctx.fill();
+
 
     // CLOUDS
 
@@ -1473,10 +1427,16 @@ function drawCloud(
 
 function drawGround() {
 
-    if (!ctx || !canvas) return;
+    if (
+        !ctx ||
+        !canvas
+    ) {
+        return;
+    }
 
     const ground =
         getGroundY();
+
 
     // GRASS
 
@@ -1490,6 +1450,7 @@ function drawGround() {
         120
     );
 
+
     // GRASS EDGE
 
     ctx.fillStyle =
@@ -1501,6 +1462,7 @@ function drawGround() {
         canvas.width,
         9
     );
+
 
     // DIRT
 
@@ -1514,7 +1476,8 @@ function drawGround() {
         111
     );
 
-    // SMALL STONES
+
+    // ROCKS
 
     ctx.fillStyle =
         "#6b3f1f";
@@ -1549,7 +1512,12 @@ function drawStickman(
     isAI = false
 ) {
 
-    if (!ctx || !player) return;
+    if (
+        !ctx ||
+        !player
+    ) {
+        return;
+    }
 
     const x =
         player.x;
@@ -1557,7 +1525,8 @@ function drawStickman(
     const y =
         player.y;
 
-    // SCALE FOR PC AND MOBILE
+
+    // SCALE
 
     const minScreen =
         Math.min(
@@ -1576,6 +1545,7 @@ function drawStickman(
 
     const s =
         scale;
+
 
     // COLORS
 
@@ -1599,6 +1569,7 @@ function drawStickman(
         isAI
             ? "#dc2626"
             : "#22c55e";
+
 
     ctx.save();
 
@@ -1637,6 +1608,7 @@ function drawStickman(
     ctx.lineWidth =
         8 * s;
 
+
     ctx.beginPath();
 
     ctx.moveTo(
@@ -1650,6 +1622,7 @@ function drawStickman(
     );
 
     ctx.stroke();
+
 
     ctx.beginPath();
 
@@ -1708,7 +1681,7 @@ function drawStickman(
     ctx.fill();
 
 
-    // BODY LIGHT
+    // BODY
 
     ctx.fillStyle =
         bodyColor;
@@ -1732,6 +1705,7 @@ function drawStickman(
     ctx.lineWidth =
         8 * s;
 
+
     ctx.beginPath();
 
     ctx.moveTo(
@@ -1745,6 +1719,7 @@ function drawStickman(
     );
 
     ctx.stroke();
+
 
     ctx.beginPath();
 
@@ -1777,6 +1752,7 @@ function drawStickman(
     );
 
     ctx.fill();
+
 
     ctx.beginPath();
 
@@ -1860,6 +1836,7 @@ function drawStickman(
 
     ctx.fill();
 
+
     ctx.beginPath();
 
     ctx.arc(
@@ -1877,7 +1854,11 @@ function drawStickman(
 
     const name =
         player.name ||
-        (isAI ? "AI" : "Player");
+        (
+            isAI
+                ? "AI"
+                : "Player"
+        );
 
     const fontSize =
         Math.max(
@@ -1889,20 +1870,27 @@ function drawStickman(
         `bold ${fontSize}px Arial`;
 
     const textWidth =
-        ctx.measureText(name).width;
+        ctx.measureText(
+            name
+        ).width;
+
 
     ctx.fillStyle =
         "rgba(17,24,39,0.82)";
 
     roundRect(
-        x - textWidth / 2 - 8,
-        y - 105 * s,
+        x -
+            textWidth / 2 -
+            8,
+        y -
+            105 * s,
         textWidth + 16,
         24 * s,
         8
     );
 
     ctx.fill();
+
 
     ctx.fillStyle =
         "#ffffff";
@@ -1916,7 +1904,8 @@ function drawStickman(
     ctx.fillText(
         name,
         x,
-        y - 93 * s
+        y -
+            93 * s
     );
 
 
@@ -1933,7 +1922,8 @@ function drawStickman(
         ctx.fillText(
             "🤖",
             x,
-            y - 118 * s
+            y -
+                118 * s
         );
     }
 
@@ -2011,7 +2001,10 @@ function roundRect(
 
 function drawGame() {
 
-    if (!ctx || !canvas) {
+    if (
+        !ctx ||
+        !canvas
+    ) {
         return;
     }
 
@@ -2048,23 +2041,24 @@ function drawGame() {
         gameMode === "ONLINE"
     ) {
 
-        Object.values(players)
-            .forEach(
-                (player) => {
+        Object.values(
+            players
+        ).forEach(
+            function (player) {
 
-                    if (
-                        player.id ===
-                        socket.id
-                    ) {
-                        return;
-                    }
-
-                    drawStickman(
-                        player,
-                        false
-                    );
+                if (
+                    player.id ===
+                    socket.id
+                ) {
+                    return;
                 }
-            );
+
+                drawStickman(
+                    player,
+                    false
+                );
+            }
+        );
     }
 }
 
@@ -2104,9 +2098,11 @@ function gameLoop() {
 
 document.addEventListener(
     "fullscreenchange",
-    () => {
+    function () {
 
-        if (!document.fullscreenElement) {
+        if (
+            !document.fullscreenElement
+        ) {
 
             console.log(
                 "Fullscreen exited"
