@@ -18,10 +18,19 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static(__dirname));
 
 app.get("/", (req, res) => {
-    res.sendFile(
-        path.join(__dirname, "index.html")
-    );
+    res.sendFile(path.join(__dirname, "index.html"));
 });
+
+
+// =======================================
+// WORLD SETTINGS
+// =======================================
+
+const WORLD_WIDTH = 3000;
+const GROUND_Y = 600;
+
+const SPAWN_X = 500;
+const SPAWN_DISTANCE = 120;
 
 
 // =======================================
@@ -29,18 +38,6 @@ app.get("/", (req, res) => {
 // =======================================
 
 const rooms = {};
-
-
-// =======================================
-// WORLD SETTINGS
-// =======================================
-
-// بازی مختصات ثابت دارد.
-// اندازه صفحه PC و موبایل روی مختصات بازی
-// تأثیر نمی‌گذارد.
-
-const WORLD_WIDTH = 1200;
-const WORLD_GROUND = 600;
 
 
 // =======================================
@@ -67,39 +64,71 @@ function makeRoomCode() {
 
 
 // =======================================
-// CREATE PLAYER
+// SAFE NAME
 // =======================================
 
-function createPlayer(
-    socket,
-    name,
-    x,
-    color,
-    isHost
-) {
+function getPlayerName(data) {
 
-    return {
+    let name = "Player";
 
-        id: socket.id,
+    if (
+        data &&
+        typeof data.name === "string"
+    ) {
 
-        name: name,
+        name = data.name
+            .trim()
+            .substring(0, 20);
 
-        // مختصات ثابت دنیای بازی
-        x: x,
+    }
 
-        // 0 یعنی روی زمین
-        y: 0,
+    if (!name) {
+        name = "Player";
+    }
 
-        // سرعت عمودی
-        velocityY: 0,
+    return name;
+}
 
-        color: color,
 
-        isHost: isHost,
+// =======================================
+// SPAWN POSITION
+// =======================================
 
-        ready: false
+function getSpawnX(room) {
 
-    };
+    const used = Object.values(room.players);
+
+    if (used.length === 0) {
+        return SPAWN_X;
+    }
+
+    // کنار آخرین بازیکن
+    const lastPlayer =
+        used[used.length - 1];
+
+    let x =
+        Number(lastPlayer.x) +
+        SPAWN_DISTANCE;
+
+    // اگر به آخر دنیا رسید
+    if (x > WORLD_WIDTH - 100) {
+
+        x =
+            Number(lastPlayer.x) -
+            SPAWN_DISTANCE;
+
+    }
+
+    // محدوده امن
+    x = Math.max(
+        100,
+        Math.min(
+            WORLD_WIDTH - 100,
+            x
+        )
+    );
+
+    return x;
 }
 
 
@@ -109,41 +138,13 @@ function createPlayer(
 
 function sendPlayers(code) {
 
-    const room =
-        rooms[code];
+    const room = rooms[code];
 
     if (!room) return;
 
     io.to(code).emit(
         "playersUpdate",
-        Object.values(
-            room.players
-        ).map(player => {
-
-            return {
-
-                id: player.id,
-
-                name: player.name,
-
-                x: player.x,
-
-                y: player.y,
-
-                velocityY:
-                    player.velocityY,
-
-                color: player.color,
-
-                isHost:
-                    player.isHost,
-
-                ready:
-                    player.ready
-
-            };
-
-        })
+        Object.values(room.players)
     );
 }
 
@@ -164,26 +165,20 @@ function leaveRoom(socket) {
 
     if (!room) {
 
-        socket.roomCode =
-            null;
+        socket.roomCode = null;
 
         return;
     }
 
 
-    delete room.players[
-        socket.id
-    ];
+    delete room.players[socket.id];
 
-    delete room.readyPlayers[
-        socket.id
-    ];
+    delete room.readyPlayers[socket.id];
 
 
     socket.leave(code);
 
-    socket.roomCode =
-        null;
+    socket.roomCode = null;
 
 
     io.to(code).emit(
@@ -193,15 +188,10 @@ function leaveRoom(socket) {
 
 
     const ids =
-        Object.keys(
-            room.players
-        );
+        Object.keys(room.players);
 
 
-    // ===================================
-    // NEW HOST
-    // ===================================
-
+    // انتقال هاست
     if (
         ids.length > 0 &&
         room.host === socket.id
@@ -210,11 +200,9 @@ function leaveRoom(socket) {
         room.host =
             ids[0];
 
-
         room.players[
             room.host
         ].isHost = true;
-
 
         io.to(code).emit(
             "newHost",
@@ -227,10 +215,7 @@ function leaveRoom(socket) {
     sendPlayers(code);
 
 
-    // ===================================
-    // DELETE EMPTY ROOM
-    // ===================================
-
+    // حذف اتاق
     if (ids.length === 0) {
 
         delete rooms[code];
@@ -246,7 +231,7 @@ function leaveRoom(socket) {
 
 
 // =======================================
-// SOCKET CONNECTION
+// CONNECTION
 // =======================================
 
 io.on(
@@ -259,9 +244,9 @@ io.on(
         );
 
 
-        // =================================
+        // ===================================
         // CREATE ROOM
-        // =================================
+        // ===================================
 
         socket.on(
             "createRoom",
@@ -270,52 +255,34 @@ io.on(
                 const code =
                     makeRoomCode();
 
-
-                let name =
-                    "Player";
-
-
-                if (
-                    data &&
-                    typeof data.name ===
-                    "string"
-                ) {
-
-                    name =
-                        data.name
-                            .trim()
-                            .substring(
-                                0,
-                                20
-                            );
+                const name =
+                    getPlayerName(data);
 
 
-                    if (!name) {
+                const player = {
 
-                        name =
-                            "Player";
+                    id: socket.id,
 
-                    }
+                    name: name,
 
-                }
+                    // مختصات دنیای بازی
+                    x: SPAWN_X,
+                    y: GROUND_Y,
 
+                    color: "#22c55e",
 
-                const player =
-                    createPlayer(
-                        socket,
-                        name,
-                        300,
-                        "#22c55e",
-                        true
-                    );
+                    isHost: true,
+
+                    ready: false
+
+                };
 
 
                 rooms[code] = {
 
                     code: code,
 
-                    host:
-                        socket.id,
+                    host: socket.id,
 
                     players: {
 
@@ -344,13 +311,14 @@ io.on(
                 socket.emit(
                     "roomCreated",
                     {
-
-                        roomCode:
-                            code,
-
-                        player:
-                            player
-
+                        roomCode: code,
+                        player: player,
+                        world: {
+                            width:
+                                WORLD_WIDTH,
+                            groundY:
+                                GROUND_Y
+                        }
                     }
                 );
 
@@ -361,9 +329,9 @@ io.on(
         );
 
 
-        // =================================
+        // ===================================
         // JOIN ROOM
-        // =================================
+        // ===================================
 
         socket.on(
             "joinRoom",
@@ -376,10 +344,10 @@ io.on(
                             ? data.roomCode
                             : ""
                     )
-                        .replace(
-                            /\D/g,
-                            ""
-                        );
+                    .replace(
+                        /\D/g,
+                        ""
+                    );
 
 
                 if (
@@ -392,7 +360,6 @@ io.on(
                     );
 
                     return;
-
                 }
 
 
@@ -408,7 +375,6 @@ io.on(
                     );
 
                     return;
-
                 }
 
 
@@ -424,68 +390,43 @@ io.on(
                     );
 
                     return;
-
                 }
 
 
-                let name =
-                    "Player";
+                const name =
+                    getPlayerName(data);
 
 
-                if (
-                    data &&
-                    typeof data.name ===
-                    "string"
-                ) {
-
-                    name =
-                        data.name
-                            .trim()
-                            .substring(
-                                0,
-                                20
-                            );
-
-
-                    if (!name) {
-
-                        name =
-                            "Player";
-
-                    }
-
-                }
-
-
-                /*
-                 * اسپاون ثابت
-                 *
-                 * بازیکن دوم همیشه در یک
-                 * مختصات ثابت دنیای بازی
-                 * قرار می‌گیرد.
-                 *
-                 * اندازه صفحه موبایل و PC
-                 * هیچ تأثیری ندارد.
-                 */
+                // ===============================
+                // SPAWN کنار بازیکن موجود
+                // ===============================
 
                 const spawnX =
-                    500;
+                    getSpawnX(room);
 
 
-                const player =
-                    createPlayer(
-                        socket,
-                        name,
-                        spawnX,
-                        "#3b82f6",
-                        false
-                    );
+                const player = {
+
+                    id: socket.id,
+
+                    name: name,
+
+                    // مختصات مشترک دنیا
+                    x: spawnX,
+                    y: GROUND_Y,
+
+                    color: "#3b82f6",
+
+                    isHost: false,
+
+                    ready: false
+
+                };
 
 
                 room.players[
                     socket.id
-                ] =
-                    player;
+                ] = player;
 
 
                 socket.join(code);
@@ -497,33 +438,37 @@ io.on(
                 console.log(
                     "PLAYER JOINED:",
                     socket.id,
-                    code
+                    code,
+                    "SPAWN:",
+                    spawnX
                 );
 
 
                 socket.emit(
                     "roomJoined",
                     {
-
-                        roomCode:
-                            code,
-
-                        player:
-                            player
-
+                        roomCode: code,
+                        player: player,
+                        world: {
+                            width:
+                                WORLD_WIDTH,
+                            groundY:
+                                GROUND_Y
+                        }
                     }
                 );
 
 
+                // کل وضعیت اتاق
                 sendPlayers(code);
 
             }
         );
 
 
-        // =================================
+        // ===================================
         // READY
-        // =================================
+        // ===================================
 
         socket.on(
             "readyForGame",
@@ -532,21 +477,18 @@ io.on(
                 const code =
                     socket.roomCode;
 
-
                 if (!code) return;
 
 
                 const room =
                     rooms[code];
 
-
                 if (!room) return;
 
 
                 room.readyPlayers[
                     socket.id
-                ] =
-                    true;
+                ] = true;
 
 
                 if (
@@ -557,8 +499,7 @@ io.on(
 
                     room.players[
                         socket.id
-                    ].ready =
-                        true;
+                    ].ready = true;
 
                 }
 
@@ -578,22 +519,14 @@ io.on(
                 io.to(code).emit(
                     "readyUpdate",
                     {
-
-                        ready:
-                            ready,
-
-                        total:
-                            total
-
+                        ready: ready,
+                        total: total
                     }
                 );
 
 
                 sendPlayers(code);
 
-
-                // حداقل دو بازیکن
-                // آماده باشند
 
                 if (
                     total >= 2 &&
@@ -610,9 +543,9 @@ io.on(
         );
 
 
-        // =================================
-        // PLAYER MOVEMENT
-        // =================================
+        // ===================================
+        // MOVEMENT
+        // ===================================
 
         socket.on(
             "playerMovement",
@@ -621,13 +554,11 @@ io.on(
                 const code =
                     socket.roomCode;
 
-
                 if (!code) return;
 
 
                 const room =
                     rooms[code];
-
 
                 if (!room) return;
 
@@ -637,114 +568,54 @@ io.on(
                         socket.id
                     ];
 
-
                 if (!player) return;
 
 
-                // =========================
-                // X
-                // =========================
-
                 if (
                     data &&
-                    typeof data.x ===
-                    "number" &&
                     Number.isFinite(
-                        data.x
+                        Number(data.x)
                     )
                 ) {
 
                     player.x =
                         Math.max(
-                            35,
+                            50,
                             Math.min(
-                                WORLD_WIDTH - 35,
-                                data.x
+                                WORLD_WIDTH - 50,
+                                Number(data.x)
                             )
                         );
 
                 }
 
 
-                /*
-                 * =========================
-                 * Y
-                 * =========================
-                 *
-                 * Y قبلی مشکل اصلی بود.
-                 *
-                 * دستگاه‌ها ارتفاع متفاوت
-                 * دارند، بنابراین y خام
-                 * صفحه را مستقیماً ذخیره
-                 * نمی‌کنیم.
-                 *
-                 * برای سازگاری با کد فعلی،
-                 * مقدار y معتبر دریافت می‌شود،
-                 * اما مختصات بازی به صورت
-                 * نسبی نگهداری می‌شود.
-                 */
-
-
                 if (
                     data &&
-                    typeof data.y ===
-                    "number" &&
                     Number.isFinite(
-                        data.y
+                        Number(data.y)
                     )
                 ) {
 
-                    /*
-                     * اگر بازیکن روی زمین است،
-                     * مقدار استاندارد 0 ذخیره شود.
-                     */
-
-                    if (
-                        data.y <= 0
-                    ) {
-
-                        player.y =
-                            0;
-
-                    } else {
-
-                        /*
-                         * برای پرش مقدار مثبت
-                         * را به یک محدوده ثابت
-                         * تبدیل می‌کنیم.
-                         */
-
-                        player.y =
-                            Math.max(
-                                0,
-                                Math.min(
-                                    600,
-                                    data.y
-                                )
-                            );
-
-                    }
+                    player.y =
+                        Math.max(
+                            -2000,
+                            Math.min(
+                                GROUND_Y,
+                                Number(data.y)
+                            )
+                        );
 
                 }
 
 
-                // =========================
-                // BROADCAST
-                // =========================
-
+                // ارسال مختصات واقعی
                 socket.to(code).emit(
                     "playerMoved",
                     {
-
-                        id:
-                            player.id,
-
-                        x:
-                            player.x,
-
-                        y:
-                            player.y
-
+                        id: player.id,
+                        x: player.x,
+                        y: player.y
                     }
                 );
 
@@ -752,9 +623,9 @@ io.on(
         );
 
 
-        // =================================
-        // LEAVE ROOM
-        // =================================
+        // ===================================
+        // LEAVE
+        // ===================================
 
         socket.on(
             "leaveRoom",
@@ -766,9 +637,9 @@ io.on(
         );
 
 
-        // =================================
+        // ===================================
         // DISCONNECT
-        // =================================
+        // ===================================
 
         socket.on(
             "disconnect",
@@ -778,7 +649,6 @@ io.on(
                     "DISCONNECTED:",
                     socket.id
                 );
-
 
                 leaveRoom(socket);
 
@@ -790,43 +660,38 @@ io.on(
 
 
 // =======================================
-// SERVER STATUS
+// STATUS
 // =======================================
 
 app.get(
     "/status",
     (req, res) => {
 
-        let players =
-            0;
+        let players = 0;
 
+        Object.values(rooms)
+            .forEach(
+                (room) => {
 
-        Object.values(
-            rooms
-        ).forEach(
-            (room) => {
+                    players +=
+                        Object.keys(
+                            room.players
+                        ).length;
 
-                players +=
-                    Object.keys(
-                        room.players
-                    ).length;
-
-            }
-        );
+                }
+            );
 
 
         res.json({
 
-            online:
-                true,
+            online: true,
 
             rooms:
                 Object.keys(
                     rooms
                 ).length,
 
-            players:
-                players
+            players: players
 
         });
 
@@ -835,7 +700,7 @@ app.get(
 
 
 // =======================================
-// START SERVER
+// SERVER
 // =======================================
 
 server.listen(
@@ -846,6 +711,16 @@ server.listen(
         console.log(
             "SERVER RUNNING ON PORT " +
             PORT
+        );
+
+        console.log(
+            "WORLD WIDTH:",
+            WORLD_WIDTH
+        );
+
+        console.log(
+            "GROUND Y:",
+            GROUND_Y
         );
 
     }
