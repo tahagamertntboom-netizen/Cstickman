@@ -35,25 +35,125 @@ function makeRoomCode() {
     return code;
 }
 
-function cleanName(name) {
-    if (typeof name !== "string") {
-        return "Player";
-    }
-
-    name = name.trim().substring(0, 20);
-
-    return name || "Player";
-}
-
 function sendPlayers(code) {
     const room = rooms[code];
-
     if (!room) return;
 
     io.to(code).emit(
         "playersUpdate",
         Object.values(room.players)
     );
+}
+
+function sendEnemies(code) {
+    const room = rooms[code];
+    if (!room) return;
+
+    io.to(code).emit(
+        "enemiesUpdate",
+        Object.values(room.enemies)
+    );
+}
+
+function createEnemy(room, level) {
+    const types = {
+        1: {
+            name: "موجود سبز",
+            emoji: "👹",
+            color: "#ef4444",
+            health: 50,
+            damage: 5,
+            speed: 1.2
+        },
+
+        2: {
+            name: "گرگ",
+            emoji: "🐺",
+            color: "#64748b",
+            health: 80,
+            damage: 8,
+            speed: 1.6
+        },
+
+        3: {
+            name: "خفاش",
+            emoji: "🦇",
+            color: "#7c3aed",
+            health: 110,
+            damage: 10,
+            speed: 2
+        },
+
+        4: {
+            name: "هیولای آتش",
+            emoji: "🔥",
+            color: "#f97316",
+            health: 160,
+            damage: 14,
+            speed: 2.2
+        },
+
+        5: {
+            name: "باس نهایی",
+            emoji: "👿",
+            color: "#991b1b",
+            health: 400,
+            damage: 20,
+            speed: 2.5
+        }
+    };
+
+    const type =
+        types[Math.min(level, 5)] ||
+        types[1];
+
+    const enemy = {
+        id:
+            "enemy_" +
+            Date.now() +
+            "_" +
+            Math.random()
+                .toString(36)
+                .substring(2, 8),
+
+        name: type.name,
+        emoji: type.emoji,
+
+        x:
+            300 +
+            Math.random() * 1200,
+
+        y: 0,
+
+        health: type.health,
+        maxHealth: type.health,
+
+        damage: type.damage,
+        speed: type.speed,
+
+        level: level
+    };
+
+    room.enemies[enemy.id] = enemy;
+
+    return enemy;
+}
+
+function setupEnemies(room) {
+    room.enemies = {};
+
+    const count =
+        Math.min(
+            2 + room.level,
+            8
+        );
+
+    for (let i = 0; i < count; i++) {
+        createEnemy(
+            room,
+            room.level
+        );
+    }
 }
 
 function leaveRoom(socket) {
@@ -79,12 +179,17 @@ function leaveRoom(socket) {
         socket.id
     );
 
-    const ids = Object.keys(room.players);
+    const ids =
+        Object.keys(room.players);
 
-    if (ids.length > 0 && room.host === socket.id) {
+    if (
+        ids.length > 0 &&
+        room.host === socket.id
+    ) {
         room.host = ids[0];
 
-        room.players[room.host].isHost = true;
+        room.players[room.host].isHost =
+            true;
 
         io.to(code).emit(
             "newHost",
@@ -111,293 +216,537 @@ io.on("connection", (socket) => {
         socket.id
     );
 
-    // =================================
+    // ============================
     // CREATE ROOM
-    // =================================
+    // ============================
 
-    socket.on("createRoom", (data) => {
+    socket.on(
+        "createRoom",
+        (data) => {
 
-        const code = makeRoomCode();
+            const code =
+                makeRoomCode();
 
-        const player = {
-            id: socket.id,
-            name: cleanName(data?.name),
+            let name = "Player";
 
-            // مختصات منطقی مشترک
-            x: 250,
-            y: 0,
+            if (
+                data &&
+                typeof data.name === "string"
+            ) {
+                name =
+                    data.name
+                        .trim()
+                        .substring(0, 20);
 
-            color: "#22c55e",
-
-            isHost: true,
-            ready: false
-        };
-
-        rooms[code] = {
-            code,
-
-            host: socket.id,
-
-            players: {
-                [socket.id]: player
-            },
-
-            readyPlayers: {}
-        };
-
-        socket.join(code);
-        socket.roomCode = code;
-
-        console.log(
-            "ROOM CREATED:",
-            code
-        );
-
-        socket.emit(
-            "roomCreated",
-            {
-                roomCode: code,
-                player
+                if (!name) {
+                    name = "Player";
+                }
             }
-        );
 
-        sendPlayers(code);
-    });
+            const player = {
+                id: socket.id,
 
-    // =================================
+                name,
+
+                x: 250,
+                y: 0,
+
+                color: "#22c55e",
+
+                health: 100,
+                maxHealth: 100,
+
+                level: 1,
+                xp: 0,
+
+                isHost: true,
+                ready: false
+            };
+
+            rooms[code] = {
+
+                code,
+
+                host: socket.id,
+
+                level: 1,
+
+                players: {
+                    [socket.id]: player
+                },
+
+                readyPlayers: {},
+
+                enemies: {}
+            };
+
+            setupEnemies(
+                rooms[code]
+            );
+
+            socket.join(code);
+
+            socket.roomCode =
+                code;
+
+            socket.emit(
+                "roomCreated",
+                {
+                    roomCode: code,
+                    player
+                }
+            );
+
+            sendPlayers(code);
+            sendEnemies(code);
+        }
+    );
+
+    // ============================
     // JOIN ROOM
-    // =================================
+    // ============================
 
-    socket.on("joinRoom", (data) => {
+    socket.on(
+        "joinRoom",
+        (data) => {
 
-        const code = String(
-            data?.roomCode || ""
-        ).replace(/\D/g, "");
+            const code =
+                String(
+                    data &&
+                    data.roomCode
+                        ? data.roomCode
+                        : ""
+                )
+                    .replace(/\D/g, "");
 
-        if (code.length !== 6) {
+            if (code.length !== 6) {
 
-            socket.emit(
-                "roomError",
-                "کد اتاق باید ۶ رقمی باشد."
-            );
+                socket.emit(
+                    "roomError",
+                    "کد اتاق باید ۶ رقمی باشد."
+                );
 
-            return;
-        }
-
-        const room = rooms[code];
-
-        if (!room) {
-
-            socket.emit(
-                "roomError",
-                "این اتاق وجود ندارد."
-            );
-
-            return;
-        }
-
-        if (
-            Object.keys(room.players).length >= 10
-        ) {
-
-            socket.emit(
-                "roomError",
-                "اتاق پر است."
-            );
-
-            return;
-        }
-
-        /*
-         * مهم:
-         * بازیکن جدید دیگر x=550 نمی‌گیرد.
-         * سرور موقعیت منطقی یکسان تعیین می‌کند.
-         */
-
-        const count =
-            Object.keys(room.players).length;
-
-        const spawnX =
-            250 + count * 100;
-
-        const player = {
-            id: socket.id,
-            name: cleanName(data?.name),
-
-            x: spawnX,
-            y: 0,
-
-            color: "#3b82f6",
-
-            isHost: false,
-            ready: false
-        };
-
-        room.players[socket.id] = player;
-
-        socket.join(code);
-        socket.roomCode = code;
-
-        console.log(
-            "PLAYER JOINED:",
-            socket.id,
-            code
-        );
-
-        socket.emit(
-            "roomJoined",
-            {
-                roomCode: code,
-                player
+                return;
             }
-        );
 
-        sendPlayers(code);
-    });
+            const room =
+                rooms[code];
 
-    // =================================
+            if (!room) {
+
+                socket.emit(
+                    "roomError",
+                    "این اتاق وجود ندارد."
+                );
+
+                return;
+            }
+
+            if (
+                Object.keys(
+                    room.players
+                ).length >= 10
+            ) {
+
+                socket.emit(
+                    "roomError",
+                    "اتاق پر است."
+                );
+
+                return;
+            }
+
+            let name = "Player";
+
+            if (
+                data &&
+                typeof data.name === "string"
+            ) {
+
+                name =
+                    data.name
+                        .trim()
+                        .substring(0, 20);
+
+                if (!name) {
+                    name = "Player";
+                }
+            }
+
+            const player = {
+
+                id: socket.id,
+
+                name,
+
+                x:
+                    350 +
+                    Math.random() * 500,
+
+                y: 0,
+
+                color: "#3b82f6",
+
+                health: 100,
+                maxHealth: 100,
+
+                level: 1,
+                xp: 0,
+
+                isHost: false,
+                ready: false
+            };
+
+            room.players[
+                socket.id
+            ] = player;
+
+            socket.join(code);
+
+            socket.roomCode =
+                code;
+
+            socket.emit(
+                "roomJoined",
+                {
+                    roomCode: code,
+                    player
+                }
+            );
+
+            sendPlayers(code);
+            sendEnemies(code);
+        }
+    );
+
+    // ============================
     // READY
-    // =================================
+    // ============================
 
-    socket.on("readyForGame", () => {
+    socket.on(
+        "readyForGame",
+        () => {
 
-        const code = socket.roomCode;
+            const code =
+                socket.roomCode;
 
-        if (!code) return;
+            if (!code) return;
 
-        const room = rooms[code];
+            const room =
+                rooms[code];
 
-        if (!room) return;
+            if (!room) return;
 
-        room.readyPlayers[socket.id] = true;
+            room.readyPlayers[
+                socket.id
+            ] = true;
 
-        if (room.players[socket.id]) {
-            room.players[socket.id].ready = true;
-        }
+            if (
+                room.players[
+                    socket.id
+                ]
+            ) {
 
-        const total =
-            Object.keys(room.players).length;
-
-        const ready =
-            Object.keys(room.readyPlayers).length;
-
-        io.to(code).emit(
-            "readyUpdate",
-            {
-                ready,
-                total
+                room.players[
+                    socket.id
+                ].ready = true;
             }
-        );
 
-        sendPlayers(code);
+            const total =
+                Object.keys(
+                    room.players
+                ).length;
 
-        if (
-            total >= 2 &&
-            ready >= 2
-        ) {
+            const ready =
+                Object.keys(
+                    room.readyPlayers
+                ).length;
 
             io.to(code).emit(
-                "startGame"
+                "readyUpdate",
+                {
+                    ready,
+                    total
+                }
+            );
+
+            sendPlayers(code);
+
+            if (
+                total >= 2 &&
+                ready >= 2
+            ) {
+
+                io.to(code).emit(
+                    "startGame"
+                );
+            }
+        }
+    );
+
+    // ============================
+    // MOVEMENT
+    // ============================
+
+    socket.on(
+        "playerMovement",
+        (data) => {
+
+            const code =
+                socket.roomCode;
+
+            if (!code) return;
+
+            const room =
+                rooms[code];
+
+            if (!room) return;
+
+            const player =
+                room.players[
+                    socket.id
+                ];
+
+            if (!player) return;
+
+            if (
+                data &&
+                Number.isFinite(
+                    Number(data.x)
+                )
+            ) {
+
+                player.x =
+                    Number(data.x);
+            }
+
+            if (
+                data &&
+                Number.isFinite(
+                    Number(data.y)
+                )
+            ) {
+
+                player.y =
+                    Number(data.y);
+            }
+
+            socket.to(code).emit(
+                "playerMoved",
+                {
+                    id: player.id,
+                    x: player.x,
+                    y: player.y
+                }
             );
         }
-    });
+    );
 
-    // =================================
-    // MOVEMENT
-    // =================================
+    // ============================
+    // ATTACK
+    // ============================
 
-    socket.on("playerMovement", (data) => {
+    socket.on(
+        "playerAttack",
+        () => {
 
-        const code = socket.roomCode;
+            const code =
+                socket.roomCode;
 
-        if (!code) return;
+            if (!code) return;
 
-        const room = rooms[code];
+            const room =
+                rooms[code];
 
-        if (!room) return;
+            if (!room) return;
 
-        const player =
-            room.players[socket.id];
+            const player =
+                room.players[
+                    socket.id
+                ];
 
-        if (!player) return;
+            if (!player) return;
 
-        if (
-            data &&
-            typeof data.x === "number" &&
-            Number.isFinite(data.x)
-        ) {
-            player.x = data.x;
+            const ATTACK_RANGE = 100;
+            const ATTACK_DAMAGE = 25;
+
+            Object.values(
+                room.enemies
+            ).forEach(
+                (enemy) => {
+
+                    const distance =
+                        Math.abs(
+                            player.x -
+                            enemy.x
+                        );
+
+                    if (
+                        distance <=
+                        ATTACK_RANGE
+                    ) {
+
+                        enemy.health -=
+                            ATTACK_DAMAGE;
+
+                        io.to(code).emit(
+                            "enemyHit",
+                            {
+                                id: enemy.id,
+                                health:
+                                    Math.max(
+                                        0,
+                                        enemy.health
+                                    )
+                            }
+                        );
+
+                        if (
+                            enemy.health <= 0
+                        ) {
+
+                            delete room.enemies[
+                                enemy.id
+                            ];
+
+                            player.xp += 25;
+
+                            const needed =
+                                player.level *
+                                100;
+
+                            if (
+                                player.xp >=
+                                needed
+                            ) {
+
+                                player.xp -=
+                                    needed;
+
+                                player.level++;
+
+                                io.to(code).emit(
+                                    "playerLevelUp",
+                                    {
+                                        id:
+                                            player.id,
+                                        level:
+                                            player.level
+                                    }
+                                );
+                            }
+
+                            socket.emit(
+                                "playerStats",
+                                {
+                                    health:
+                                        player.health,
+                                    level:
+                                        player.level,
+                                    xp:
+                                        player.xp
+                                }
+                            );
+
+                            setTimeout(
+                                () => {
+
+                                    if (
+                                        rooms[code]
+                                    ) {
+
+                                        createEnemy(
+                                            rooms[code],
+                                            player.level
+                                        );
+
+                                        sendEnemies(
+                                            code
+                                        );
+                                    }
+
+                                },
+                                1000
+                            );
+                        }
+                    }
+                }
+            );
+
+            sendEnemies(code);
+            sendPlayers(code);
         }
+    );
 
-        if (
-            data &&
-            typeof data.y === "number" &&
-            Number.isFinite(data.y)
-        ) {
-            player.y = data.y;
+    // ============================
+    // LEAVE
+    // ============================
+
+    socket.on(
+        "leaveRoom",
+        () => {
+
+            leaveRoom(socket);
+
         }
+    );
 
-        /*
-         * مختصات منطقی را برای همه یکسان می‌فرستیم.
-         */
-        socket.to(code).emit(
-            "playerMoved",
-            {
-                id: player.id,
-                x: player.x,
-                y: player.y
+    // ============================
+    // DISCONNECT
+    // ============================
+
+    socket.on(
+        "disconnect",
+        () => {
+
+            console.log(
+                "DISCONNECTED:",
+                socket.id
+            );
+
+            leaveRoom(socket);
+        }
+    );
+});
+
+
+// ============================
+// STATUS
+// ============================
+
+app.get(
+    "/status",
+    (req, res) => {
+
+        let players = 0;
+
+        Object.values(
+            rooms
+        ).forEach(
+            (room) => {
+
+                players +=
+                    Object.keys(
+                        room.players
+                    ).length;
             }
         );
-    });
 
-    // =================================
-    // LEAVE
-    // =================================
+        res.json({
+            online: true,
+            rooms:
+                Object.keys(
+                    rooms
+                ).length,
+            players
+        });
+    }
+);
 
-    socket.on("leaveRoom", () => {
-        leaveRoom(socket);
-    });
 
-    // =================================
-    // DISCONNECT
-    // =================================
-
-    socket.on("disconnect", () => {
-
-        console.log(
-            "DISCONNECTED:",
-            socket.id
-        );
-
-        leaveRoom(socket);
-    });
-});
-
-// =================================
-// STATUS
-// =================================
-
-app.get("/status", (req, res) => {
-
-    let players = 0;
-
-    Object.values(rooms).forEach(room => {
-
-        players +=
-            Object.keys(room.players).length;
-
-    });
-
-    res.json({
-        online: true,
-        rooms: Object.keys(rooms).length,
-        players
-    });
-});
-
-// =================================
-// START
-// =================================
+// ============================
+// SERVER
+// ============================
 
 server.listen(
     PORT,
@@ -408,6 +757,5 @@ server.listen(
             "SERVER RUNNING ON PORT " +
             PORT
         );
-
     }
 );
