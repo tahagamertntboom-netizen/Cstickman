@@ -1,46 +1,27 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
-
 <head>
-
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
->
-
-<title>Stickman Multiplayer</title>
+<title>Stickman</title>
 
 <style>
-
 *{
     box-sizing:border-box;
     -webkit-tap-highlight-color:transparent;
 }
 
-html,
-body{
-
+html,body{
     margin:0;
-
     width:100%;
     height:100%;
-
     overflow:hidden;
-
     font-family:Arial,sans-serif;
 }
 
 body{
-
-    background:
-    linear-gradient(
-        135deg,
-        #020617,
-        #172554,
-        #312e81
-    );
+    background:linear-gradient(135deg,#020617,#172554,#312e81);
 }
 
 .hidden{
@@ -48,103 +29,67 @@ body{
 }
 
 .screen{
-
     width:100%;
     height:100%;
-
     display:flex;
-
     justify-content:center;
     align-items:center;
-
     padding:20px;
 }
 
 .box{
-
     width:92%;
-    max-width:430px;
-
+    max-width:480px;
     padding:30px;
-
     background:#111827;
-
     color:white;
-
     border-radius:25px;
-
     text-align:center;
-
-    box-shadow:
-    0 20px 70px #000b;
+    box-shadow:0 20px 70px #000b;
 }
 
 h1{
-
     margin-top:0;
+    font-size:42px;
+}
 
-    font-size:40px;
+h2{
+    margin-bottom:8px;
 }
 
 p{
-
-    font-size:17px;
+    color:#d1d5db;
 }
 
 input{
-
     width:100%;
-
     padding:16px;
-
-    margin-top:10px;
-
     border:0;
-
     border-radius:12px;
-
+    margin-top:10px;
     font-size:18px;
-
     text-align:center;
-
     outline:none;
 }
 
 button{
-
     width:100%;
-
     padding:16px;
-
-    margin-top:12px;
-
     border:0;
-
-    border-radius:12px;
-
+    border-radius:14px;
+    margin-top:12px;
     color:white;
-
     font-size:18px;
-
     font-weight:bold;
-
     cursor:pointer;
 }
 
 button:active{
-
-    transform:scale(.96);
-}
-
-button:disabled{
-
-    opacity:.6;
-
-    cursor:not-allowed;
+    transform:scale(.97);
 }
 
 .green{
-    background:#22c55e;
+    background:#16a34a;
 }
 
 .blue{
@@ -159,386 +104,384 @@ button:disabled{
     background:#374151;
 }
 
+.cardRow{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:15px;
+    margin-top:20px;
+}
+
+.modeCard{
+    min-height:160px;
+    padding:20px;
+    border-radius:20px;
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    transition:.15s;
+}
+
+.modeCard:active{
+    transform:scale(.96);
+}
+
+.modeCard .icon{
+    font-size:55px;
+    margin-bottom:10px;
+}
+
+.onlineCard{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+}
+
+.offlineCard{
+    background:linear-gradient(135deg,#7c3aed,#5b21b6);
+}
+
+.offlineOption{
+    min-height:140px;
+}
+
+.aiCard{
+    background:linear-gradient(135deg,#16a34a,#15803d);
+}
+
+.soloCard{
+    background:linear-gradient(135deg,#374151,#1f2937);
+}
+
 .error{
-
     color:#f87171;
-
     min-height:25px;
-
     margin-top:10px;
 }
 
-.room-code{
-
-    direction:ltr;
-
-    font-size:48px;
-
-    font-weight:bold;
-
-    letter-spacing:8px;
-
-    color:#22c55e;
-
-    margin:25px 0;
-}
-
-.waiting{
-
-    color:#fbbf24;
-
-    margin-top:15px;
-}
-
-
-/* ================================
-   GAME
-================================ */
+/* GAME */
 
 #gameScreen{
-
-    position:fixed;
-
-    inset:0;
-
     display:none;
-
-    overflow:hidden;
-
+    position:fixed;
+    inset:0;
     background:#87ceeb;
 }
 
 #gameCanvas{
-
     position:absolute;
-
     inset:0;
-
     width:100%;
     height:100%;
-
     touch-action:none;
 }
 
-#gameInfo{
-
+#gameTop{
     position:fixed;
-
     top:15px;
     left:15px;
-
+    right:15px;
     z-index:20;
-
-    padding:10px 15px;
-
-    background:#0009;
-
-    color:white;
-
-    border-radius:12px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    direction:ltr;
 }
 
-
-/* ================================
-   MOBILE CONTROLS
-================================ */
+.topBadge{
+    padding:10px 14px;
+    border-radius:12px;
+    color:white;
+    background:#0009;
+    font-weight:bold;
+}
 
 #mobileControls{
-
     position:fixed;
-
     left:0;
     right:0;
     bottom:25px;
-
-    z-index:50;
-
-    display:flex;
-
+    z-index:30;
+    display:none;
     justify-content:space-between;
-
     align-items:flex-end;
-
-    padding:0 25px;
-
+    padding:0 20px;
     direction:ltr;
-
     pointer-events:none;
 }
 
-.control-group{
-
+.controlGroup{
     display:flex;
-
     gap:12px;
-
     pointer-events:auto;
 }
 
-.mobile-button{
-
-    width:75px;
-    height:75px;
-
+.mobileButton{
+    width:72px;
+    height:72px;
     padding:0;
     margin:0;
-
     border-radius:20px;
-
-    border:
-    2px solid #ffffff55;
-
+    border:2px solid #ffffff55;
     background:#111827dd;
-
     color:white;
-
-    font-size:30px;
-
-    display:flex;
-
-    justify-content:center;
-    align-items:center;
-
-    user-select:none;
-
-    touch-action:none;
-
+    font-size:28px;
     pointer-events:auto;
+    touch-action:none;
 }
 
 #jumpButton{
-
     background:#16a34add;
 }
 
-.mobile-button:active{
-
-    transform:scale(.9);
-
-    background:#2563eb;
-}
-
-@media(min-width:901px){
-
+@media(max-width:900px){
     #mobileControls{
-
-        display:none;
+        display:flex;
     }
 }
 
-</style>
+@media(max-width:600px){
+    h1{
+        font-size:34px;
+    }
 
+    .cardRow{
+        gap:10px;
+    }
+
+    .modeCard{
+        min-height:145px;
+    }
+}
+</style>
 </head>
 
 <body>
 
-
-<!-- =================================
+<!-- =========================
      NAME
-================================= -->
+========================= -->
 
-<div
-    id="nameScreen"
-    class="screen"
->
+<div id="nameScreen" class="screen">
 
-<div class="box">
+    <div class="box">
 
-<h1>
-🎮 STICKMAN
-</h1>
+        <h1>🎮 STICKMAN</h1>
 
-<p>
-برای شروع اسمت را وارد کن
-</p>
+        <p>اسمت رو وارد کن</p>
 
-<input
-    id="nameInput"
-    maxlength="20"
-    placeholder="اسم بازیکن"
-    autocomplete="off"
->
+        <input
+            id="nameInput"
+            maxlength="20"
+            placeholder="اسم بازیکن"
+            autocomplete="off"
+        >
 
-<button
-    id="confirmName"
-    class="green"
->
-✅ تأیید اسم
-</button>
+        <button id="confirmName" class="green">
+            ✅ تأیید اسم
+        </button>
 
-<div
-    id="nameError"
-    class="error"
-></div>
+        <div id="nameError" class="error"></div>
 
-</div>
+    </div>
 
 </div>
 
 
-<!-- =================================
-     LOBBY
-================================= -->
+<!-- =========================
+     MODE
+========================= -->
 
-<div
-    id="lobbyScreen"
-    class="screen hidden"
->
+<div id="modeScreen" class="screen hidden">
 
-<div class="box">
+    <div class="box">
 
-<h1>
-🏠 لابی
-</h1>
+        <h1>🎮 حالت بازی</h1>
 
-<p id="welcome">
-</p>
+        <p>چطور بازی کنیم؟</p>
 
-<button
-    id="createRoom"
-    class="blue"
->
-🏠 ساخت اتاق
-</button>
+        <div class="cardRow">
 
-<button
-    id="showJoin"
-    class="purple"
->
-🔢 ورود به اتاق
-</button>
+            <div id="onlineCard" class="modeCard onlineCard">
+                <div class="icon">🌐</div>
+                <h2>آنلاین</h2>
+                <p>بازی با دوستت</p>
+            </div>
 
-<div
-    id="joinBox"
-    class="hidden"
->
+            <div id="offlineCard" class="modeCard offlineCard">
+                <div class="icon">📴</div>
+                <h2>آفلاین</h2>
+                <p>بدون اینترنت</p>
+            </div>
 
-<input
-    id="roomInput"
-    maxlength="6"
-    inputmode="numeric"
-    placeholder="کد ۶ رقمی"
->
+        </div>
 
-<button
-    id="joinRoom"
-    class="purple"
->
-🚪 ورود
-</button>
-
-</div>
-
-<div
-    id="lobbyError"
-    class="error"
-></div>
-
-</div>
+    </div>
 
 </div>
 
 
-<!-- =================================
+<!-- =========================
+     OFFLINE
+========================= -->
+
+<div id="offlineScreen" class="screen hidden">
+
+    <div class="box">
+
+        <h1>📴 آفلاین</h1>
+
+        <p>یکی را انتخاب کن</p>
+
+        <div class="cardRow">
+
+            <div id="aiCard" class="modeCard offlineOption aiCard">
+                <div class="icon">🤖</div>
+                <h2>بازی با AI</h2>
+                <p>با حریف کامپیوتری بازی کن</p>
+            </div>
+
+            <div id="soloCard" class="modeCard offlineOption soloCard">
+                <div class="icon">👤</div>
+                <h2>تنهایی</h2>
+                <p>فقط خودت در زمین</p>
+            </div>
+
+        </div>
+
+        <button id="backToModes" class="gray">
+            ↩️ برگشت
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     ONLINE LOBBY
+========================= -->
+
+<div id="onlineScreen" class="screen hidden">
+
+    <div class="box">
+
+        <h1>🌐 آنلاین</h1>
+
+        <button id="createRoom" class="blue">
+            🏠 ساخت اتاق
+        </button>
+
+        <button id="showJoin" class="purple">
+            🔢 ورود به اتاق
+        </button>
+
+        <div id="joinBox" class="hidden">
+
+            <input
+                id="roomInput"
+                maxlength="6"
+                inputmode="numeric"
+                placeholder="کد ۶ رقمی"
+            >
+
+            <button id="joinRoom" class="purple">
+                🚪 ورود
+            </button>
+
+        </div>
+
+        <div id="onlineError" class="error"></div>
+
+        <button id="backFromOnline" class="gray">
+            ↩️ برگشت
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
      ROOM
-================================= -->
+========================= -->
 
-<div
-    id="roomScreen"
-    class="screen hidden"
->
+<div id="roomScreen" class="screen hidden">
 
-<div class="box">
+    <div class="box">
 
-<h1>
-🎮 اتاق بازی
-</h1>
+        <h1>🎮 اتاق</h1>
 
-<p>
-کد اتاق شما:
-</p>
+        <p>کد اتاق:</p>
 
-<div
-    id="roomCode"
-    class="room-code"
->
-------
-</div>
+        <div id="roomCode" style="
+            direction:ltr;
+            font-size:48px;
+            font-weight:bold;
+            letter-spacing:8px;
+            color:#22c55e;
+            margin:25px 0;
+        ">
+            ------
+        </div>
 
-<p>
-این کد را برای دوستت بفرست
-</p>
+        <p id="roomStatus">
+            کد را به دوستت بده
+        </p>
 
-<button
-    id="readyButton"
-    class="green"
->
-🎮 بزن بریم تو بازی
-</button>
+        <button id="readyButton" class="green">
+            🎮 بزن بریم تو بازی
+        </button>
 
-<div
-    id="readyStatus"
-    class="waiting"
->
-منتظر بازیکن دوم...
-</div>
-
-</div>
+    </div>
 
 </div>
 
 
-<!-- =================================
+<!-- =========================
      GAME
-================================= -->
+========================= -->
 
 <div id="gameScreen">
 
-<canvas
-    id="gameCanvas"
-></canvas>
+    <canvas id="gameCanvas"></canvas>
 
-<div id="gameInfo">
-🎮 STICKMAN
-</div>
+    <div id="gameTop">
 
+        <div id="gameMode" class="topBadge">
+            🎮 Stickman
+        </div>
 
-<div id="mobileControls">
+        <div id="gameScore" class="topBadge">
+            ❤️ 100
+        </div>
 
-<div class="control-group">
+    </div>
 
-<button
-    id="leftButton"
-    class="mobile-button"
->
-⬅️
-</button>
+    <div id="mobileControls">
 
-<button
-    id="rightButton"
-    class="mobile-button"
->
-➡️
-</button>
+        <div class="controlGroup">
 
-</div>
+            <button id="leftButton" class="mobileButton">
+                ⬅️
+            </button>
 
-<button
-    id="jumpButton"
-    class="mobile-button"
->
-🦘
-</button>
+            <button id="rightButton" class="mobileButton">
+                ➡️
+            </button>
 
-</div>
+        </div>
+
+        <button id="jumpButton" class="mobileButton">
+            🦘
+        </button>
+
+    </div>
 
 </div>
 
 
 <script src="/socket.io/socket.io.js"></script>
-
 <script src="/lobby.js"></script>
 
 </body>
-
 </html>
