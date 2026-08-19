@@ -1,11 +1,12 @@
 const socket = io();
 
-// ======================================================
+// =======================================
 // STATE
-// ======================================================
+// =======================================
 
 let playerName = "";
 let roomCode = "";
+
 let myPlayer = null;
 let players = {};
 
@@ -25,9 +26,9 @@ let aiVelocityY = 0;
 let aiOnGround = false;
 let aiDirectionTimer = 0;
 
-// ======================================================
+// =======================================
 // ELEMENTS
-// ======================================================
+// =======================================
 
 const nameScreen = document.getElementById("nameScreen");
 const modeScreen = document.getElementById("modeScreen");
@@ -60,9 +61,23 @@ const roomStatus = document.getElementById("roomStatus");
 const backFromOnline =
     document.getElementById("backFromOnline");
 
-// ======================================================
+
+// =======================================
+// CANVAS
+// =======================================
+
+const canvas =
+    document.getElementById("gameCanvas");
+
+const ctx =
+    canvas
+        ? canvas.getContext("2d")
+        : null;
+
+
+// =======================================
 // FULLSCREEN
-// ======================================================
+// =======================================
 
 async function enterGameFullscreen() {
 
@@ -91,9 +106,10 @@ async function enterGameFullscreen() {
 
 }
 
-// ======================================================
+
+// =======================================
 // NAME
-// ======================================================
+// =======================================
 
 if (confirmName) {
 
@@ -103,9 +119,7 @@ if (confirmName) {
             nameInput.value.trim();
 
         const error =
-            document.getElementById(
-                "nameError"
-            );
+            document.getElementById("nameError");
 
         if (!name) {
 
@@ -125,11 +139,13 @@ if (confirmName) {
             name.substring(0, 20);
 
         nameScreen.classList.add("hidden");
+
         modeScreen.classList.remove("hidden");
 
     };
 
 }
+
 
 if (nameInput) {
 
@@ -146,57 +162,66 @@ if (nameInput) {
 
 }
 
-// ======================================================
+
+// =======================================
 // MODE
-// ======================================================
+// =======================================
 
 if (onlineCard) {
 
     onlineCard.onclick = function () {
 
         modeScreen.classList.add("hidden");
+
         onlineScreen.classList.remove("hidden");
 
     };
 
 }
 
+
 if (offlineCard) {
 
     offlineCard.onclick = function () {
 
         modeScreen.classList.add("hidden");
+
         offlineScreen.classList.remove("hidden");
 
     };
 
 }
 
+
 if (backToModes) {
 
     backToModes.onclick = function () {
 
         offlineScreen.classList.add("hidden");
+
         modeScreen.classList.remove("hidden");
 
     };
 
 }
+
 
 if (backFromOnline) {
 
     backFromOnline.onclick = function () {
 
         onlineScreen.classList.add("hidden");
+
         modeScreen.classList.remove("hidden");
 
     };
 
 }
 
-// ======================================================
+
+// =======================================
 // OFFLINE AI
-// ======================================================
+// =======================================
 
 if (aiCard) {
 
@@ -210,9 +235,10 @@ if (aiCard) {
 
 }
 
-// ======================================================
+
+// =======================================
 // OFFLINE SOLO
-// ======================================================
+// =======================================
 
 if (soloCard) {
 
@@ -226,9 +252,107 @@ if (soloCard) {
 
 }
 
-// ======================================================
+
+// =======================================
+// GROUND
+// =======================================
+
+function getGroundY() {
+
+    if (!canvas) {
+        return 500;
+    }
+
+    return canvas.height - 120;
+
+}
+
+
+// =======================================
+// CANVAS RESIZE
+// =======================================
+
+function resizeCanvas() {
+
+    if (!canvas) return;
+
+    canvas.width =
+        window.innerWidth;
+
+    canvas.height =
+        window.innerHeight;
+
+    const ground =
+        getGroundY();
+
+    // بازیکن را همیشه روی زمین نگه می‌داریم
+    // اگر هنوز در حال پرش نیست.
+
+    if (
+        myPlayer &&
+        onGround
+    ) {
+
+        myPlayer.y = ground;
+
+    }
+
+    if (
+        ai &&
+        aiOnGround
+    ) {
+
+        ai.y = ground;
+
+    }
+
+}
+
+
+window.addEventListener(
+    "resize",
+    resizeCanvas
+);
+
+
+// =======================================
+// FIX SPAWN
+// =======================================
+
+function fixPlayerSpawn(player) {
+
+    if (!player || !canvas) return;
+
+    const ground =
+        getGroundY();
+
+    const y =
+        Number(player.y);
+
+    /*
+     * مهم:
+     * y = 0 یعنی بازیکن تازه Spawn شده.
+     * در این حالت مستقیم روی زمین قرار می‌گیرد.
+     */
+
+    if (
+        player.y === undefined ||
+        player.y === null ||
+        !Number.isFinite(y) ||
+        y <= 0 ||
+        y > ground + 200
+    ) {
+
+        player.y = ground;
+
+    }
+
+}
+
+
+// =======================================
 // START OFFLINE
-// ======================================================
+// =======================================
 
 function startOfflineGame(withAI) {
 
@@ -247,25 +371,27 @@ function startOfflineGame(withAI) {
 
     gameRunning = true;
 
-    velocityY = 0;
-    onGround = false;
+    resizeCanvas();
 
     setupOfflinePlayers(withAI);
-
-    resizeCanvas();
 
     requestAnimationFrame(gameLoop);
 
 }
 
-// ======================================================
+
+// =======================================
 // OFFLINE PLAYERS
-// ======================================================
+// =======================================
 
 function setupOfflinePlayers(withAI) {
 
     players = {};
 
+    const ground =
+        getGroundY();
+
+    // بازیکن از اول روی زمین
     myPlayer = {
 
         id: "player",
@@ -273,22 +399,25 @@ function setupOfflinePlayers(withAI) {
         name:
             playerName || "Player",
 
-        x: 250,
+        x: Math.max(
+            100,
+            Math.min(
+                250,
+                canvas.width - 100
+            )
+        ),
 
-        y: getGroundY(),
-
-        health: 100,
-
-        level: 1
+        y: ground
 
     };
 
-    players.player = myPlayer;
-
-    onGround = true;
+    players.player =
+        myPlayer;
 
     velocityY = 0;
+    onGround = true;
 
+    // AI
     if (withAI) {
 
         ai = {
@@ -297,29 +426,35 @@ function setupOfflinePlayers(withAI) {
 
             name: "AI",
 
-            x: 700,
+            x: Math.max(
+                500,
+                Math.min(
+                    700,
+                    canvas.width - 150
+                )
+            ),
 
-            y: getGroundY(),
+            y: ground,
 
-            health: 100,
-
-            level: 1
+            health: 100
 
         };
 
-        aiOnGround = true;
         aiVelocityY = 0;
+        aiOnGround = true;
+        aiDirectionTimer = 0;
 
     } else {
 
         ai = null;
 
+        aiVelocityY = 0;
+        aiOnGround = false;
+
     }
 
     const modeText =
-        document.getElementById(
-            "gameMode"
-        );
+        document.getElementById("gameMode");
 
     if (modeText) {
 
@@ -332,9 +467,10 @@ function setupOfflinePlayers(withAI) {
 
 }
 
-// ======================================================
+
+// =======================================
 // ONLINE
-// ======================================================
+// =======================================
 
 if (showJoin) {
 
@@ -349,6 +485,7 @@ if (showJoin) {
     };
 
 }
+
 
 if (roomInput) {
 
@@ -365,6 +502,7 @@ if (roomInput) {
     );
 
 }
+
 
 if (createRoom) {
 
@@ -386,9 +524,10 @@ if (createRoom) {
 
 }
 
-// ======================================================
+
+// =======================================
 // ROOM CREATED
-// ======================================================
+// =======================================
 
 socket.on(
     "roomCreated",
@@ -405,26 +544,22 @@ socket.on(
 
         if (myPlayer) {
 
-            myPlayer.x = Number(myPlayer.x) || 250;
-
-            // مهم:
-            // Y واقعی دستگاه خودمان را استفاده می‌کنیم
-            myPlayer.y = getGroundY();
+            fixPlayerSpawn(myPlayer);
 
             players[myPlayer.id] =
                 myPlayer;
 
         }
 
-        onGround = true;
-        velocityY = 0;
-
         onlineScreen.classList.add("hidden");
+
         roomScreen.classList.remove("hidden");
 
         if (roomCodeElement) {
+
             roomCodeElement.textContent =
                 roomCode;
+
         }
 
         if (createRoom) {
@@ -439,9 +574,10 @@ socket.on(
     }
 );
 
-// ======================================================
+
+// =======================================
 // JOIN ROOM
-// ======================================================
+// =======================================
 
 if (joinRoom) {
 
@@ -469,6 +605,7 @@ if (joinRoom) {
             }
 
             return;
+
         }
 
         joinRoom.disabled = true;
@@ -488,9 +625,10 @@ if (joinRoom) {
 
 }
 
-// ======================================================
+
+// =======================================
 // ROOM JOINED
-// ======================================================
+// =======================================
 
 socket.on(
     "roomJoined",
@@ -507,21 +645,15 @@ socket.on(
 
         if (myPlayer) {
 
-            myPlayer.x =
-                Number(myPlayer.x) || 400;
-
-            myPlayer.y =
-                getGroundY();
+            fixPlayerSpawn(myPlayer);
 
             players[myPlayer.id] =
                 myPlayer;
 
         }
 
-        onGround = true;
-        velocityY = 0;
-
         onlineScreen.classList.add("hidden");
+
         roomScreen.classList.remove("hidden");
 
         if (roomCodeElement) {
@@ -543,9 +675,10 @@ socket.on(
     }
 );
 
-// ======================================================
-// READY ONLINE
-// ======================================================
+
+// =======================================
+// READY
+// =======================================
 
 if (readyButton) {
 
@@ -565,15 +698,18 @@ if (readyButton) {
 
         }
 
-        socket.emit("readyForGame");
+        socket.emit(
+            "readyForGame"
+        );
 
     };
 
 }
 
-// ======================================================
+
+// =======================================
 // READY UPDATE
-// ======================================================
+// =======================================
 
 socket.on(
     "readyUpdate",
@@ -590,9 +726,10 @@ socket.on(
     }
 );
 
-// ======================================================
+
+// =======================================
 // START ONLINE GAME
-// ======================================================
+// =======================================
 
 socket.on(
     "startGame",
@@ -600,24 +737,27 @@ socket.on(
 
         await enterGameFullscreen();
 
-        gameMode = "ONLINE";
+        gameMode =
+            "ONLINE";
 
-        if (roomScreen) {
-            roomScreen.classList.add("hidden");
-        }
+        roomScreen.classList.add("hidden");
 
-        gameScreen.style.display = "block";
+        gameScreen.style.display =
+            "block";
 
         gameRunning = true;
 
-        velocityY = 0;
-        onGround = true;
-
         resizeCanvas();
 
-        // بازیکن خودمان همیشه روی زمین دستگاه خودمان
+        // اگر سرور هنوز مختصات نداده،
+        // خودمان روی زمین قرار می‌دهیم.
         if (myPlayer) {
-            myPlayer.y = getGroundY();
+
+            fixPlayerSpawn(myPlayer);
+
+            onGround = true;
+            velocityY = 0;
+
         }
 
         requestAnimationFrame(gameLoop);
@@ -625,258 +765,53 @@ socket.on(
     }
 );
 
-// ======================================================
-// CANVAS
-// ======================================================
 
-const canvas =
-    document.getElementById("gameCanvas");
-
-const ctx =
-    canvas
-        ? canvas.getContext("2d")
-        : null;
-
-function resizeCanvas() {
-
-    if (!canvas) return;
-
-    canvas.width =
-        window.innerWidth;
-
-    canvas.height =
-        window.innerHeight;
-
-    // بازیکن خودمان
-    if (myPlayer && onGround) {
-
-        myPlayer.y =
-            getGroundY();
-
-    }
-
-    // AI
-    if (ai && aiOnGround) {
-
-        ai.y =
-            getGroundY();
-
-    }
-
-    // بازیکن‌های دیگر:
-    // اگر روی زمین بودند، نسبت به زمین دستگاه فعلی
-    Object.values(players).forEach(
-        function (player) {
-
-            if (
-                player &&
-                player.id !==
-                socket.id &&
-                player._grounded !== false
-            ) {
-
-                player.y =
-                    getGroundY();
-
-            }
-
-        }
-    );
-
-}
-
-window.addEventListener(
-    "resize",
-    resizeCanvas
-);
-
-// ======================================================
-// GROUND
-// ======================================================
-
-function getGroundY() {
-
-    if (!canvas) {
-        return 500;
-    }
-
-    return canvas.height - 120;
-
-}
-
-// ======================================================
-// REMOTE PLAYER Y
-// ======================================================
-//
-// نکته مهم:
-// سرور دیگر نباید ارتفاع صفحه موبایل را به PC تحمیل کند.
-//
-// ما Y را به صورت offset نسبت به زمین می‌فرستیم:
-//
-// offset = player.y - getGroundY()
-//
-// بنابراین:
-// 0 = روی زمین
-// -100 = صد پیکسل بالاتر از زمین
-//
-// هر دستگاه offset را با زمین خودش جمع می‌کند.
-//
-
-function applyRemoteY(player, value) {
-
-    if (!player) return;
-
-    const numeric =
-        Number(value);
-
-    if (!Number.isFinite(numeric)) {
-
-        player.y =
-            getGroundY();
-
-        player._grounded = true;
-
-        return;
-
-    }
-
-    player.y =
-        getGroundY() +
-        numeric;
-
-    player._grounded =
-        numeric >= -2;
-
-}
-
-// ======================================================
-// PLAYER SPAWN
-// ======================================================
-
-function fixPlayerSpawn(player) {
-
-    if (!player) return;
-
-    if (
-        player.id === socket.id
-    ) {
-
-        player.y =
-            getGroundY();
-
-        return;
-
-    }
-
-    // بازیکن‌های جدید همیشه
-    // روی زمین دستگاه فعلی ظاهر شوند
-    player.y =
-        getGroundY();
-
-    player._grounded = true;
-
-}
-
-// ======================================================
-// ONLINE PLAYERS
-// ======================================================
+// =======================================
+// ONLINE PLAYERS UPDATE
+// =======================================
 
 socket.on(
     "playersUpdate",
     function (list) {
 
+        players = {};
+
         if (!Array.isArray(list)) {
             return;
         }
-
-        const oldPlayers =
-            players;
-
-        players = {};
 
         list.forEach(
             function (player) {
 
                 if (!player) return;
 
-                // ------------------------------
-                // خودمان
-                // ------------------------------
+                fixPlayerSpawn(player);
+
+                players[player.id] =
+                    player;
 
                 if (
-                    player.id ===
-                    socket.id
+                    player.id === socket.id
                 ) {
 
-                    if (!myPlayer) {
+                    myPlayer =
+                        player;
 
-                        myPlayer = {
-                            ...player
-                        };
+                    // فقط وقتی تازه Spawn شده
+                    // روی زمین قرارش بده.
+                    if (
+                        !Number.isFinite(
+                            Number(myPlayer.y)
+                        ) ||
+                        Number(myPlayer.y) <= 0
+                    ) {
 
-                    } else {
-
-                        myPlayer.x =
-                            Number(player.x) ||
-                            myPlayer.x ||
-                            250;
+                        myPlayer.y =
+                            getGroundY();
 
                     }
 
-                    // Y خودمان را سرور تعیین نکند
-                    myPlayer.y =
-                        getGroundY();
-
-                    players[
-                        player.id
-                    ] =
-                        myPlayer;
-
-                    onGround = true;
-
-                    velocityY = 0;
-
-                    return;
-
                 }
-
-                // ------------------------------
-                // بازیکن دیگر
-                // ------------------------------
-
-                const existing =
-                    oldPlayers[
-                        player.id
-                    ];
-
-                const remote = {
-
-                    ...player,
-
-                    x:
-                        Number(player.x) ||
-                        250,
-
-                    y:
-                        getGroundY(),
-
-                    _grounded: true
-
-                };
-
-                // اگر بازیکن قبلاً وجود داشت
-                // مختصات X قبلی حفظ شود
-                if (existing) {
-
-                    remote.x =
-                        Number(player.x);
-
-                }
-
-                players[
-                    player.id
-                ] =
-                    remote;
 
             }
         );
@@ -884,9 +819,10 @@ socket.on(
     }
 );
 
-// ======================================================
+
+// =======================================
 // PLAYER MOVED
-// ======================================================
+// =======================================
 
 socket.on(
     "playerMoved",
@@ -894,54 +830,37 @@ socket.on(
 
         if (!player) return;
 
-        // اگر پیام مربوط به خودمان است
-        if (
-            player.id === socket.id
-        ) {
+        fixPlayerSpawn(player);
 
-            return;
+        if (!players[player.id]) {
 
-        }
-
-        if (
-            !players[player.id]
-        ) {
-
-            players[player.id] = {
-
-                ...player,
-
-                x:
-                    Number(player.x) ||
-                    250,
-
-                y:
-                    getGroundY(),
-
-                _grounded: true
-
-            };
+            players[player.id] =
+                player;
 
         } else {
 
             players[player.id].x =
-                Number(player.x) ||
-                players[player.id].x;
+                player.x;
+
+            players[player.id].y =
+                player.y;
+
+            if (player.name) {
+
+                players[player.id].name =
+                    player.name;
+
+            }
 
         }
-
-        // Y دریافتی offset نسبت به زمین است
-        applyRemoteY(
-            players[player.id],
-            player.y
-        );
 
     }
 );
 
-// ======================================================
+
+// =======================================
 // PLAYER LEFT
-// ======================================================
+// =======================================
 
 socket.on(
     "playerLeft",
@@ -952,9 +871,10 @@ socket.on(
     }
 );
 
-// ======================================================
+
+// =======================================
 // ROOM ERROR
-// ======================================================
+// =======================================
 
 socket.on(
     "roomError",
@@ -968,8 +888,7 @@ socket.on(
         if (error) {
 
             if (
-                typeof message ===
-                "object" &&
+                typeof message === "object" &&
                 message !== null
             ) {
 
@@ -988,8 +907,7 @@ socket.on(
 
         if (joinRoom) {
 
-            joinRoom.disabled =
-                false;
+            joinRoom.disabled = false;
 
             joinRoom.textContent =
                 "🚪 ورود";
@@ -998,8 +916,7 @@ socket.on(
 
         if (createRoom) {
 
-            createRoom.disabled =
-                false;
+            createRoom.disabled = false;
 
             createRoom.textContent =
                 "🏠 ساخت اتاق";
@@ -1009,9 +926,10 @@ socket.on(
     }
 );
 
-// ======================================================
+
+// =======================================
 // CONTROLS
-// ======================================================
+// =======================================
 
 const keys = {};
 
@@ -1019,9 +937,7 @@ document.addEventListener(
     "keydown",
     function (e) {
 
-        keys[
-            e.key.toLowerCase()
-        ] = true;
+        keys[e.key.toLowerCase()] = true;
 
         if (e.code === "Space") {
             keys.space = true;
@@ -1030,13 +946,12 @@ document.addEventListener(
     }
 );
 
+
 document.addEventListener(
     "keyup",
     function (e) {
 
-        keys[
-            e.key.toLowerCase()
-        ] = false;
+        keys[e.key.toLowerCase()] = false;
 
         if (e.code === "Space") {
             keys.space = false;
@@ -1045,14 +960,12 @@ document.addEventListener(
     }
 );
 
-// ======================================================
-// MOBILE BUTTONS
-// ======================================================
 
-function setupMobileButton(
-    id,
-    key
-) {
+// =======================================
+// MOBILE BUTTONS
+// =======================================
+
+function setupMobileButton(id, key) {
 
     const button =
         document.getElementById(id);
@@ -1125,6 +1038,7 @@ function setupMobileButton(
 
 }
 
+
 setupMobileButton(
     "leftButton",
     "mobileLeft"
@@ -1140,9 +1054,10 @@ setupMobileButton(
     "mobileJump"
 );
 
-// ======================================================
+
+// =======================================
 // PLAYER PHYSICS
-// ======================================================
+// =======================================
 
 function updatePlayer() {
 
@@ -1151,7 +1066,6 @@ function updatePlayer() {
     let moving = false;
 
     // LEFT
-
     if (
         keys.a ||
         keys.arrowleft ||
@@ -1165,7 +1079,6 @@ function updatePlayer() {
     }
 
     // RIGHT
-
     if (
         keys.d ||
         keys.arrowright ||
@@ -1179,7 +1092,6 @@ function updatePlayer() {
     }
 
     // JUMP
-
     if (
         (
             keys.w ||
@@ -1190,16 +1102,13 @@ function updatePlayer() {
         onGround
     ) {
 
-        velocityY =
-            -JUMP;
+        velocityY = -JUMP;
 
-        onGround =
-            false;
+        onGround = false;
 
     }
 
     // GRAVITY
-
     velocityY += GRAVITY;
 
     myPlayer.y += velocityY;
@@ -1208,13 +1117,11 @@ function updatePlayer() {
         getGroundY();
 
     // GROUND
-
     if (
         myPlayer.y >= ground
     ) {
 
-        myPlayer.y =
-            ground;
+        myPlayer.y = ground;
 
         velocityY = 0;
 
@@ -1222,38 +1129,26 @@ function updatePlayer() {
 
     }
 
-    // TOP LIMIT
-    if (
-        myPlayer.y <
-        -500
-    ) {
-
-        myPlayer.y =
-            -500;
-
-        velocityY = 0;
-
-    }
-
-    // ==================================================
-    // کل مپ قابل حرکت است
-    // ==================================================
-
-    if (
-        myPlayer.x < 35
-    ) {
+    // LEFT BORDER
+    if (myPlayer.x < 35) {
 
         myPlayer.x = 35;
 
     }
 
-    // عمداً اینجا سقف canvas.width نداریم
-    // تا بازیکن بتواند در کل مپ حرکت کند.
+    // RIGHT BORDER
+    if (
+        canvas &&
+        myPlayer.x >
+        canvas.width - 35
+    ) {
 
-    // ==================================================
+        myPlayer.x =
+            canvas.width - 35;
+
+    }
+
     // ONLINE SYNC
-    // ==================================================
-
     if (
         gameMode === "ONLINE" &&
         (
@@ -1262,16 +1157,11 @@ function updatePlayer() {
         )
     ) {
 
-        // Y به صورت offset نسبت به زمین ارسال می‌شود
-        const yOffset =
-            myPlayer.y -
-            getGroundY();
-
         socket.emit(
             "playerMovement",
             {
                 x: myPlayer.x,
-                y: yOffset
+                y: myPlayer.y
             }
         );
 
@@ -1279,30 +1169,24 @@ function updatePlayer() {
 
 }
 
-// ======================================================
+
+// =======================================
 // AI
-// ======================================================
+// =======================================
 
 function updateAI() {
 
-    if (
-        !ai ||
-        !myPlayer
-    ) {
-
+    if (!ai || !myPlayer) {
         return;
-
     }
 
     const ground =
         getGroundY();
 
     const distance =
-        myPlayer.x -
-        ai.x;
+        myPlayer.x - ai.x;
 
     // FOLLOW PLAYER
-
     if (
         Math.abs(distance) > 25
     ) {
@@ -1319,20 +1203,15 @@ function updateAI() {
 
     }
 
-    // AI GRAVITY
-
+    // Gravity
     aiVelocityY += GRAVITY;
 
     ai.y += aiVelocityY;
 
-    // AI GROUND
+    // Ground
+    if (ai.y >= ground) {
 
-    if (
-        ai.y >= ground
-    ) {
-
-        ai.y =
-            ground;
+        ai.y = ground;
 
         aiVelocityY = 0;
 
@@ -1341,12 +1220,9 @@ function updateAI() {
     }
 
     // AI JUMP
-
     aiDirectionTimer--;
 
-    if (
-        aiDirectionTimer <= 0
-    ) {
+    if (aiDirectionTimer <= 0) {
 
         aiDirectionTimer =
             100 +
@@ -1368,20 +1244,12 @@ function updateAI() {
 
     }
 
-    // جلوگیری از گیر کردن AI
-    if (
-        ai.x < 35
-    ) {
-
-        ai.x = 35;
-
-    }
-
 }
 
-// ======================================================
+
+// =======================================
 // GAME UI
-// ======================================================
+// =======================================
 
 function updateGameUI() {
 
@@ -1400,13 +1268,10 @@ function updateGameUI() {
 
         const distance =
             Math.abs(
-                myPlayer.x -
-                ai.x
+                myPlayer.x - ai.x
             );
 
-        if (
-            distance < 75
-        ) {
+        if (distance < 75) {
 
             score.textContent =
                 "🤖 حریف نزدیکته!";
@@ -1427,15 +1292,14 @@ function updateGameUI() {
 
 }
 
-// ======================================================
+
+// =======================================
 // SKY
-// ======================================================
+// =======================================
 
 function drawSky() {
 
-    if (!ctx || !canvas) {
-        return;
-    }
+    if (!ctx || !canvas) return;
 
     const gradient =
         ctx.createLinearGradient(
@@ -1466,7 +1330,6 @@ function drawSky() {
     );
 
     // SUN
-
     ctx.fillStyle =
         "#fde047";
 
@@ -1483,30 +1346,13 @@ function drawSky() {
     ctx.fill();
 
     // CLOUDS
-
-    drawCloud(
-        130,
-        110,
-        1
-    );
-
-    drawCloud(
-        420,
-        160,
-        0.8
-    );
+    drawCloud(130, 110, 1);
+    drawCloud(420, 160, 0.8);
 
 }
 
-// ======================================================
-// CLOUD
-// ======================================================
 
-function drawCloud(
-    x,
-    y,
-    scale
-) {
+function drawCloud(x, y, scale) {
 
     if (!ctx) return;
 
@@ -1550,21 +1396,19 @@ function drawCloud(
 
 }
 
-// ======================================================
+
+// =======================================
 // GROUND
-// ======================================================
+// =======================================
 
 function drawGround() {
 
-    if (!ctx || !canvas) {
-        return;
-    }
+    if (!ctx || !canvas) return;
 
     const ground =
         getGroundY();
 
     // GRASS
-
     ctx.fillStyle =
         "#22c55e";
 
@@ -1575,8 +1419,7 @@ function drawGround() {
         120
     );
 
-    // EDGE
-
+    // GRASS EDGE
     ctx.fillStyle =
         "#166534";
 
@@ -1588,7 +1431,6 @@ function drawGround() {
     );
 
     // DIRT
-
     ctx.fillStyle =
         "#92400e";
 
@@ -1600,7 +1442,6 @@ function drawGround() {
     );
 
     // ROCKS
-
     ctx.fillStyle =
         "#6b3f1f";
 
@@ -1626,24 +1467,17 @@ function drawGround() {
 
 }
 
-// ======================================================
-// PLAYER
-// ======================================================
 
-function drawStickman(
-    player,
-    isAI = false
-) {
+// =======================================
+// STICKMAN
+// =======================================
 
-    if (!ctx || !player) {
-        return;
-    }
+function drawStickman(player, isAI = false) {
 
-    const x =
-        player.x;
+    if (!ctx || !player) return;
 
-    const y =
-        player.y;
+    const x = player.x;
+    const y = player.y;
 
     const minScreen =
         Math.min(
@@ -1685,14 +1519,10 @@ function drawStickman(
 
     ctx.save();
 
-    ctx.lineCap =
-        "round";
-
-    ctx.lineJoin =
-        "round";
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
 
     // SHADOW
-
     ctx.fillStyle =
         "rgba(0,0,0,0.20)";
 
@@ -1711,7 +1541,6 @@ function drawStickman(
     ctx.fill();
 
     // LEGS
-
     ctx.strokeStyle =
         "#1f2937";
 
@@ -1747,7 +1576,6 @@ function drawStickman(
     ctx.stroke();
 
     // SHOES
-
     ctx.fillStyle =
         shoe;
 
@@ -1772,7 +1600,6 @@ function drawStickman(
     ctx.fill();
 
     // SHIRT
-
     ctx.fillStyle =
         shirt;
 
@@ -1787,7 +1614,6 @@ function drawStickman(
     ctx.fill();
 
     // BODY
-
     ctx.fillStyle =
         bodyColor;
 
@@ -1802,7 +1628,6 @@ function drawStickman(
     ctx.fill();
 
     // ARMS
-
     ctx.strokeStyle =
         bodyDark;
 
@@ -1838,7 +1663,6 @@ function drawStickman(
     ctx.stroke();
 
     // HANDS
-
     ctx.fillStyle =
         skin;
 
@@ -1867,7 +1691,6 @@ function drawStickman(
     ctx.fill();
 
     // NECK
-
     ctx.fillStyle =
         skin;
 
@@ -1882,7 +1705,6 @@ function drawStickman(
     ctx.fill();
 
     // HEAD
-
     ctx.fillStyle =
         skin;
 
@@ -1899,7 +1721,6 @@ function drawStickman(
     ctx.fill();
 
     // HAIR
-
     ctx.fillStyle =
         "#111827";
 
@@ -1916,7 +1737,6 @@ function drawStickman(
     ctx.fill();
 
     // EYES
-
     ctx.fillStyle =
         "#111827";
 
@@ -1945,14 +1765,9 @@ function drawStickman(
     ctx.fill();
 
     // NAME
-
     const name =
         player.name ||
-        (
-            isAI
-                ? "AI"
-                : "Player"
-        );
+        (isAI ? "AI" : "Player");
 
     const fontSize =
         Math.max(
@@ -1970,11 +1785,8 @@ function drawStickman(
         "rgba(17,24,39,0.82)";
 
     roundRect(
-        x -
-            textWidth / 2 -
-            8,
-        y -
-            105 * s,
+        x - textWidth / 2 - 8,
+        y - 105 * s,
         textWidth + 16,
         24 * s,
         8
@@ -1998,7 +1810,6 @@ function drawStickman(
     );
 
     // AI ICON
-
     if (isAI) {
 
         ctx.fillStyle =
@@ -2019,9 +1830,10 @@ function drawStickman(
 
 }
 
-// ======================================================
+
+// =======================================
 // ROUND RECT
-// ======================================================
+// =======================================
 
 function roundRect(
     x,
@@ -2083,22 +1895,20 @@ function roundRect(
 
 }
 
-// ======================================================
+
+// =======================================
 // DRAW GAME
-// ======================================================
+// =======================================
 
 function drawGame() {
 
-    if (!ctx || !canvas) {
-        return;
-    }
+    if (!ctx || !canvas) return;
 
     drawSky();
 
     drawGround();
 
     // PLAYER
-
     if (myPlayer) {
 
         drawStickman(
@@ -2109,7 +1919,6 @@ function drawGame() {
     }
 
     // AI
-
     if (ai) {
 
         drawStickman(
@@ -2120,18 +1929,14 @@ function drawGame() {
     }
 
     // ONLINE PLAYERS
-
-    if (
-        gameMode === "ONLINE"
-    ) {
+    if (gameMode === "ONLINE") {
 
         Object.values(players)
             .forEach(
                 function (player) {
 
                     if (
-                        player.id ===
-                        socket.id
+                        player.id === socket.id
                     ) {
 
                         return;
@@ -2150,9 +1955,10 @@ function drawGame() {
 
 }
 
-// ======================================================
+
+// =======================================
 // GAME LOOP
-// ======================================================
+// =======================================
 
 function gameLoop() {
 
@@ -2162,12 +1968,8 @@ function gameLoop() {
 
     updatePlayer();
 
-    if (
-        gameMode === "AI"
-    ) {
-
+    if (gameMode === "AI") {
         updateAI();
-
     }
 
     updateGameUI();
