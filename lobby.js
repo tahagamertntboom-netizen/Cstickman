@@ -13,17 +13,24 @@ let gameMode = "";
 let gameRunning = false;
 
 let velocityY = 0;
-let onGround = true;
+let onGround = false;
 
 const SPEED = 5;
 const GRAVITY = 0.7;
 const JUMP = 13;
 
+// =======================================
 // AI
+// =======================================
+
 let ai = null;
 let aiVelocityY = 0;
-let aiOnGround = true;
+let aiOnGround = false;
 let aiDirectionTimer = 0;
+let aiJumpTimer = 0;
+let aiTalkTimer = 0;
+let aiMessage = "";
+let aiMessageTimer = 0;
 
 
 // =======================================
@@ -45,22 +52,24 @@ const offlineCard = document.getElementById("offlineCard");
 
 const aiCard = document.getElementById("aiCard");
 const soloCard = document.getElementById("soloCard");
-
 const backToModes = document.getElementById("backToModes");
 
 const createRoom = document.getElementById("createRoom");
 const showJoin = document.getElementById("showJoin");
-
 const joinBox = document.getElementById("joinBox");
 const roomInput = document.getElementById("roomInput");
 const joinRoom = document.getElementById("joinRoom");
 
 const readyButton = document.getElementById("readyButton");
 
-const roomCodeElement = document.getElementById("roomCode");
-const roomStatus = document.getElementById("roomStatus");
+const roomCodeElement =
+    document.getElementById("roomCode");
 
-const backFromOnline = document.getElementById("backFromOnline");
+const roomStatus =
+    document.getElementById("roomStatus");
+
+const backFromOnline =
+    document.getElementById("backFromOnline");
 
 
 // =======================================
@@ -103,12 +112,15 @@ if (confirmName) {
 
     confirmName.onclick = function () {
 
-        const name = nameInput.value.trim();
+        const name =
+            nameInput.value.trim();
 
         if (!name) {
 
             const error =
-                document.getElementById("nameError");
+                document.getElementById(
+                    "nameError"
+                );
 
             if (error) {
                 error.textContent =
@@ -238,7 +250,9 @@ if (soloCard) {
 function startOfflineGame(withAI) {
 
     gameMode =
-        withAI ? "AI" : "SOLO";
+        withAI
+            ? "AI"
+            : "SOLO";
 
     nameScreen.classList.add("hidden");
     modeScreen.classList.add("hidden");
@@ -249,9 +263,6 @@ function startOfflineGame(withAI) {
     gameScreen.style.display = "block";
 
     gameRunning = true;
-
-    velocityY = 0;
-    onGround = true;
 
     setupOfflinePlayers(withAI);
 
@@ -270,11 +281,11 @@ function setupOfflinePlayers(withAI) {
 
     players = {};
 
-    const ground = getGroundY();
-
-    // ===================================
-    // PLAYER
-    // ===================================
+    const centerX =
+        Math.max(
+            150,
+            window.innerWidth / 2
+        );
 
     myPlayer = {
 
@@ -283,20 +294,17 @@ function setupOfflinePlayers(withAI) {
         name:
             playerName || "Player",
 
-        // سمت چپ مپ
-        x: 100,
+        x: centerX - 150,
 
-        // دقیقاً روی زمین
-        y: ground
+        y: 0
 
     };
 
-    players.player = myPlayer;
+    players.player =
+        myPlayer;
 
-
-    // ===================================
-    // AI
-    // ===================================
+    velocityY = 0;
+    onGround = false;
 
     if (withAI) {
 
@@ -306,30 +314,29 @@ function setupOfflinePlayers(withAI) {
 
             name: "AI",
 
-            // سمت راست مپ
-            x:
-                Math.max(
-                    350,
-                    window.innerWidth - 180
-                ),
+            x: centerX + 150,
 
-            y: ground,
+            y: 0,
 
             health: 100
 
         };
 
         aiVelocityY = 0;
-        aiOnGround = true;
+        aiOnGround = false;
 
-        aiDirectionTimer = 100;
+        aiDirectionTimer = 0;
+        aiJumpTimer = 80;
+        aiTalkTimer = 180;
+
+        aiMessage = "";
+        aiMessageTimer = 0;
 
     } else {
 
         ai = null;
 
     }
-
 
     const modeText =
         document.getElementById("gameMode");
@@ -480,6 +487,7 @@ if (joinRoom) {
             }
 
             return;
+
         }
 
         joinRoom.disabled = true;
@@ -569,9 +577,7 @@ if (readyButton) {
 
         }
 
-        socket.emit(
-            "readyForGame"
-        );
+        socket.emit("readyForGame");
 
     };
 
@@ -599,7 +605,7 @@ socket.on(
 
 
 // =======================================
-// START ONLINE GAME
+// START ONLINE
 // =======================================
 
 socket.on(
@@ -616,9 +622,6 @@ socket.on(
             "block";
 
         gameRunning = true;
-
-        velocityY = 0;
-        onGround = true;
 
         resizeCanvas();
 
@@ -651,40 +654,26 @@ function resizeCanvas() {
     canvas.height =
         window.innerHeight;
 
-    const ground =
-        getGroundY();
-
-
-    // فقط اگر بازیکن تازه ساخته شده
-    // یا خارج از محدوده است، اصلاحش کن
-
     if (myPlayer) {
 
-        if (
-            !Number.isFinite(
-                Number(myPlayer.y)
-            ) ||
-            myPlayer.y > ground + 100
-        ) {
+        if (!Number.isFinite(myPlayer.y)) {
+            myPlayer.y = getGroundY();
+        }
 
-            myPlayer.y = ground;
-
+        if (onGround) {
+            myPlayer.y = getGroundY();
         }
 
     }
 
-
     if (ai) {
 
-        if (
-            !Number.isFinite(
-                Number(ai.y)
-            ) ||
-            ai.y > ground + 100
-        ) {
+        if (!Number.isFinite(ai.y)) {
+            ai.y = getGroundY();
+        }
 
-            ai.y = ground;
-
+        if (aiOnGround) {
+            ai.y = getGroundY();
         }
 
     }
@@ -714,7 +703,7 @@ function getGroundY() {
 
 
 // =======================================
-// FIX SPAWN
+// FIX PLAYER
 // =======================================
 
 function fixPlayerSpawn(player) {
@@ -751,6 +740,8 @@ socket.on(
             return;
         }
 
+        players = {};
+
         list.forEach(
             function (player) {
 
@@ -771,7 +762,7 @@ socket.on(
 
                     if (
                         !Number.isFinite(
-                            Number(myPlayer.y)
+                            myPlayer.y
                         )
                     ) {
 
@@ -855,7 +846,8 @@ socket.on(
             ) {
 
                 error.textContent =
-                    message.message || "خطا";
+                    message.message ||
+                    "خطا";
 
             } else {
 
@@ -899,8 +891,7 @@ document.addEventListener(
     "keydown",
     function (e) {
 
-        keys[e.key.toLowerCase()] =
-            true;
+        keys[e.key.toLowerCase()] = true;
 
         if (e.code === "Space") {
             keys.space = true;
@@ -914,8 +905,7 @@ document.addEventListener(
     "keyup",
     function (e) {
 
-        keys[e.key.toLowerCase()] =
-            false;
+        keys[e.key.toLowerCase()] = false;
 
         if (e.code === "Space") {
             keys.space = false;
@@ -926,13 +916,10 @@ document.addEventListener(
 
 
 // =======================================
-// MOBILE CONTROLS
+// MOBILE BUTTON
 // =======================================
 
-function setupMobileButton(
-    id,
-    key
-) {
+function setupMobileButton(id, key) {
 
     const button =
         document.getElementById(id);
@@ -1039,10 +1026,6 @@ function updatePlayer() {
     let moving = false;
 
 
-    // ===================================
-    // LEFT
-    // ===================================
-
     if (
         keys.a ||
         keys.arrowleft ||
@@ -1056,10 +1039,6 @@ function updatePlayer() {
     }
 
 
-    // ===================================
-    // RIGHT
-    // ===================================
-
     if (
         keys.d ||
         keys.arrowright ||
@@ -1072,10 +1051,6 @@ function updatePlayer() {
 
     }
 
-
-    // ===================================
-    // JUMP
-    // ===================================
 
     if (
         (
@@ -1095,10 +1070,6 @@ function updatePlayer() {
     }
 
 
-    // ===================================
-    // GRAVITY
-    // ===================================
-
     velocityY += GRAVITY;
 
     myPlayer.y += velocityY;
@@ -1107,10 +1078,6 @@ function updatePlayer() {
     const ground =
         getGroundY();
 
-
-    // ===================================
-    // GROUND
-    // ===================================
 
     if (
         myPlayer.y >= ground
@@ -1126,20 +1093,14 @@ function updatePlayer() {
     }
 
 
-    // ===================================
-    // MAP BORDERS
-    // کل عرض مپ
-    // ===================================
+    /*
+     * کل عرض مپ قابل حرکت است.
+     * دیگر فقط نصف صفحه محدود نیست.
+     */
 
-    const playerMargin = 45;
+    if (myPlayer.x < 35) {
 
-    if (
-        myPlayer.x <
-        playerMargin
-    ) {
-
-        myPlayer.x =
-            playerMargin;
+        myPlayer.x = 35;
 
     }
 
@@ -1147,18 +1108,14 @@ function updatePlayer() {
     if (
         canvas &&
         myPlayer.x >
-        canvas.width - playerMargin
+        canvas.width - 35
     ) {
 
         myPlayer.x =
-            canvas.width - playerMargin;
+            canvas.width - 35;
 
     }
 
-
-    // ===================================
-    // ONLINE SYNC
-    // ===================================
 
     if (
         gameMode === "ONLINE" &&
@@ -1187,14 +1144,8 @@ function updatePlayer() {
 
 function updateAI() {
 
-    if (
-        !ai ||
-        !myPlayer ||
-        !canvas
-    ) {
-
+    if (!ai || !myPlayer) {
         return;
-
     }
 
 
@@ -1207,27 +1158,20 @@ function updateAI() {
 
 
     // ===================================
-    // AI SPEED
-    // ===================================
-
-    const aiSpeed = 2.3;
-
-
-    // ===================================
     // FOLLOW PLAYER
     // ===================================
 
     if (
-        Math.abs(distance) > 35
+        Math.abs(distance) > 80
     ) {
 
         if (distance > 0) {
 
-            ai.x += aiSpeed;
+            ai.x += 2.2;
 
         } else {
 
-            ai.x -= aiSpeed;
+            ai.x -= 2.2;
 
         }
 
@@ -1235,28 +1179,23 @@ function updateAI() {
 
 
     // ===================================
-    // AI MAP LIMITS
+    // AI BORDER
     // ===================================
 
-    const margin = 45;
+    if (ai.x < 35) {
 
-
-    if (
-        ai.x < margin
-    ) {
-
-        ai.x = margin;
+        ai.x = 35;
 
     }
 
-
     if (
+        canvas &&
         ai.x >
-        canvas.width - margin
+        canvas.width - 35
     ) {
 
         ai.x =
-            canvas.width - margin;
+            canvas.width - 35;
 
     }
 
@@ -1271,15 +1210,14 @@ function updateAI() {
 
 
     // ===================================
-    // AI GROUND
+    // GROUND
     // ===================================
 
     if (
         ai.y >= ground
     ) {
 
-        ai.y =
-            ground;
+        ai.y = ground;
 
         aiVelocityY = 0;
 
@@ -1292,23 +1230,22 @@ function updateAI() {
     // AI JUMP
     // ===================================
 
-    aiDirectionTimer--;
-
+    aiJumpTimer--;
 
     if (
-        aiDirectionTimer <= 0
+        aiJumpTimer <= 0
     ) {
 
-        aiDirectionTimer =
-            100 +
+        aiJumpTimer =
+            90 +
             Math.floor(
-                Math.random() * 150
+                Math.random() * 120
             );
 
 
         if (
-            Math.abs(distance) < 350 &&
-            aiOnGround
+            aiOnGround &&
+            Math.abs(distance) < 450
         ) {
 
             aiVelocityY =
@@ -1317,6 +1254,67 @@ function updateAI() {
             aiOnGround = false;
 
         }
+
+    }
+
+
+    // ===================================
+    // AI TALK
+    // ===================================
+
+    aiTalkTimer--;
+
+    if (
+        aiTalkTimer <= 0
+    ) {
+
+        aiTalkTimer =
+            220 +
+            Math.floor(
+                Math.random() * 220
+            );
+
+
+        const messages = [
+
+            "سلام 😎",
+
+            "کجایی؟ 👀",
+
+            "دارم میام 🤖",
+
+            "بیا اینجا 😂",
+
+            "گرفتَمت 😈",
+
+            "هی! صبر کن!",
+
+            "من اینجام 🤖",
+
+            "فرار نکن 😎"
+
+        ];
+
+
+        aiMessage =
+            messages[
+                Math.floor(
+                    Math.random() *
+                    messages.length
+                )
+            ];
+
+
+        aiMessageTimer = 150;
+
+    }
+
+
+    if (
+        aiMessageTimer > 0
+    ) {
+
+        aiMessageTimer--;
 
     }
 
@@ -1421,7 +1419,9 @@ function drawSky() {
     ctx.fillStyle =
         "#fde047";
 
+
     ctx.beginPath();
+
 
     ctx.arc(
         canvas.width - 100,
@@ -1431,31 +1431,20 @@ function drawSky() {
         Math.PI * 2
     );
 
+
     ctx.fill();
 
 
     // CLOUDS
 
-    drawCloud(
-        130,
-        110,
-        1
-    );
-
-    drawCloud(
-        420,
-        160,
-        0.8
-    );
+    drawCloud(130, 110, 1);
+    drawCloud(420, 160, 0.8);
+    drawCloud(750, 100, 0.9);
 
 }
 
 
-function drawCloud(
-    x,
-    y,
-    scale
-) {
+function drawCloud(x, y, scale) {
 
     if (!ctx) return;
 
@@ -1586,7 +1575,7 @@ function drawGround() {
 
 
 // =======================================
-// PLAYER
+// STICKMAN
 // =======================================
 
 function drawStickman(
@@ -1594,14 +1583,13 @@ function drawStickman(
     isAI = false
 ) {
 
-    if (!ctx || !player) return;
+    if (!ctx || !player) {
+        return;
+    }
 
 
-    const x =
-        player.x;
-
-    const y =
-        player.y;
+    const x = player.x;
+    const y = player.y;
 
 
     const minScreen =
@@ -1906,10 +1894,6 @@ function drawStickman(
     );
 
 
-    ctx.fillStyle =
-        skin;
-
-
     ctx.fill();
 
 
@@ -2001,11 +1985,8 @@ function drawStickman(
 
 
     roundRect(
-        x -
-            textWidth / 2 -
-            8,
-        y -
-            105 * s,
+        x - textWidth / 2 - 8,
+        y - 105 * s,
         textWidth + 16,
         24 * s,
         8
@@ -2030,12 +2011,13 @@ function drawStickman(
     ctx.fillText(
         name,
         x,
-        y -
-            93 * s
+        y - 93 * s
     );
 
 
-    // AI ICON
+    // ===================================
+    // AI
+    // ===================================
 
     if (isAI) {
 
@@ -2050,9 +2032,65 @@ function drawStickman(
         ctx.fillText(
             "🤖",
             x,
-            y -
-                118 * s
+            y - 118 * s
         );
+
+
+        // AI CHAT BUBBLE
+
+        if (
+            aiMessage &&
+            aiMessageTimer > 0
+        ) {
+
+            const bubbleFont =
+                Math.max(
+                    13,
+                    15 * s
+                );
+
+
+            ctx.font =
+                `bold ${bubbleFont}px Arial`;
+
+
+            const width =
+                ctx.measureText(
+                    aiMessage
+                ).width + 24;
+
+
+            const bubbleY =
+                y - 155 * s;
+
+
+            ctx.fillStyle =
+                "#ffffff";
+
+
+            roundRect(
+                x - width / 2,
+                bubbleY - 25,
+                width,
+                35,
+                12
+            );
+
+
+            ctx.fill();
+
+
+            ctx.fillStyle =
+                "#111827";
+
+
+            ctx.fillText(
+                aiMessage,
+                x,
+                bubbleY - 7
+            );
+
+        }
 
     }
 
@@ -2141,7 +2179,9 @@ function roundRect(
 
 function drawGame() {
 
-    if (!ctx || !canvas) return;
+    if (!ctx || !canvas) {
+        return;
+    }
 
 
     drawSky();
