@@ -1,11 +1,12 @@
 const socket = io();
 
-// =======================================
+// =====================================================
 // STATE
-// =======================================
+// =====================================================
 
 let playerName = "";
 let roomCode = "";
+
 let myPlayer = null;
 let players = {};
 
@@ -19,18 +20,26 @@ const SPEED = 5;
 const GRAVITY = 0.7;
 const JUMP = 13;
 
-// =======================================
+// =====================================================
 // AI
-// =======================================
+// =====================================================
 
 let ai = null;
 let aiVelocityY = 0;
 let aiOnGround = false;
 let aiDirectionTimer = 0;
 
-// =======================================
+// =====================================================
+// LEVEL
+// =====================================================
+
+let level = 1;
+let xp = 0;
+let xpNeeded = 100;
+
+// =====================================================
 // MOBS
-// =======================================
+// =====================================================
 
 let mobs = [];
 let mobIdCounter = 1;
@@ -42,7 +51,8 @@ const MOB_TYPES = [
         color: "#dc2626",
         health: 50,
         speed: 1.2,
-        damage: 5
+        damage: 5,
+        xp: 20
     },
     {
         name: "اسلایم",
@@ -50,7 +60,8 @@ const MOB_TYPES = [
         color: "#22c55e",
         health: 80,
         speed: 0.8,
-        damage: 8
+        damage: 8,
+        xp: 30
     },
     {
         name: "اسکلت",
@@ -58,40 +69,84 @@ const MOB_TYPES = [
         color: "#e5e7eb",
         health: 100,
         speed: 1,
-        damage: 10
+        damage: 10,
+        xp: 40
     }
 ];
 
-// =======================================
+// =====================================================
+// BOSS
+// =====================================================
+
+let boss = null;
+
+function shouldSpawnBoss() {
+
+    return level > 0 &&
+        level % 5 === 0;
+
+}
+
+// =====================================================
 // ELEMENTS
-// =======================================
+// =====================================================
 
-const nameScreen = document.getElementById("nameScreen");
-const modeScreen = document.getElementById("modeScreen");
-const offlineScreen = document.getElementById("offlineScreen");
-const onlineScreen = document.getElementById("onlineScreen");
-const roomScreen = document.getElementById("roomScreen");
-const gameScreen = document.getElementById("gameScreen");
+const nameScreen =
+    document.getElementById("nameScreen");
 
-const nameInput = document.getElementById("nameInput");
-const confirmName = document.getElementById("confirmName");
+const modeScreen =
+    document.getElementById("modeScreen");
 
-const onlineCard = document.getElementById("onlineCard");
-const offlineCard = document.getElementById("offlineCard");
+const offlineScreen =
+    document.getElementById("offlineScreen");
 
-const aiCard = document.getElementById("aiCard");
-const soloCard = document.getElementById("soloCard");
+const onlineScreen =
+    document.getElementById("onlineScreen");
 
-const backToModes = document.getElementById("backToModes");
+const roomScreen =
+    document.getElementById("roomScreen");
 
-const createRoom = document.getElementById("createRoom");
-const showJoin = document.getElementById("showJoin");
-const joinBox = document.getElementById("joinBox");
+const gameScreen =
+    document.getElementById("gameScreen");
 
-const roomInput = document.getElementById("roomInput");
-const joinRoom = document.getElementById("joinRoom");
+const nameInput =
+    document.getElementById("nameInput");
 
-const readyButton = document.getElementById("readyButton");
+const confirmName =
+    document.getElementById("confirmName");
+
+const onlineCard =
+    document.getElementById("onlineCard");
+
+const offlineCard =
+    document.getElementById("offlineCard");
+
+const aiCard =
+    document.getElementById("aiCard");
+
+const soloCard =
+    document.getElementById("soloCard");
+
+const backToModes =
+    document.getElementById("backToModes");
+
+const createRoom =
+    document.getElementById("createRoom");
+
+const showJoin =
+    document.getElementById("showJoin");
+
+const joinBox =
+    document.getElementById("joinBox");
+
+const roomInput =
+    document.getElementById("roomInput");
+
+const joinRoom =
+    document.getElementById("joinRoom");
+
+const readyButton =
+    document.getElementById("readyButton");
 
 const roomCodeElement =
     document.getElementById("roomCode");
@@ -102,9 +157,9 @@ const roomStatus =
 const backFromOnline =
     document.getElementById("backFromOnline");
 
-// =======================================
+// =====================================================
 // FULLSCREEN
-// =======================================
+// =====================================================
 
 async function enterGameFullscreen() {
 
@@ -124,15 +179,18 @@ async function enterGameFullscreen() {
 
     } catch (error) {
 
-        console.log("Fullscreen unavailable:", error);
+        console.log(
+            "Fullscreen unavailable:",
+            error
+        );
 
     }
 
 }
 
-// =======================================
+// =====================================================
 // NAME
-// =======================================
+// =====================================================
 
 if (confirmName) {
 
@@ -144,11 +202,15 @@ if (confirmName) {
         if (!name) {
 
             const error =
-                document.getElementById("nameError");
+                document.getElementById(
+                    "nameError"
+                );
 
             if (error) {
+
                 error.textContent =
                     "اول اسمت رو وارد کن.";
+
             }
 
             return;
@@ -157,8 +219,13 @@ if (confirmName) {
         playerName =
             name.substring(0, 20);
 
-        nameScreen.classList.add("hidden");
-        modeScreen.classList.remove("hidden");
+        nameScreen.classList.add(
+            "hidden"
+        );
+
+        modeScreen.classList.remove(
+            "hidden"
+        );
 
     };
 
@@ -171,7 +238,9 @@ if (nameInput) {
         function (e) {
 
             if (e.key === "Enter") {
+
                 confirmName.click();
+
             }
 
         }
@@ -179,16 +248,21 @@ if (nameInput) {
 
 }
 
-// =======================================
+// =====================================================
 // MODE
-// =======================================
+// =====================================================
 
 if (onlineCard) {
 
     onlineCard.onclick = function () {
 
-        modeScreen.classList.add("hidden");
-        onlineScreen.classList.remove("hidden");
+        modeScreen.classList.add(
+            "hidden"
+        );
+
+        onlineScreen.classList.remove(
+            "hidden"
+        );
 
     };
 
@@ -198,8 +272,13 @@ if (offlineCard) {
 
     offlineCard.onclick = function () {
 
-        modeScreen.classList.add("hidden");
-        offlineScreen.classList.remove("hidden");
+        modeScreen.classList.add(
+            "hidden"
+        );
+
+        offlineScreen.classList.remove(
+            "hidden"
+        );
 
     };
 
@@ -209,8 +288,13 @@ if (backToModes) {
 
     backToModes.onclick = function () {
 
-        offlineScreen.classList.add("hidden");
-        modeScreen.classList.remove("hidden");
+        offlineScreen.classList.add(
+            "hidden"
+        );
+
+        modeScreen.classList.remove(
+            "hidden"
+        );
 
     };
 
@@ -220,16 +304,21 @@ if (backFromOnline) {
 
     backFromOnline.onclick = function () {
 
-        onlineScreen.classList.add("hidden");
-        modeScreen.classList.remove("hidden");
+        onlineScreen.classList.add(
+            "hidden"
+        );
+
+        modeScreen.classList.remove(
+            "hidden"
+        );
 
     };
 
 }
 
-// =======================================
+// =====================================================
 // OFFLINE AI
-// =======================================
+// =====================================================
 
 if (aiCard) {
 
@@ -243,9 +332,9 @@ if (aiCard) {
 
 }
 
-// =======================================
+// =====================================================
 // OFFLINE SOLO
-// =======================================
+// =====================================================
 
 if (soloCard) {
 
@@ -259,14 +348,16 @@ if (soloCard) {
 
 }
 
-// =======================================
-// START OFFLINE
-// =======================================
+// =====================================================
+// START GAME
+// =====================================================
 
 function startOfflineGame(withAI) {
 
     gameMode =
-        withAI ? "AI" : "SOLO";
+        withAI
+            ? "AI"
+            : "SOLO";
 
     nameScreen.classList.add("hidden");
     modeScreen.classList.add("hidden");
@@ -274,24 +365,35 @@ function startOfflineGame(withAI) {
     onlineScreen.classList.add("hidden");
     roomScreen.classList.add("hidden");
 
-    gameScreen.style.display = "block";
+    gameScreen.style.display =
+        "block";
 
-    gameRunning = true;
+    gameRunning =
+        true;
 
-    setupOfflinePlayers(withAI);
+    level = 1;
+    xp = 0;
+    xpNeeded = 100;
+
+    boss = null;
+
+    setupOfflinePlayers(
+        withAI
+    );
 
     resizeCanvas();
 
-    // حتماً بعد از مشخص شدن زمین
     fixAllSpawns();
 
-    requestAnimationFrame(gameLoop);
+    requestAnimationFrame(
+        gameLoop
+    );
 
 }
 
-// =======================================
-// OFFLINE PLAYERS
-// =======================================
+// =====================================================
+// SETUP PLAYERS
+// =====================================================
 
 function setupOfflinePlayers(withAI) {
 
@@ -308,7 +410,9 @@ function setupOfflinePlayers(withAI) {
 
         y: 0,
 
-        health: 100
+        health: 100,
+
+        maxHealth: 100
 
     };
 
@@ -329,19 +433,19 @@ function setupOfflinePlayers(withAI) {
 
             y: 0,
 
-            health: 100
+            health: 100,
+            maxHealth: 100
 
         };
 
     }
 
-    // ===================================
+    // =================================================
     // MOBS
-    // ===================================
+    // =================================================
 
     mobs = [];
 
-    // چند ماب در نقاط مختلف مپ
     spawnMob(500, 0, 0);
     spawnMob(900, 0, 1);
     spawnMob(1300, 0, 2);
@@ -349,29 +453,64 @@ function setupOfflinePlayers(withAI) {
     spawnMob(2200, 0, 1);
     spawnMob(2700, 0, 2);
 
-    const modeText =
-        document.getElementById("gameMode");
+    // =================================================
+    // FIRST BOSS TEST
+    // =================================================
 
-    if (modeText) {
+    // برای اینکه از همان اول باس را ببینی
+    // بعداً می‌توانیم این را فقط برای Level 5 کنیم.
+
+    spawnBoss();
+
+    updateModeText();
+
+}
+
+// =====================================================
+// MODE TEXT
+// =====================================================
+
+function updateModeText() {
+
+    const modeText =
+        document.getElementById(
+            "gameMode"
+        );
+
+    if (!modeText) {
+        return;
+    }
+
+    if (gameMode === "AI") {
 
         modeText.textContent =
-            withAI
-                ? "🤖 بازی با AI 👾"
-                : "👤 بازی تنهایی 👾";
+            "🤖 AI | 👾 لول " +
+            level;
+
+    } else {
+
+        modeText.textContent =
+            "👤 SOLO | 👾 لول " +
+            level;
 
     }
 
 }
 
-// =======================================
-// MOB SPAWN
-// =======================================
+// =====================================================
+// SPAWN MOB
+// =====================================================
 
-function spawnMob(x, y, typeIndex = 0) {
+function spawnMob(
+    x,
+    y,
+    typeIndex = 0
+) {
 
     const type =
         MOB_TYPES[
-            typeIndex % MOB_TYPES.length
+            typeIndex %
+            MOB_TYPES.length
         ];
 
     const mob = {
@@ -389,9 +528,11 @@ function spawnMob(x, y, typeIndex = 0) {
         color:
             type.color,
 
-        x: x,
+        x:
+            x,
 
-        y: y,
+        y:
+            y,
 
         health:
             type.health,
@@ -405,11 +546,17 @@ function spawnMob(x, y, typeIndex = 0) {
         damage:
             type.damage,
 
-        velocityY: 0,
+        xp:
+            type.xp,
 
-        onGround: false,
+        velocityY:
+            0,
 
-        attackCooldown: 0
+        onGround:
+            false,
+
+        attackCooldown:
+            0
 
     };
 
@@ -419,9 +566,68 @@ function spawnMob(x, y, typeIndex = 0) {
 
 }
 
-// =======================================
-// FIX ALL SPAWNS
-// =======================================
+// =====================================================
+// SPAWN BOSS
+// =====================================================
+
+function spawnBoss() {
+
+    if (boss) {
+        return;
+    }
+
+    const ground =
+        getGroundY();
+
+    boss = {
+
+        id:
+            "boss_" +
+            Date.now(),
+
+        name:
+            "BOSS",
+
+        emoji:
+            "👑",
+
+        x:
+            1200,
+
+        y:
+            ground,
+
+        health:
+            500,
+
+        maxHealth:
+            500,
+
+        speed:
+            0.7,
+
+        damage:
+            20,
+
+        xp:
+            200,
+
+        velocityY:
+            0,
+
+        attackCooldown:
+            0,
+
+        onGround:
+            true
+
+    };
+
+}
+
+// =====================================================
+// FIX SPAWNS
+// =====================================================
 
 function fixAllSpawns() {
 
@@ -454,24 +660,39 @@ function fixAllSpawns() {
 
     }
 
-    mobs.forEach(function (mob) {
+    mobs.forEach(
+        function (mob) {
 
-        mob.y =
+            mob.y =
+                ground;
+
+            mob.onGround =
+                true;
+
+            mob.velocityY =
+                0;
+
+        }
+    );
+
+    if (boss) {
+
+        boss.y =
             ground;
 
-        mob.onGround =
+        boss.onGround =
             true;
 
-        mob.velocityY =
+        boss.velocityY =
             0;
 
-    });
+    }
 
 }
 
-// =======================================
+// =====================================================
 // ONLINE
-// =======================================
+// =====================================================
 
 if (showJoin) {
 
@@ -479,7 +700,9 @@ if (showJoin) {
 
         if (joinBox) {
 
-            joinBox.classList.toggle("hidden");
+            joinBox.classList.toggle(
+                "hidden"
+            );
 
         }
 
@@ -507,7 +730,8 @@ if (createRoom) {
 
     createRoom.onclick = function () {
 
-        createRoom.disabled = true;
+        createRoom.disabled =
+            true;
 
         createRoom.textContent =
             "⏳ در حال ساخت...";
@@ -515,7 +739,8 @@ if (createRoom) {
         socket.emit(
             "createRoom",
             {
-                name: playerName
+                name:
+                    playerName
             }
         );
 
@@ -523,17 +748,21 @@ if (createRoom) {
 
 }
 
-// =======================================
+// =====================================================
 // ROOM CREATED
-// =======================================
+// =====================================================
 
 socket.on(
     "roomCreated",
     function (data) {
 
         roomCode =
-            String(data.roomCode)
-                .replace(/\D/g, "");
+            String(
+                data.roomCode
+            ).replace(
+                /\D/g,
+                ""
+            );
 
         myPlayer =
             data.player;
@@ -542,13 +771,20 @@ socket.on(
 
         if (myPlayer) {
 
-            players[myPlayer.id] =
+            players[
+                myPlayer.id
+            ] =
                 myPlayer;
 
         }
 
-        onlineScreen.classList.add("hidden");
-        roomScreen.classList.remove("hidden");
+        onlineScreen.classList.add(
+            "hidden"
+        );
+
+        roomScreen.classList.remove(
+            "hidden"
+        );
 
         if (roomCodeElement) {
 
@@ -570,9 +806,9 @@ socket.on(
     }
 );
 
-// =======================================
-// JOIN ROOM
-// =======================================
+// =====================================================
+// JOIN
+// =====================================================
 
 if (joinRoom) {
 
@@ -603,7 +839,8 @@ if (joinRoom) {
 
         }
 
-        joinRoom.disabled = true;
+        joinRoom.disabled =
+            true;
 
         joinRoom.textContent =
             "⏳ در حال ورود...";
@@ -611,8 +848,12 @@ if (joinRoom) {
         socket.emit(
             "joinRoom",
             {
-                roomCode: code,
-                name: playerName
+                roomCode:
+                    code,
+
+                name:
+                    playerName
+
             }
         );
 
@@ -620,17 +861,21 @@ if (joinRoom) {
 
 }
 
-// =======================================
+// =====================================================
 // ROOM JOINED
-// =======================================
+// =====================================================
 
 socket.on(
     "roomJoined",
     function (data) {
 
         roomCode =
-            String(data.roomCode)
-                .replace(/\D/g, "");
+            String(
+                data.roomCode
+            ).replace(
+                /\D/g,
+                ""
+            );
 
         myPlayer =
             data.player;
@@ -639,13 +884,20 @@ socket.on(
 
         if (myPlayer) {
 
-            players[myPlayer.id] =
+            players[
+                myPlayer.id
+            ] =
                 myPlayer;
 
         }
 
-        onlineScreen.classList.add("hidden");
-        roomScreen.classList.remove("hidden");
+        onlineScreen.classList.add(
+            "hidden"
+        );
+
+        roomScreen.classList.remove(
+            "hidden"
+        );
 
         if (roomCodeElement) {
 
@@ -667,43 +919,49 @@ socket.on(
     }
 );
 
-// =======================================
+// =====================================================
 // READY
-// =======================================
+// =====================================================
 
 if (readyButton) {
 
-    readyButton.onclick = async function () {
+    readyButton.onclick =
+        async function () {
 
-        await enterGameFullscreen();
+            await enterGameFullscreen();
 
-        readyButton.disabled = true;
+            readyButton.disabled =
+                true;
 
-        readyButton.textContent =
-            "✅ آماده شدی";
+            readyButton.textContent =
+                "✅ آماده شدی";
 
-        if (roomStatus) {
+            if (roomStatus) {
 
-            roomStatus.textContent =
-                "⏳ منتظر بازیکن دیگر...";
+                roomStatus.textContent =
+                    "⏳ منتظر بازیکن دیگر...";
 
-        }
+            }
 
-        socket.emit("readyForGame");
+            socket.emit(
+                "readyForGame"
+            );
 
-    };
+        };
 
 }
 
-// =======================================
+// =====================================================
 // READY UPDATE
-// =======================================
+// =====================================================
 
 socket.on(
     "readyUpdate",
     function (data) {
 
-        if (!roomStatus) return;
+        if (!roomStatus) {
+            return;
+        }
 
         roomStatus.textContent =
             "بازیکنان آماده: " +
@@ -714,9 +972,9 @@ socket.on(
     }
 );
 
-// =======================================
+// =====================================================
 // START ONLINE
-// =======================================
+// =====================================================
 
 socket.on(
     "startGame",
@@ -727,7 +985,9 @@ socket.on(
         gameMode =
             "ONLINE";
 
-        roomScreen.classList.add("hidden");
+        roomScreen.classList.add(
+            "hidden"
+        );
 
         gameScreen.style.display =
             "block";
@@ -735,23 +995,25 @@ socket.on(
         gameRunning =
             true;
 
-        mobs = [];
-
         resizeCanvas();
 
         fixAllSpawns();
 
-        requestAnimationFrame(gameLoop);
+        requestAnimationFrame(
+            gameLoop
+        );
 
     }
 );
 
-// =======================================
+// =====================================================
 // CANVAS
-// =======================================
+// =====================================================
 
 const canvas =
-    document.getElementById("gameCanvas");
+    document.getElementById(
+        "gameCanvas"
+    );
 
 const ctx =
     canvas
@@ -760,7 +1022,9 @@ const ctx =
 
 function resizeCanvas() {
 
-    if (!canvas) return;
+    if (!canvas) {
+        return;
+    }
 
     canvas.width =
         window.innerWidth;
@@ -769,7 +1033,9 @@ function resizeCanvas() {
         window.innerHeight;
 
     if (gameRunning) {
+
         fixAllSpawns();
+
     }
 
 }
@@ -779,9 +1045,9 @@ window.addEventListener(
     resizeCanvas
 );
 
-// =======================================
+// =====================================================
 // GROUND
-// =======================================
+// =====================================================
 
 function getGroundY() {
 
@@ -793,13 +1059,15 @@ function getGroundY() {
 
 }
 
-// =======================================
-// ONLINE PLAYER SPAWN
-// =======================================
+// =====================================================
+// PLAYER SPAWN
+// =====================================================
 
 function fixPlayerSpawn(player) {
 
-    if (!player) return;
+    if (!player) {
+        return;
+    }
 
     const ground =
         getGroundY();
@@ -807,7 +1075,9 @@ function fixPlayerSpawn(player) {
     if (
         player.y === undefined ||
         player.y === null ||
-        !Number.isFinite(Number(player.y)) ||
+        !Number.isFinite(
+            Number(player.y)
+        ) ||
         Number(player.y) <= 0
     ) {
 
@@ -818,9 +1088,9 @@ function fixPlayerSpawn(player) {
 
 }
 
-// =======================================
+// =====================================================
 // ONLINE PLAYERS
-// =======================================
+// =====================================================
 
 socket.on(
     "playersUpdate",
@@ -835,15 +1105,22 @@ socket.on(
         list.forEach(
             function (player) {
 
-                if (!player) return;
+                if (!player) {
+                    return;
+                }
 
-                fixPlayerSpawn(player);
+                fixPlayerSpawn(
+                    player
+                );
 
-                players[player.id] =
+                players[
+                    player.id
+                ] =
                     player;
 
                 if (
-                    player.id === socket.id
+                    player.id ===
+                    socket.id
                 ) {
 
                     myPlayer =
@@ -863,29 +1140,41 @@ socket.on(
     }
 );
 
-// =======================================
+// =====================================================
 // PLAYER MOVED
-// =======================================
+// =====================================================
 
 socket.on(
     "playerMoved",
     function (player) {
 
-        if (!player) return;
+        if (!player) {
+            return;
+        }
 
-        fixPlayerSpawn(player);
+        fixPlayerSpawn(
+            player
+        );
 
-        if (!players[player.id]) {
+        if (
+            !players[player.id]
+        ) {
 
-            players[player.id] =
+            players[
+                player.id
+            ] =
                 player;
 
         } else {
 
-            players[player.id].x =
+            players[
+                player.id
+            ].x =
                 player.x;
 
-            players[player.id].y =
+            players[
+                player.id
+            ].y =
                 player.y;
 
         }
@@ -893,9 +1182,9 @@ socket.on(
     }
 );
 
-// =======================================
+// =====================================================
 // PLAYER LEFT
-// =======================================
+// =====================================================
 
 socket.on(
     "playerLeft",
@@ -906,9 +1195,9 @@ socket.on(
     }
 );
 
-// =======================================
+// =====================================================
 // ROOM ERROR
-// =======================================
+// =====================================================
 
 socket.on(
     "roomError",
@@ -922,7 +1211,8 @@ socket.on(
         if (error) {
 
             if (
-                typeof message === "object" &&
+                typeof message ===
+                "object" &&
                 message !== null
             ) {
 
@@ -962,9 +1252,9 @@ socket.on(
     }
 );
 
-// =======================================
-// CONTROLS
-// =======================================
+// =====================================================
+// KEYBOARD
+// =====================================================
 
 const keys = {};
 
@@ -972,11 +1262,18 @@ document.addEventListener(
     "keydown",
     function (e) {
 
-        keys[e.key.toLowerCase()] =
+        keys[
+            e.key.toLowerCase()
+        ] =
             true;
 
-        if (e.code === "Space") {
-            keys.space = true;
+        if (
+            e.code === "Space"
+        ) {
+
+            keys.space =
+                true;
+
         }
 
     }
@@ -986,26 +1283,40 @@ document.addEventListener(
     "keyup",
     function (e) {
 
-        keys[e.key.toLowerCase()] =
+        keys[
+            e.key.toLowerCase()
+        ] =
             false;
 
-        if (e.code === "Space") {
-            keys.space = false;
+        if (
+            e.code === "Space"
+        ) {
+
+            keys.space =
+                false;
+
         }
 
     }
 );
 
-// =======================================
-// MOBILE BUTTONS
-// =======================================
+// =====================================================
+// MOBILE CONTROLS
+// =====================================================
 
-function setupMobileButton(id, key) {
+function setupMobileButton(
+    id,
+    key
+) {
 
     const button =
-        document.getElementById(id);
+        document.getElementById(
+            id
+        );
 
-    if (!button) return;
+    if (!button) {
+        return;
+    }
 
     button.addEventListener(
         "touchstart",
@@ -1013,7 +1324,8 @@ function setupMobileButton(id, key) {
 
             e.preventDefault();
 
-            keys[key] = true;
+            keys[key] =
+                true;
 
         },
         {
@@ -1027,7 +1339,8 @@ function setupMobileButton(id, key) {
 
             e.preventDefault();
 
-            keys[key] = false;
+            keys[key] =
+                false;
 
         },
         {
@@ -1039,7 +1352,8 @@ function setupMobileButton(id, key) {
         "touchcancel",
         function () {
 
-            keys[key] = false;
+            keys[key] =
+                false;
 
         }
     );
@@ -1048,7 +1362,8 @@ function setupMobileButton(id, key) {
         "mousedown",
         function () {
 
-            keys[key] = true;
+            keys[key] =
+                true;
 
         }
     );
@@ -1057,7 +1372,8 @@ function setupMobileButton(id, key) {
         "mouseup",
         function () {
 
-            keys[key] = false;
+            keys[key] =
+                false;
 
         }
     );
@@ -1066,7 +1382,8 @@ function setupMobileButton(id, key) {
         "mouseleave",
         function () {
 
-            keys[key] = false;
+            keys[key] =
+                false;
 
         }
     );
@@ -1088,15 +1405,226 @@ setupMobileButton(
     "mobileJump"
 );
 
-// =======================================
+// =====================================================
+// ATTACK
+// =====================================================
+
+function attack() {
+
+    if (!myPlayer) {
+        return;
+    }
+
+    let target = null;
+    let bestDistance = 100;
+
+    // MOBS
+    mobs.forEach(
+        function (mob) {
+
+            if (
+                mob.health <= 0
+            ) {
+                return;
+            }
+
+            const distance =
+                Math.abs(
+                    myPlayer.x -
+                    mob.x
+                );
+
+            if (
+                distance <
+                bestDistance
+            ) {
+
+                bestDistance =
+                    distance;
+
+                target =
+                    mob;
+
+            }
+
+        }
+    );
+
+    // BOSS
+    if (boss && boss.health > 0) {
+
+        const distance =
+            Math.abs(
+                myPlayer.x -
+                boss.x
+            );
+
+        if (
+            distance <
+            bestDistance
+        ) {
+
+            target =
+                boss;
+
+        }
+
+    }
+
+    if (!target) {
+        return;
+    }
+
+    target.health -= 25;
+
+    if (
+        target.health <= 0
+    ) {
+
+        addXP(
+            target.xp ||
+            20
+        );
+
+        if (
+            target === boss
+        ) {
+
+            boss =
+                null;
+
+        }
+
+    }
+
+}
+
+// F
+document.addEventListener(
+    "keydown",
+    function (e) {
+
+        if (
+            e.key.toLowerCase() === "f"
+        ) {
+
+            attack();
+
+        }
+
+    }
+);
+
+// =====================================================
+// ADD ATTACK BUTTON
+// =====================================================
+
+function createAttackButton() {
+
+    if (
+        document.getElementById(
+            "attackButton"
+        )
+    ) {
+        return;
+    }
+
+    const button =
+        document.createElement(
+            "button"
+        );
+
+    button.id =
+        "attackButton";
+
+    button.textContent =
+        "⚔️";
+
+    button.style.position =
+        "fixed";
+
+    button.style.right =
+        "20px";
+
+    button.style.bottom =
+        "25px";
+
+    button.style.zIndex =
+        "100";
+
+    button.style.width =
+        "72px";
+
+    button.style.height =
+        "72px";
+
+    button.style.borderRadius =
+        "20px";
+
+    button.style.border =
+        "2px solid #ffffff55";
+
+    button.style.background =
+        "#dc2626dd";
+
+    button.style.color =
+        "white";
+
+    button.style.fontSize =
+        "30px";
+
+    button.style.margin =
+        "0";
+
+    button.style.padding =
+        "0";
+
+    button.style.touchAction =
+        "none";
+
+    button.addEventListener(
+        "touchstart",
+        function (e) {
+
+            e.preventDefault();
+
+            attack();
+
+        },
+        {
+            passive: false
+        }
+    );
+
+    button.addEventListener(
+        "click",
+        function () {
+
+            attack();
+
+        }
+    );
+
+    gameScreen.appendChild(
+        button
+    );
+
+}
+
+createAttackButton();
+
+// =====================================================
 // PLAYER PHYSICS
-// =======================================
+// =====================================================
 
 function updatePlayer() {
 
-    if (!myPlayer) return;
+    if (!myPlayer) {
+        return;
+    }
 
-    let moving = false;
+    let moving =
+        false;
 
     if (
         keys.a ||
@@ -1104,8 +1632,11 @@ function updatePlayer() {
         keys.mobileLeft
     ) {
 
-        myPlayer.x -= SPEED;
-        moving = true;
+        myPlayer.x -=
+            SPEED;
+
+        moving =
+            true;
 
     }
 
@@ -1115,8 +1646,11 @@ function updatePlayer() {
         keys.mobileRight
     ) {
 
-        myPlayer.x += SPEED;
-        moving = true;
+        myPlayer.x +=
+            SPEED;
+
+        moving =
+            true;
 
     }
 
@@ -1138,15 +1672,18 @@ function updatePlayer() {
 
     }
 
-    velocityY += GRAVITY;
+    velocityY +=
+        GRAVITY;
 
-    myPlayer.y += velocityY;
+    myPlayer.y +=
+        velocityY;
 
     const ground =
         getGroundY();
 
     if (
-        myPlayer.y >= ground
+        myPlayer.y >=
+        ground
     ) {
 
         myPlayer.y =
@@ -1160,16 +1697,19 @@ function updatePlayer() {
 
     }
 
-    // مپ کامل قابل حرکت
-    if (myPlayer.x < 35) {
-        myPlayer.x = 35;
+    if (
+        myPlayer.x <
+        35
+    ) {
+
+        myPlayer.x =
+            35;
+
     }
 
-    // عمداً سقف سمت راست محدود نمی‌کنیم
-    // تا کل مپ قابل حرکت باشد
-
     if (
-        gameMode === "ONLINE" &&
+        gameMode ===
+        "ONLINE" &&
         (
             moving ||
             !onGround
@@ -1179,8 +1719,12 @@ function updatePlayer() {
         socket.emit(
             "playerMovement",
             {
-                x: myPlayer.x,
-                y: myPlayer.y
+                x:
+                    myPlayer.x,
+
+                y:
+                    myPlayer.y
+
             }
         );
 
@@ -1188,13 +1732,16 @@ function updatePlayer() {
 
 }
 
-// =======================================
+// =====================================================
 // AI
-// =======================================
+// =====================================================
 
 function updateAI() {
 
-    if (!ai || !myPlayer) {
+    if (
+        !ai ||
+        !myPlayer
+    ) {
         return;
     }
 
@@ -1202,25 +1749,40 @@ function updateAI() {
         getGroundY();
 
     const distance =
-        myPlayer.x - ai.x;
+        myPlayer.x -
+        ai.x;
 
     if (
-        Math.abs(distance) > 25
+        Math.abs(distance) >
+        25
     ) {
 
-        if (distance > 0) {
-            ai.x += 2.3;
+        if (
+            distance > 0
+        ) {
+
+            ai.x +=
+                2.3;
+
         } else {
-            ai.x -= 2.3;
+
+            ai.x -=
+                2.3;
+
         }
 
     }
 
-    aiVelocityY += GRAVITY;
+    aiVelocityY +=
+        GRAVITY;
 
-    ai.y += aiVelocityY;
+    ai.y +=
+        aiVelocityY;
 
-    if (ai.y >= ground) {
+    if (
+        ai.y >=
+        ground
+    ) {
 
         ai.y =
             ground;
@@ -1236,17 +1798,20 @@ function updateAI() {
     aiDirectionTimer--;
 
     if (
-        aiDirectionTimer <= 0
+        aiDirectionTimer <=
+        0
     ) {
 
         aiDirectionTimer =
             100 +
             Math.floor(
-                Math.random() * 150
+                Math.random() *
+                150
             );
 
         if (
-            Math.abs(distance) < 300 &&
+            Math.abs(distance) <
+            300 &&
             aiOnGround
         ) {
 
@@ -1262,113 +1827,270 @@ function updateAI() {
 
 }
 
-// =======================================
-// MOBS AI
-// =======================================
+// =====================================================
+// MOB AI
+// =====================================================
 
 function updateMobs() {
 
-    if (!myPlayer) return;
+    if (!myPlayer) {
+        return;
+    }
 
     const ground =
         getGroundY();
 
-    mobs.forEach(function (mob) {
-
-        if (mob.health <= 0) {
-            return;
-        }
-
-        const distance =
-            myPlayer.x - mob.x;
-
-        // دنبال بازیکن حرکت کن
-        if (
-            Math.abs(distance) > 55
-        ) {
-
-            if (distance > 0) {
-
-                mob.x +=
-                    mob.speed;
-
-            } else {
-
-                mob.x -=
-                    mob.speed;
-
-            }
-
-        }
-
-        // Gravity
-        mob.velocityY +=
-            GRAVITY;
-
-        mob.y +=
-            mob.velocityY;
-
-        // زمین
-        if (
-            mob.y >= ground
-        ) {
-
-            mob.y =
-                ground;
-
-            mob.velocityY =
-                0;
-
-            mob.onGround =
-                true;
-
-        }
-
-        // حمله نزدیک
-        if (
-            Math.abs(distance) < 70
-        ) {
+    mobs.forEach(
+        function (mob) {
 
             if (
-                mob.attackCooldown <= 0
+                mob.health <= 0
+            ) {
+                return;
+            }
+
+            const distance =
+                myPlayer.x -
+                mob.x;
+
+            if (
+                Math.abs(distance) >
+                55
             ) {
 
-                mob.attackCooldown =
-                    60;
+                if (
+                    distance > 0
+                ) {
 
-                // فعلاً فقط پیام
-                console.log(
-                    mob.name +
-                    " attacked player"
-                );
+                    mob.x +=
+                        mob.speed;
+
+                } else {
+
+                    mob.x -=
+                        mob.speed;
+
+                }
+
+            }
+
+            mob.velocityY +=
+                GRAVITY;
+
+            mob.y +=
+                mob.velocityY;
+
+            if (
+                mob.y >=
+                ground
+            ) {
+
+                mob.y =
+                    ground;
+
+                mob.velocityY =
+                    0;
+
+                mob.onGround =
+                    true;
+
+            }
+
+            if (
+                Math.abs(distance) <
+                70
+            ) {
+
+                if (
+                    mob.attackCooldown <= 0
+                ) {
+
+                    mob.attackCooldown =
+                        60;
+
+                    myPlayer.health =
+                        Math.max(
+                            0,
+                            myPlayer.health -
+                            mob.damage
+                        );
+
+                }
+
+            }
+
+            if (
+                mob.attackCooldown >
+                0
+            ) {
+
+                mob.attackCooldown--;
 
             }
 
         }
+    );
 
-        if (
-            mob.attackCooldown > 0
-        ) {
-
-            mob.attackCooldown--;
-
-        }
-
-    });
-
-    // ماب‌های مرده را پاک کن
     mobs =
-        mobs.filter(function (mob) {
+        mobs.filter(
+            function (mob) {
 
-            return mob.health > 0;
+                return mob.health > 0;
 
-        });
+            }
+        );
 
 }
 
-// =======================================
-// GAME UI
-// =======================================
+// =====================================================
+// BOSS AI
+// =====================================================
+
+function updateBoss() {
+
+    if (
+        !boss ||
+        !myPlayer
+    ) {
+        return;
+    }
+
+    const ground =
+        getGroundY();
+
+    const distance =
+        myPlayer.x -
+        boss.x;
+
+    if (
+        Math.abs(distance) >
+        80
+    ) {
+
+        if (
+            distance > 0
+        ) {
+
+            boss.x +=
+                boss.speed;
+
+        } else {
+
+            boss.x -=
+                boss.speed;
+
+        }
+
+    }
+
+    boss.velocityY +=
+        GRAVITY;
+
+    boss.y +=
+        boss.velocityY;
+
+    if (
+        boss.y >=
+        ground
+    ) {
+
+        boss.y =
+            ground;
+
+        boss.velocityY =
+            0;
+
+        boss.onGround =
+            true;
+
+    }
+
+    if (
+        Math.abs(distance) <
+        100
+    ) {
+
+        if (
+            boss.attackCooldown <=
+            0
+        ) {
+
+            boss.attackCooldown =
+                90;
+
+            myPlayer.health =
+                Math.max(
+                    0,
+                    myPlayer.health -
+                    boss.damage
+                );
+
+        }
+
+    }
+
+    if (
+        boss.attackCooldown >
+        0
+    ) {
+
+        boss.attackCooldown--;
+
+    }
+
+}
+
+// =====================================================
+// XP
+// =====================================================
+
+function addXP(amount) {
+
+    xp +=
+        amount;
+
+    while (
+        xp >=
+        xpNeeded
+    ) {
+
+        xp -=
+            xpNeeded;
+
+        level++;
+
+        xpNeeded =
+            100 +
+            (level - 1) * 50;
+
+        updateModeText();
+
+        // هر لول جدید چند ماب اضافه
+        spawnMob(
+            myPlayer.x + 500,
+            0,
+            level % 3
+        );
+
+        // هر 5 لول باس
+        if (
+            level % 5 === 0
+        ) {
+
+            boss =
+                null;
+
+            spawnBoss();
+
+        }
+
+    }
+
+}
+
+// =====================================================
+// UI
+// =====================================================
 
 function updateGameUI() {
 
@@ -1377,46 +2099,42 @@ function updateGameUI() {
             "gameScore"
         );
 
-    if (!score) return;
+    if (!score) {
+        return;
+    }
 
-    if (
-        gameMode === "AI" &&
-        ai &&
-        myPlayer
-    ) {
+    let text =
+        "❤️ " +
+        (
+            myPlayer
+                ? myPlayer.health
+                : 100
+        ) +
+        " | ⭐ Level " +
+        level +
+        " | XP " +
+        xp +
+        "/" +
+        xpNeeded +
+        " | 👾 " +
+        mobs.length;
 
-        const distance =
-            Math.abs(
-                myPlayer.x -
-                ai.x
-            );
+    if (boss) {
 
-        if (distance < 75) {
-
-            score.textContent =
-                "🤖 حریف نزدیکته!";
-
-        } else {
-
-            score.textContent =
-                "❤️ 100 👾 " +
-                mobs.length;
-
-        }
-
-    } else {
-
-        score.textContent =
-            "❤️ 100 👾 " +
-            mobs.length;
+        text +=
+            " | 👑 BOSS: " +
+            boss.health;
 
     }
 
+    score.textContent =
+        text;
+
 }
 
-// =======================================
+// =====================================================
 // SKY
-// =======================================
+// =====================================================
 
 function drawSky() {
 
@@ -1467,18 +2185,33 @@ function drawSky() {
 
     ctx.fill();
 
-    drawCloud(130, 110, 1);
-    drawCloud(420, 160, 0.8);
+    drawCloud(
+        130,
+        110,
+        1
+    );
+
+    drawCloud(
+        420,
+        160,
+        0.8
+    );
 
 }
 
-// =======================================
+// =====================================================
 // CLOUD
-// =======================================
+// =====================================================
 
-function drawCloud(x, y, scale) {
+function drawCloud(
+    x,
+    y,
+    scale
+) {
 
-    if (!ctx) return;
+    if (!ctx) {
+        return;
+    }
 
     ctx.fillStyle =
         "#ffffffcc";
@@ -1520,9 +2253,9 @@ function drawCloud(x, y, scale) {
 
 }
 
-// =======================================
+// =====================================================
 // GROUND
-// =======================================
+// =====================================================
 
 function drawGround() {
 
@@ -1588,16 +2321,19 @@ function drawGround() {
 
 }
 
-// =======================================
+// =====================================================
 // STICKMAN
-// =======================================
+// =====================================================
 
 function drawStickman(
     player,
     isAI = false
 ) {
 
-    if (!ctx || !player) {
+    if (
+        !ctx ||
+        !player
+    ) {
         return;
     }
 
@@ -1622,7 +2358,8 @@ function drawStickman(
             )
         );
 
-    const s = scale;
+    const s =
+        scale;
 
     const bodyColor =
         isAI
@@ -1653,7 +2390,6 @@ function drawStickman(
     ctx.lineJoin =
         "round";
 
-    // Shadow
     ctx.fillStyle =
         "rgba(0,0,0,0.20)";
 
@@ -1671,7 +2407,6 @@ function drawStickman(
 
     ctx.fill();
 
-    // Legs
     ctx.strokeStyle =
         "#1f2937";
 
@@ -1706,7 +2441,6 @@ function drawStickman(
 
     ctx.stroke();
 
-    // Shoes
     ctx.fillStyle =
         shoe;
 
@@ -1730,7 +2464,6 @@ function drawStickman(
 
     ctx.fill();
 
-    // Shirt
     ctx.fillStyle =
         shirt;
 
@@ -1744,7 +2477,6 @@ function drawStickman(
 
     ctx.fill();
 
-    // Body
     ctx.fillStyle =
         bodyColor;
 
@@ -1758,7 +2490,6 @@ function drawStickman(
 
     ctx.fill();
 
-    // Arms
     ctx.strokeStyle =
         bodyDark;
 
@@ -1793,7 +2524,6 @@ function drawStickman(
 
     ctx.stroke();
 
-    // Hands
     ctx.fillStyle =
         skin;
 
@@ -1821,10 +2551,6 @@ function drawStickman(
 
     ctx.fill();
 
-    // Neck
-    ctx.fillStyle =
-        skin;
-
     roundRect(
         x - 8 * s,
         y - 40 * s,
@@ -1835,7 +2561,6 @@ function drawStickman(
 
     ctx.fill();
 
-    // Head
     ctx.beginPath();
 
     ctx.arc(
@@ -1848,7 +2573,6 @@ function drawStickman(
 
     ctx.fill();
 
-    // Hair
     ctx.fillStyle =
         "#111827";
 
@@ -1863,10 +2587,6 @@ function drawStickman(
     );
 
     ctx.fill();
-
-    // Eyes
-    ctx.fillStyle =
-        "#111827";
 
     ctx.beginPath();
 
@@ -1892,7 +2612,6 @@ function drawStickman(
 
     ctx.fill();
 
-    // Name
     const name =
         player.name ||
         (
@@ -1911,7 +2630,9 @@ function drawStickman(
         `bold ${fontSize}px Arial`;
 
     const textWidth =
-        ctx.measureText(name).width;
+        ctx.measureText(
+            name
+        ).width;
 
     ctx.fillStyle =
         "rgba(17,24,39,0.82)";
@@ -1941,7 +2662,8 @@ function drawStickman(
     ctx.fillText(
         name,
         x,
-        y - 93 * s
+        y -
+            93 * s
     );
 
     if (isAI) {
@@ -1955,7 +2677,8 @@ function drawStickman(
         ctx.fillText(
             "🤖",
             x,
-            y - 118 * s
+            y -
+                118 * s
         );
 
     }
@@ -1964,9 +2687,9 @@ function drawStickman(
 
 }
 
-// =======================================
+// =====================================================
 // DRAW MOB
-// =======================================
+// =====================================================
 
 function drawMob(mob) {
 
@@ -1991,9 +2714,9 @@ function drawMob(mob) {
 
     ctx.ellipse(
         x,
-        y + 20,
-        30,
-        7,
+        y + 22,
+        35,
+        8,
         0,
         0,
         Math.PI * 2
@@ -2009,8 +2732,8 @@ function drawMob(mob) {
 
     ctx.arc(
         x,
-        y - 15,
-        28,
+        y - 18,
+        32,
         0,
         Math.PI * 2
     );
@@ -2019,7 +2742,7 @@ function drawMob(mob) {
 
     // Emoji
     ctx.font =
-        "30px Arial";
+        "32px Arial";
 
     ctx.textAlign =
         "center";
@@ -2030,7 +2753,7 @@ function drawMob(mob) {
     ctx.fillText(
         mob.emoji,
         x,
-        y - 15
+        y - 18
     );
 
     // Health background
@@ -2038,10 +2761,10 @@ function drawMob(mob) {
         "#111827";
 
     ctx.fillRect(
-        x - 30,
-        y - 55,
-        60,
-        7
+        x - 35,
+        y - 62,
+        70,
+        8
     );
 
     // Health
@@ -2049,15 +2772,15 @@ function drawMob(mob) {
         "#22c55e";
 
     ctx.fillRect(
-        x - 30,
-        y - 55,
-        60 *
+        x - 35,
+        y - 62,
+        70 *
         Math.max(
             0,
             mob.health /
             mob.maxHealth
         ),
-        7
+        8
     );
 
     // Name
@@ -2065,19 +2788,131 @@ function drawMob(mob) {
         "#ffffff";
 
     ctx.font =
-        "bold 12px Arial";
+        "bold 13px Arial";
 
     ctx.fillText(
         mob.name,
         x,
-        y - 68
+        y - 76
     );
 
 }
 
-// =======================================
+// =====================================================
+// DRAW BOSS
+// =====================================================
+
+function drawBoss() {
+
+    if (
+        !ctx ||
+        !boss ||
+        boss.health <= 0
+    ) {
+        return;
+    }
+
+    const x =
+        boss.x;
+
+    const y =
+        boss.y;
+
+    // Shadow
+    ctx.fillStyle =
+        "rgba(0,0,0,0.35)";
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        x,
+        y + 40,
+        65,
+        12,
+        0,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+    // Boss body
+    ctx.fillStyle =
+        "#7f1d1d";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x,
+        y - 45,
+        60,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+    // Boss emoji
+    ctx.font =
+        "65px Arial";
+
+    ctx.textAlign =
+        "center";
+
+    ctx.textBaseline =
+        "middle";
+
+    ctx.fillText(
+        "👑",
+        x,
+        y - 45
+    );
+
+    // Boss health background
+    ctx.fillStyle =
+        "#111827";
+
+    ctx.fillRect(
+        x - 75,
+        y - 125,
+        150,
+        15
+    );
+
+    // Boss health
+    ctx.fillStyle =
+        "#ef4444";
+
+    ctx.fillRect(
+        x - 75,
+        y - 125,
+        150 *
+        Math.max(
+            0,
+            boss.health /
+            boss.maxHealth
+        ),
+        15
+    );
+
+    // Boss name
+    ctx.fillStyle =
+        "#facc15";
+
+    ctx.font =
+        "bold 20px Arial";
+
+    ctx.fillText(
+        "👑 BOSS",
+        x,
+        y - 145
+    );
+
+}
+
+// =====================================================
 // ROUND RECT
-// =======================================
+// =====================================================
 
 function roundRect(
     x,
@@ -2087,7 +2922,9 @@ function roundRect(
     radius
 ) {
 
-    if (!ctx) return;
+    if (!ctx) {
+        return;
+    }
 
     const r =
         Math.min(
@@ -2139,13 +2976,16 @@ function roundRect(
 
 }
 
-// =======================================
+// =====================================================
 // DRAW GAME
-// =======================================
+// =====================================================
 
 function drawGame() {
 
-    if (!ctx || !canvas) {
+    if (
+        !ctx ||
+        !canvas
+    ) {
         return;
     }
 
@@ -2154,11 +2994,16 @@ function drawGame() {
     drawGround();
 
     // MOBS
-    mobs.forEach(function (mob) {
+    mobs.forEach(
+        function (mob) {
 
-        drawMob(mob);
+            drawMob(mob);
 
-    });
+        }
+    );
+
+    // BOSS
+    drawBoss();
 
     // PLAYER
     if (myPlayer) {
@@ -2180,37 +3025,40 @@ function drawGame() {
 
     }
 
-    // ONLINE PLAYERS
+    // ONLINE
     if (
         gameMode === "ONLINE"
     ) {
 
-        Object.values(players)
-            .forEach(
-                function (player) {
+        Object.values(
+            players
+        ).forEach(
+            function (player) {
 
-                    if (
-                        player.id ===
-                        socket.id
-                    ) {
-                        return;
-                    }
+                if (
+                    player.id ===
+                    socket.id
+                ) {
 
-                    drawStickman(
-                        player,
-                        false
-                    );
+                    return;
 
                 }
-            );
+
+                drawStickman(
+                    player,
+                    false
+                );
+
+            }
+        );
 
     }
 
 }
 
-// =======================================
+// =====================================================
 // GAME LOOP
-// =======================================
+// =====================================================
 
 function gameLoop() {
 
@@ -2228,13 +3076,14 @@ function gameLoop() {
 
     }
 
-    // حرکت ماب‌ها
     if (
         gameMode === "AI" ||
         gameMode === "SOLO"
     ) {
 
         updateMobs();
+
+        updateBoss();
 
     }
 
