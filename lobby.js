@@ -1,21 +1,11 @@
 const socket = io();
 
-
-// =======================================
-// WORLD
-// =======================================
-
-const WORLD_WIDTH = 3000;
-const WORLD_GROUND_Y = 600;
-
-
 // =======================================
 // STATE
 // =======================================
 
 let playerName = "";
 let roomCode = "";
-
 let myPlayer = null;
 let players = {};
 
@@ -23,18 +13,22 @@ let gameMode = "";
 let gameRunning = false;
 
 let velocityY = 0;
-let onGround = true;
+let onGround = false;
 
 const SPEED = 5;
 const GRAVITY = 0.7;
 const JUMP = 13;
 
+// مپ
+const MAP_WIDTH = 5000;
+
+// دوربین
+let cameraX = 0;
 
 // AI
-
 let ai = null;
 let aiVelocityY = 0;
-let aiOnGround = true;
+let aiOnGround = false;
 let aiDirectionTimer = 0;
 
 
@@ -42,68 +36,35 @@ let aiDirectionTimer = 0;
 // ELEMENTS
 // =======================================
 
-const nameScreen =
-    document.getElementById("nameScreen");
+const nameScreen = document.getElementById("nameScreen");
+const modeScreen = document.getElementById("modeScreen");
+const offlineScreen = document.getElementById("offlineScreen");
+const onlineScreen = document.getElementById("onlineScreen");
+const roomScreen = document.getElementById("roomScreen");
+const gameScreen = document.getElementById("gameScreen");
 
-const modeScreen =
-    document.getElementById("modeScreen");
+const nameInput = document.getElementById("nameInput");
+const confirmName = document.getElementById("confirmName");
 
-const offlineScreen =
-    document.getElementById("offlineScreen");
+const onlineCard = document.getElementById("onlineCard");
+const offlineCard = document.getElementById("offlineCard");
 
-const onlineScreen =
-    document.getElementById("onlineScreen");
+const aiCard = document.getElementById("aiCard");
+const soloCard = document.getElementById("soloCard");
 
-const roomScreen =
-    document.getElementById("roomScreen");
+const backToModes = document.getElementById("backToModes");
 
-const gameScreen =
-    document.getElementById("gameScreen");
+const createRoom = document.getElementById("createRoom");
+const showJoin = document.getElementById("showJoin");
 
-const nameInput =
-    document.getElementById("nameInput");
+const joinBox = document.getElementById("joinBox");
+const roomInput = document.getElementById("roomInput");
+const joinRoom = document.getElementById("joinRoom");
 
-const confirmName =
-    document.getElementById("confirmName");
+const readyButton = document.getElementById("readyButton");
 
-const onlineCard =
-    document.getElementById("onlineCard");
-
-const offlineCard =
-    document.getElementById("offlineCard");
-
-const aiCard =
-    document.getElementById("aiCard");
-
-const soloCard =
-    document.getElementById("soloCard");
-
-const backToModes =
-    document.getElementById("backToModes");
-
-const createRoom =
-    document.getElementById("createRoom");
-
-const showJoin =
-    document.getElementById("showJoin");
-
-const joinBox =
-    document.getElementById("joinBox");
-
-const roomInput =
-    document.getElementById("roomInput");
-
-const joinRoom =
-    document.getElementById("joinRoom");
-
-const readyButton =
-    document.getElementById("readyButton");
-
-const roomCodeElement =
-    document.getElementById("roomCode");
-
-const roomStatus =
-    document.getElementById("roomStatus");
+const roomCodeElement = document.getElementById("roomCode");
+const roomStatus = document.getElementById("roomStatus");
 
 const backFromOnline =
     document.getElementById("backFromOnline");
@@ -121,14 +82,11 @@ async function enterGameFullscreen() {
             return;
         }
 
-        if (
-            document.documentElement.requestFullscreen
-        ) {
+        if (document.documentElement.requestFullscreen) {
 
-            await document.documentElement
-                .requestFullscreen({
-                    navigationUI: "hide"
-                });
+            await document.documentElement.requestFullscreen({
+                navigationUI: "hide"
+            });
 
         }
 
@@ -158,9 +116,7 @@ if (confirmName) {
         if (!name) {
 
             const error =
-                document.getElementById(
-                    "nameError"
-                );
+                document.getElementById("nameError");
 
             if (error) {
 
@@ -170,21 +126,13 @@ if (confirmName) {
             }
 
             return;
-
         }
-
 
         playerName =
             name.substring(0, 20);
 
-
-        nameScreen.classList.add(
-            "hidden"
-        );
-
-        modeScreen.classList.remove(
-            "hidden"
-        );
+        nameScreen.classList.add("hidden");
+        modeScreen.classList.remove("hidden");
 
     };
 
@@ -198,9 +146,7 @@ if (nameInput) {
         function (e) {
 
             if (e.key === "Enter") {
-
                 confirmName.click();
-
             }
 
         }
@@ -217,13 +163,8 @@ if (onlineCard) {
 
     onlineCard.onclick = function () {
 
-        modeScreen.classList.add(
-            "hidden"
-        );
-
-        onlineScreen.classList.remove(
-            "hidden"
-        );
+        modeScreen.classList.add("hidden");
+        onlineScreen.classList.remove("hidden");
 
     };
 
@@ -234,13 +175,8 @@ if (offlineCard) {
 
     offlineCard.onclick = function () {
 
-        modeScreen.classList.add(
-            "hidden"
-        );
-
-        offlineScreen.classList.remove(
-            "hidden"
-        );
+        modeScreen.classList.add("hidden");
+        offlineScreen.classList.remove("hidden");
 
     };
 
@@ -251,13 +187,8 @@ if (backToModes) {
 
     backToModes.onclick = function () {
 
-        offlineScreen.classList.add(
-            "hidden"
-        );
-
-        modeScreen.classList.remove(
-            "hidden"
-        );
+        offlineScreen.classList.add("hidden");
+        modeScreen.classList.remove("hidden");
 
     };
 
@@ -268,13 +199,8 @@ if (backFromOnline) {
 
     backFromOnline.onclick = function () {
 
-        onlineScreen.classList.add(
-            "hidden"
-        );
-
-        modeScreen.classList.remove(
-            "hidden"
-        );
+        onlineScreen.classList.add("hidden");
+        modeScreen.classList.remove("hidden");
 
     };
 
@@ -322,10 +248,7 @@ if (soloCard) {
 function startOfflineGame(withAI) {
 
     gameMode =
-        withAI
-            ? "AI"
-            : "SOLO";
-
+        withAI ? "AI" : "SOLO";
 
     nameScreen.classList.add("hidden");
     modeScreen.classList.add("hidden");
@@ -333,23 +256,17 @@ function startOfflineGame(withAI) {
     onlineScreen.classList.add("hidden");
     roomScreen.classList.add("hidden");
 
-
-    gameScreen.style.display =
-        "block";
-
+    gameScreen.style.display = "block";
 
     gameRunning = true;
 
+    cameraX = 0;
 
     setupOfflinePlayers(withAI);
 
-
     resizeCanvas();
 
-
-    requestAnimationFrame(
-        gameLoop
-    );
+    requestAnimationFrame(gameLoop);
 
 }
 
@@ -362,7 +279,6 @@ function setupOfflinePlayers(withAI) {
 
     players = {};
 
-
     myPlayer = {
 
         id: "player",
@@ -370,21 +286,15 @@ function setupOfflinePlayers(withAI) {
         name:
             playerName || "Player",
 
-        // WORLD COORDINATES
+        // مختصات جهانی
         x: 500,
 
-        y: WORLD_GROUND_Y
+        y: 0
 
     };
 
-
     players.player =
         myPlayer;
-
-
-    velocityY = 0;
-    onGround = true;
-
 
     if (withAI) {
 
@@ -394,16 +304,16 @@ function setupOfflinePlayers(withAI) {
 
             name: "AI",
 
-            x: 700,
+            x: 800,
 
-            y: WORLD_GROUND_Y,
+            y: 0,
 
             health: 100
 
         };
 
+        aiOnGround = false;
         aiVelocityY = 0;
-        aiOnGround = true;
 
     } else {
 
@@ -411,12 +321,8 @@ function setupOfflinePlayers(withAI) {
 
     }
 
-
     const modeText =
-        document.getElementById(
-            "gameMode"
-        );
-
+        document.getElementById("gameMode");
 
     if (modeText) {
 
@@ -431,7 +337,7 @@ function setupOfflinePlayers(withAI) {
 
 
 // =======================================
-// ONLINE JOIN UI
+// ONLINE
 // =======================================
 
 if (showJoin) {
@@ -440,9 +346,7 @@ if (showJoin) {
 
         if (joinBox) {
 
-            joinBox.classList.toggle(
-                "hidden"
-            );
+            joinBox.classList.toggle("hidden");
 
         }
 
@@ -468,10 +372,6 @@ if (roomInput) {
 }
 
 
-// =======================================
-// CREATE ROOM
-// =======================================
-
 if (createRoom) {
 
     createRoom.onclick = function () {
@@ -480,7 +380,6 @@ if (createRoom) {
 
         createRoom.textContent =
             "⏳ در حال ساخت...";
-
 
         socket.emit(
             "createRoom",
@@ -503,43 +402,23 @@ socket.on(
     function (data) {
 
         roomCode =
-            String(
-                data.roomCode
-            ).replace(
-                /\D/g,
-                ""
-            );
-
+            String(data.roomCode)
+                .replace(/\D/g, "");
 
         myPlayer =
             data.player;
 
-
         players = {};
-
 
         if (myPlayer) {
 
-            players[
-                myPlayer.id
-            ] =
+            players[myPlayer.id] =
                 myPlayer;
-
-            // مطمئن شو روی زمین است
-            myPlayer.y =
-                WORLD_GROUND_Y;
 
         }
 
-
-        onlineScreen.classList.add(
-            "hidden"
-        );
-
-        roomScreen.classList.remove(
-            "hidden"
-        );
-
+        onlineScreen.classList.add("hidden");
+        roomScreen.classList.remove("hidden");
 
         if (roomCodeElement) {
 
@@ -548,11 +427,9 @@ socket.on(
 
         }
 
-
         if (createRoom) {
 
-            createRoom.disabled =
-                false;
+            createRoom.disabled = false;
 
             createRoom.textContent =
                 "🏠 ساخت اتاق";
@@ -578,7 +455,6 @@ if (joinRoom) {
                     .substring(0, 6)
                 : "";
 
-
         if (code.length !== 6) {
 
             const error =
@@ -594,15 +470,12 @@ if (joinRoom) {
             }
 
             return;
-
         }
-
 
         joinRoom.disabled = true;
 
         joinRoom.textContent =
             "⏳ در حال ورود...";
-
 
         socket.emit(
             "joinRoom",
@@ -626,42 +499,23 @@ socket.on(
     function (data) {
 
         roomCode =
-            String(
-                data.roomCode
-            ).replace(
-                /\D/g,
-                ""
-            );
-
+            String(data.roomCode)
+                .replace(/\D/g, "");
 
         myPlayer =
             data.player;
 
-
         players = {};
-
 
         if (myPlayer) {
 
-            players[
-                myPlayer.id
-            ] =
+            players[myPlayer.id] =
                 myPlayer;
-
-            myPlayer.y =
-                WORLD_GROUND_Y;
 
         }
 
-
-        onlineScreen.classList.add(
-            "hidden"
-        );
-
-        roomScreen.classList.remove(
-            "hidden"
-        );
-
+        onlineScreen.classList.add("hidden");
+        roomScreen.classList.remove("hidden");
 
         if (roomCodeElement) {
 
@@ -670,11 +524,9 @@ socket.on(
 
         }
 
-
         if (joinRoom) {
 
-            joinRoom.disabled =
-                false;
+            joinRoom.disabled = false;
 
             joinRoom.textContent =
                 "🚪 ورود";
@@ -695,14 +547,10 @@ if (readyButton) {
 
         await enterGameFullscreen();
 
-
-        readyButton.disabled =
-            true;
-
+        readyButton.disabled = true;
 
         readyButton.textContent =
             "✅ آماده شدی";
-
 
         if (roomStatus) {
 
@@ -710,7 +558,6 @@ if (readyButton) {
                 "⏳ منتظر بازیکن دیگر...";
 
         }
-
 
         socket.emit(
             "readyForGame"
@@ -731,7 +578,6 @@ socket.on(
 
         if (!roomStatus) return;
 
-
         roomStatus.textContent =
             "بازیکنان آماده: " +
             data.ready +
@@ -743,7 +589,7 @@ socket.on(
 
 
 // =======================================
-// START ONLINE
+// START ONLINE GAME
 // =======================================
 
 socket.on(
@@ -752,39 +598,20 @@ socket.on(
 
         await enterGameFullscreen();
 
+        gameMode = "ONLINE";
 
-        gameMode =
-            "ONLINE";
-
-
-        roomScreen.classList.add(
-            "hidden"
-        );
-
+        roomScreen.classList.add("hidden");
 
         gameScreen.style.display =
             "block";
 
-
         gameRunning = true;
 
-
-        // مهم:
-        // مختصات دنیا دیگر با صفحه تغییر نمی‌کند
-        if (myPlayer) {
-
-            myPlayer.y =
-                WORLD_GROUND_Y;
-
-        }
-
+        cameraX = 0;
 
         resizeCanvas();
 
-
-        requestAnimationFrame(
-            gameLoop
-        );
+        requestAnimationFrame(gameLoop);
 
     }
 );
@@ -795,9 +622,7 @@ socket.on(
 // =======================================
 
 const canvas =
-    document.getElementById(
-        "gameCanvas"
-    );
+    document.getElementById("gameCanvas");
 
 const ctx =
     canvas
@@ -808,7 +633,6 @@ const ctx =
 function resizeCanvas() {
 
     if (!canvas) return;
-
 
     canvas.width =
         window.innerWidth;
@@ -826,84 +650,14 @@ window.addEventListener(
 
 
 // =======================================
-// CAMERA
+// WORLD GROUND
 // =======================================
 
-function getCameraX() {
-
-    if (!myPlayer || !canvas) {
-        return 0;
-    }
-
-
-    let camera =
-        myPlayer.x -
-        canvas.width / 2;
-
-
-    camera =
-        Math.max(
-            0,
-            Math.min(
-                WORLD_WIDTH -
-                canvas.width,
-                camera
-            )
-        );
-
-
-    return camera;
-
-}
-
-
-// =======================================
-// WORLD -> SCREEN
-// =======================================
-
-function worldToScreenX(
-    worldX
-) {
-
-    return (
-        worldX -
-        getCameraX()
-    );
-
-}
-
-
-function worldToScreenY(
-    worldY
-) {
-
-    /*
-     * WORLD_GROUND_Y = 600
-     *
-     * این مقدار در همه دستگاه‌ها ثابت است.
-     *
-     * فقط نمایش آن نسبت به صفحه تغییر می‌کند.
-     */
-
-    return (
-        worldY -
-        WORLD_GROUND_Y +
-        getGroundScreenY()
-    );
-
-}
-
-
-// =======================================
-// SCREEN GROUND
-// =======================================
-
-function getGroundScreenY() {
+function getGroundY() {
 
     if (!canvas) {
         return 500;
     }
-
 
     return canvas.height - 120;
 
@@ -911,46 +665,22 @@ function getGroundScreenY() {
 
 
 // =======================================
-// FIX PLAYER
+// FIX SPAWN
 // =======================================
 
 function fixPlayerSpawn(player) {
 
     if (!player) return;
 
-
     if (
-        !Number.isFinite(
-            Number(player.x)
-        )
-    ) {
-
-        player.x = 500;
-
-    }
-
-
-    if (
+        player.y === undefined ||
+        player.y === null ||
         !Number.isFinite(
             Number(player.y)
         )
     ) {
 
-        player.y =
-            WORLD_GROUND_Y;
-
-    }
-
-
-    // اگر بازیکن در شروع بازی است
-    // روی زمین قرار بگیرد
-
-    if (
-        Number(player.y) > WORLD_GROUND_Y
-    ) {
-
-        player.y =
-            WORLD_GROUND_Y;
+        player.y = 0;
 
     }
 
@@ -958,7 +688,7 @@ function fixPlayerSpawn(player) {
 
 
 // =======================================
-// PLAYERS UPDATE
+// ONLINE PLAYERS
 // =======================================
 
 socket.on(
@@ -969,133 +699,50 @@ socket.on(
             return;
         }
 
-
-        const oldPlayers =
-            players;
-
+        const oldPlayers = players;
 
         players = {};
 
-
         list.forEach(
-            function (player) {
+            function (serverPlayer) {
 
-                if (!player) return;
+                if (!serverPlayer) return;
 
+                /*
+                 * مختصات Y سرور جهانی است.
+                 */
+                fixPlayerSpawn(
+                    serverPlayer
+                );
 
-                fixPlayerSpawn(player);
+                players[
+                    serverPlayer.id
+                ] =
+                    serverPlayer;
 
-
-                // اگر بازیکن خودمان است
                 if (
-                    player.id ===
+                    serverPlayer.id ===
                     socket.id
                 ) {
 
+                    /*
+                     * مختصات محلی خودمان را نگه می‌داریم
+                     * تا هنگام Sync پرش نکند.
+                     */
                     if (myPlayer) {
 
-                        // مختصات سرور
-                        myPlayer.id =
-                            player.id;
-
-                        myPlayer.name =
-                            player.name;
-
                         myPlayer.x =
-                            player.x;
+                            serverPlayer.x;
 
                         myPlayer.y =
-                            player.y;
-
-                        myPlayer.color =
-                            player.color;
-
-                        myPlayer.isHost =
-                            player.isHost;
-
-                        myPlayer.ready =
-                            player.ready;
+                            serverPlayer.y;
 
                     } else {
 
                         myPlayer =
-                            player;
+                            serverPlayer;
 
                     }
-
-
-                    onGround =
-                        myPlayer.y >=
-                        WORLD_GROUND_Y;
-
-
-                    if (onGround) {
-                        velocityY = 0;
-                    }
-
-
-                    players[
-                        player.id
-                    ] =
-                        myPlayer;
-
-
-                    return;
-
-                }
-
-
-                // بازیکن دیگر
-                // مختصات واقعی سرور
-
-                if (
-                    oldPlayers[player.id]
-                ) {
-
-                    oldPlayers[
-                        player.id
-                    ].x =
-                        player.x;
-
-                    oldPlayers[
-                        player.id
-                    ].y =
-                        player.y;
-
-                    oldPlayers[
-                        player.id
-                    ].name =
-                        player.name;
-
-                    oldPlayers[
-                        player.id
-                    ].color =
-                        player.color;
-
-                    oldPlayers[
-                        player.id
-                    ].isHost =
-                        player.isHost;
-
-                    oldPlayers[
-                        player.id
-                    ].ready =
-                        player.ready;
-
-
-                    players[
-                        player.id
-                    ] =
-                        oldPlayers[
-                            player.id
-                        ];
-
-                } else {
-
-                    players[
-                        player.id
-                    ] =
-                        player;
 
                 }
 
@@ -1116,48 +763,21 @@ socket.on(
 
         if (!player) return;
 
+        if (!players[player.id]) {
 
-        if (
-            player.id ===
-            socket.id
-        ) {
-
-            return;
-
-        }
-
-
-        fixPlayerSpawn(player);
-
-
-        if (
-            !players[player.id]
-        ) {
-
-            players[
-                player.id
-            ] = {
-
+            players[player.id] = {
                 id: player.id,
-
-                name: "Player",
-
+                name: player.name || "Player",
                 x: player.x,
-
                 y: player.y
-
             };
 
         } else {
 
-            players[
-                player.id
-            ].x =
+            players[player.id].x =
                 player.x;
 
-            players[
-                player.id
-            ].y =
+            players[player.id].y =
                 player.y;
 
         }
@@ -1181,25 +801,6 @@ socket.on(
 
 
 // =======================================
-// NEW HOST
-// =======================================
-
-socket.on(
-    "newHost",
-    function (id) {
-
-        if (players[id]) {
-
-            players[id].isHost =
-                true;
-
-        }
-
-    }
-);
-
-
-// =======================================
 // ROOM ERROR
 // =======================================
 
@@ -1212,18 +813,15 @@ socket.on(
                 "onlineError"
             );
 
-
         if (error) {
 
             if (
-                typeof message ===
-                "object" &&
+                typeof message === "object" &&
                 message !== null
             ) {
 
                 error.textContent =
-                    message.message ||
-                    "خطا";
+                    message.message || "خطا";
 
             } else {
 
@@ -1234,22 +832,18 @@ socket.on(
 
         }
 
-
         if (joinRoom) {
 
-            joinRoom.disabled =
-                false;
+            joinRoom.disabled = false;
 
             joinRoom.textContent =
                 "🚪 ورود";
 
         }
 
-
         if (createRoom) {
 
-            createRoom.disabled =
-                false;
+            createRoom.disabled = false;
 
             createRoom.textContent =
                 "🏠 ساخت اتاق";
@@ -1275,13 +869,8 @@ document.addEventListener(
             e.key.toLowerCase()
         ] = true;
 
-
-        if (
-            e.code === "Space"
-        ) {
-
+        if (e.code === "Space") {
             keys.space = true;
-
         }
 
     }
@@ -1296,13 +885,8 @@ document.addEventListener(
             e.key.toLowerCase()
         ] = false;
 
-
-        if (
-            e.code === "Space"
-        ) {
-
+        if (e.code === "Space") {
             keys.space = false;
-
         }
 
     }
@@ -1310,17 +894,13 @@ document.addEventListener(
 
 
 // =======================================
-// MOBILE BUTTON
+// MOBILE CONTROLS
 // =======================================
 
-function setupMobileButton(
-    id,
-    key
-) {
+function setupMobileButton(id, key) {
 
     const button =
         document.getElementById(id);
-
 
     if (!button) return;
 
@@ -1421,7 +1001,6 @@ function updatePlayer() {
 
     if (!myPlayer) return;
 
-
     let moving = false;
 
 
@@ -1433,8 +1012,7 @@ function updatePlayer() {
         keys.mobileLeft
     ) {
 
-        myPlayer.x -=
-            SPEED;
+        myPlayer.x -= SPEED;
 
         moving = true;
 
@@ -1449,24 +1027,29 @@ function updatePlayer() {
         keys.mobileRight
     ) {
 
-        myPlayer.x +=
-            SPEED;
+        myPlayer.x += SPEED;
 
         moving = true;
 
     }
 
 
-    // WORLD BORDER
+    // =================================
+    // WORLD BORDERS
+    // =================================
 
-    myPlayer.x =
-        Math.max(
-            50,
-            Math.min(
-                WORLD_WIDTH - 50,
-                myPlayer.x
-            )
-        );
+    if (myPlayer.x < 50) {
+
+        myPlayer.x = 50;
+
+    }
+
+    if (myPlayer.x > MAP_WIDTH - 50) {
+
+        myPlayer.x =
+            MAP_WIDTH - 50;
+
+    }
 
 
     // JUMP
@@ -1484,42 +1067,40 @@ function updatePlayer() {
         velocityY =
             -JUMP;
 
-        onGround =
-            false;
+        onGround = false;
 
     }
 
 
     // GRAVITY
 
-    velocityY +=
-        GRAVITY;
+    velocityY += GRAVITY;
 
-
-    myPlayer.y +=
-        velocityY;
+    myPlayer.y += velocityY;
 
 
     // GROUND
 
+    const ground =
+        getGroundY();
+
     if (
-        myPlayer.y >=
-        WORLD_GROUND_Y
+        myPlayer.y >= ground
     ) {
 
         myPlayer.y =
-            WORLD_GROUND_Y;
+            ground;
 
-        velocityY =
-            0;
+        velocityY = 0;
 
-        onGround =
-            true;
+        onGround = true;
 
     }
 
 
-    // SYNC
+    // =================================
+    // ONLINE SYNC
+    // =================================
 
     if (
         gameMode === "ONLINE" &&
@@ -1543,122 +1124,142 @@ function updatePlayer() {
 
 
 // =======================================
+// CAMERA
+// =======================================
+
+function updateCamera() {
+
+    if (!myPlayer || !canvas) {
+        return;
+    }
+
+    /*
+     * دوربین بازیکن را دنبال می‌کند.
+     */
+
+    const target =
+        myPlayer.x -
+        canvas.width / 2;
+
+    cameraX =
+        target;
+
+    /*
+     * ابتدای مپ
+     */
+
+    if (cameraX < 0) {
+        cameraX = 0;
+    }
+
+    /*
+     * انتهای مپ
+     */
+
+    const maxCamera =
+        Math.max(
+            0,
+            MAP_WIDTH -
+            canvas.width
+        );
+
+    if (cameraX > maxCamera) {
+        cameraX = maxCamera;
+    }
+
+}
+
+
+// =======================================
 // AI
 // =======================================
 
 function updateAI() {
 
-    if (
-        !ai ||
-        !myPlayer
-    ) {
-
+    if (!ai || !myPlayer) {
         return;
-
     }
 
 
     const ground =
-        WORLD_GROUND_Y;
-
+        getGroundY();
 
     const distance =
         myPlayer.x -
         ai.x;
 
 
-    // FOLLOW
+    // FOLLOW PLAYER
 
     if (
-        Math.abs(distance) >
-        25
+        Math.abs(distance) > 25
     ) {
 
-        if (
-            distance > 0
-        ) {
+        if (distance > 0) {
 
-            ai.x +=
-                2.3;
+            ai.x += 2.3;
 
         } else {
 
-            ai.x -=
-                2.3;
+            ai.x -= 2.3;
 
         }
 
     }
 
 
-    ai.x =
-        Math.max(
-            50,
-            Math.min(
-                WORLD_WIDTH - 50,
-                ai.x
-            )
-        );
+    // AI WORLD LIMITS
+
+    if (ai.x < 50) {
+        ai.x = 50;
+    }
+
+    if (ai.x > MAP_WIDTH - 50) {
+        ai.x = MAP_WIDTH - 50;
+    }
 
 
     // GRAVITY
 
-    aiVelocityY +=
-        GRAVITY;
+    aiVelocityY += GRAVITY;
 
-
-    ai.y +=
-        aiVelocityY;
+    ai.y += aiVelocityY;
 
 
     // GROUND
 
-    if (
-        ai.y >=
-        ground
-    ) {
+    if (ai.y >= ground) {
 
-        ai.y =
-            ground;
+        ai.y = ground;
 
-        aiVelocityY =
-            0;
+        aiVelocityY = 0;
 
-        aiOnGround =
-            true;
+        aiOnGround = true;
 
     }
 
 
-    // JUMP
+    // AI JUMP
 
     aiDirectionTimer--;
 
-
-    if (
-        aiDirectionTimer <=
-        0
-    ) {
+    if (aiDirectionTimer <= 0) {
 
         aiDirectionTimer =
             100 +
             Math.floor(
-                Math.random() *
-                150
+                Math.random() * 150
             );
 
-
         if (
-            Math.abs(distance) <
-            300 &&
+            Math.abs(distance) < 300 &&
             aiOnGround
         ) {
 
             aiVelocityY =
                 -JUMP * 0.85;
 
-            aiOnGround =
-                false;
+            aiOnGround = false;
 
         }
 
@@ -1678,7 +1279,6 @@ function updateGameUI() {
             "gameScore"
         );
 
-
     if (!score) return;
 
 
@@ -1694,10 +1294,7 @@ function updateGameUI() {
                 ai.x
             );
 
-
-        if (
-            distance < 75
-        ) {
+        if (distance < 75) {
 
             score.textContent =
                 "🤖 حریف نزدیکته!";
@@ -1725,13 +1322,8 @@ function updateGameUI() {
 
 function drawSky() {
 
-    if (
-        !ctx ||
-        !canvas
-    ) {
-
+    if (!ctx || !canvas) {
         return;
-
     }
 
 
@@ -1772,9 +1364,7 @@ function drawSky() {
     ctx.fillStyle =
         "#fde047";
 
-
     ctx.beginPath();
-
 
     ctx.arc(
         canvas.width - 100,
@@ -1784,30 +1374,49 @@ function drawSky() {
         Math.PI * 2
     );
 
-
     ctx.fill();
 
 
     // CLOUDS
 
     drawCloud(
-        130,
+        130 - cameraX * 0.15,
         110,
         1
     );
 
     drawCloud(
-        420,
+        700 - cameraX * 0.15,
+        160,
+        0.8
+    );
+
+    drawCloud(
+        1400 - cameraX * 0.15,
+        100,
+        1
+    );
+
+    drawCloud(
+        2200 - cameraX * 0.15,
+        150,
+        0.9
+    );
+
+    drawCloud(
+        3300 - cameraX * 0.15,
+        110,
+        1
+    );
+
+    drawCloud(
+        4400 - cameraX * 0.15,
         160,
         0.8
     );
 
 }
 
-
-// =======================================
-// CLOUD
-// =======================================
 
 function drawCloud(
     x,
@@ -1818,12 +1427,18 @@ function drawCloud(
     if (!ctx) return;
 
 
+    if (
+        x < -150 ||
+        x > canvas.width + 150
+    ) {
+        return;
+    }
+
+
     ctx.fillStyle =
         "#ffffffcc";
 
-
     ctx.beginPath();
-
 
     ctx.arc(
         x,
@@ -1833,7 +1448,6 @@ function drawCloud(
         Math.PI * 2
     );
 
-
     ctx.arc(
         x + 25 * scale,
         y - 8 * scale,
@@ -1841,7 +1455,6 @@ function drawCloud(
         0,
         Math.PI * 2
     );
-
 
     ctx.arc(
         x + 55 * scale,
@@ -1851,14 +1464,12 @@ function drawCloud(
         Math.PI * 2
     );
 
-
     ctx.fillRect(
         x - 5 * scale,
         y,
         65 * scale,
         20 * scale
     );
-
 
     ctx.fill();
 
@@ -1871,26 +1482,21 @@ function drawCloud(
 
 function drawGround() {
 
-    if (
-        !ctx ||
-        !canvas
-    ) {
-
+    if (!ctx || !canvas) {
         return;
-
     }
 
 
-    // مهم:
-    // زمین روی صفحه هر دستگاه در جای مناسب نمایش داده می‌شود
-
     const ground =
-        getGroundScreenY();
+        getGroundY();
 
+
+    /*
+     * زمین بر اساس دوربین رسم می‌شود.
+     */
 
     ctx.fillStyle =
         "#22c55e";
-
 
     ctx.fillRect(
         0,
@@ -1903,7 +1509,6 @@ function drawGround() {
     ctx.fillStyle =
         "#166534";
 
-
     ctx.fillRect(
         0,
         ground,
@@ -1915,7 +1520,6 @@ function drawGround() {
     ctx.fillStyle =
         "#92400e";
 
-
     ctx.fillRect(
         0,
         ground + 9,
@@ -1924,27 +1528,36 @@ function drawGround() {
     );
 
 
+    /*
+     * سنگ‌های روی زمین
+     */
+
     ctx.fillStyle =
         "#6b3f1f";
 
 
+    const start =
+        Math.floor(cameraX / 85) * 85;
+
+
     for (
-        let x = 20;
-        x < canvas.width;
-        x += 85
+        let worldX = start;
+        worldX < cameraX + canvas.width + 85;
+        worldX += 85
     ) {
+
+        const screenX =
+            worldX - cameraX;
 
         ctx.beginPath();
 
-
         ctx.arc(
-            x,
+            screenX,
             ground + 42,
             5,
             0,
             Math.PI * 2
         );
-
 
         ctx.fill();
 
@@ -1954,7 +1567,7 @@ function drawGround() {
 
 
 // =======================================
-// STICKMAN
+// PLAYER
 // =======================================
 
 function drawStickman(
@@ -1962,28 +1575,34 @@ function drawStickman(
     isAI = false
 ) {
 
+    if (!ctx || !player) {
+        return;
+    }
+
+
+    /*
+     * مختصات جهانی → مختصات صفحه
+     */
+
+    const x =
+        player.x - cameraX;
+
+    const y =
+        player.y;
+
+
+    /*
+     * اگر خارج صفحه است اصلاً رسم نکن
+     */
+
     if (
-        !ctx ||
-        !player
+        x < -150 ||
+        x > canvas.width + 150
     ) {
 
         return;
 
     }
-
-
-    // WORLD COORDINATES -> SCREEN
-
-    const x =
-        worldToScreenX(
-            player.x
-        );
-
-
-    const y =
-        worldToScreenY(
-            player.y
-        );
 
 
     const minScreen =
@@ -2003,8 +1622,7 @@ function drawStickman(
         );
 
 
-    const s =
-        scale;
+    const s = scale;
 
 
     const bodyColor =
@@ -2048,9 +1666,7 @@ function drawStickman(
     ctx.fillStyle =
         "rgba(0,0,0,0.20)";
 
-
     ctx.beginPath();
-
 
     ctx.ellipse(
         x,
@@ -2062,7 +1678,6 @@ function drawStickman(
         Math.PI * 2
     );
 
-
     ctx.fill();
 
 
@@ -2071,43 +1686,36 @@ function drawStickman(
     ctx.strokeStyle =
         "#1f2937";
 
-
     ctx.lineWidth =
         8 * s;
 
 
     ctx.beginPath();
 
-
     ctx.moveTo(
         x,
         y + 20 * s
     );
-
 
     ctx.lineTo(
         x - 18 * s,
         y + 53 * s
     );
 
-
     ctx.stroke();
 
 
     ctx.beginPath();
-
 
     ctx.moveTo(
         x,
         y + 20 * s
     );
 
-
     ctx.lineTo(
         x + 18 * s,
         y + 53 * s
     );
-
 
     ctx.stroke();
 
@@ -2116,7 +1724,6 @@ function drawStickman(
 
     ctx.fillStyle =
         shoe;
-
 
     roundRect(
         x - 32 * s,
@@ -2145,7 +1752,6 @@ function drawStickman(
     ctx.fillStyle =
         shirt;
 
-
     roundRect(
         x - 19 * s,
         y - 28 * s,
@@ -2161,7 +1767,6 @@ function drawStickman(
 
     ctx.fillStyle =
         bodyColor;
-
 
     roundRect(
         x - 13 * s,
@@ -2179,43 +1784,36 @@ function drawStickman(
     ctx.strokeStyle =
         bodyDark;
 
-
     ctx.lineWidth =
         8 * s;
 
 
     ctx.beginPath();
 
-
     ctx.moveTo(
         x - 16 * s,
         y - 15 * s
     );
-
 
     ctx.lineTo(
         x - 38 * s,
         y + 8 * s
     );
 
-
     ctx.stroke();
 
 
     ctx.beginPath();
-
 
     ctx.moveTo(
         x + 16 * s,
         y - 15 * s
     );
 
-
     ctx.lineTo(
         x + 38 * s,
         y + 8 * s
     );
-
 
     ctx.stroke();
 
@@ -2227,7 +1825,6 @@ function drawStickman(
 
 
     ctx.beginPath();
-
 
     ctx.arc(
         x - 40 * s,
@@ -2241,7 +1838,6 @@ function drawStickman(
 
 
     ctx.beginPath();
-
 
     ctx.arc(
         x + 40 * s,
@@ -2259,7 +1855,6 @@ function drawStickman(
     ctx.fillStyle =
         skin;
 
-
     roundRect(
         x - 8 * s,
         y - 40 * s,
@@ -2273,12 +1868,7 @@ function drawStickman(
 
     // HEAD
 
-    ctx.fillStyle =
-        skin;
-
-
     ctx.beginPath();
-
 
     ctx.arc(
         x,
@@ -2296,9 +1886,7 @@ function drawStickman(
     ctx.fillStyle =
         "#111827";
 
-
     ctx.beginPath();
-
 
     ctx.arc(
         x,
@@ -2319,7 +1907,6 @@ function drawStickman(
 
     ctx.beginPath();
 
-
     ctx.arc(
         x - 8 * s,
         y - 59 * s,
@@ -2332,7 +1919,6 @@ function drawStickman(
 
 
     ctx.beginPath();
-
 
     ctx.arc(
         x + 8 * s,
@@ -2349,11 +1935,7 @@ function drawStickman(
 
     const name =
         player.name ||
-        (
-            isAI
-                ? "AI"
-                : "Player"
-        );
+        (isAI ? "AI" : "Player");
 
 
     const fontSize =
@@ -2368,9 +1950,7 @@ function drawStickman(
 
 
     const textWidth =
-        ctx.measureText(
-            name
-        ).width;
+        ctx.measureText(name).width;
 
 
     ctx.fillStyle =
@@ -2378,16 +1958,12 @@ function drawStickman(
 
 
     roundRect(
-        x -
-            textWidth / 2 -
-            8,
-        y -
-            105 * s,
+        x - textWidth / 2 - 8,
+        y - 105 * s,
         textWidth + 16,
         24 * s,
         8
     );
-
 
     ctx.fill();
 
@@ -2395,10 +1971,8 @@ function drawStickman(
     ctx.fillStyle =
         "#ffffff";
 
-
     ctx.textAlign =
         "center";
-
 
     ctx.textBaseline =
         "middle";
@@ -2407,8 +1981,7 @@ function drawStickman(
     ctx.fillText(
         name,
         x,
-        y -
-            93 * s
+        y - 93 * s
     );
 
 
@@ -2419,16 +1992,13 @@ function drawStickman(
         ctx.fillStyle =
             "#facc15";
 
-
         ctx.font =
             `bold ${12 * s}px Arial`;
-
 
         ctx.fillText(
             "🤖",
             x,
-            y -
-                118 * s
+            y - 118 * s
         );
 
     }
@@ -2464,13 +2034,11 @@ function roundRect(
 
     ctx.beginPath();
 
-
     ctx.moveTo(
         x + r,
         y
     );
 
-
     ctx.arcTo(
         x + width,
         y,
@@ -2478,7 +2046,6 @@ function roundRect(
         y + height,
         r
     );
-
 
     ctx.arcTo(
         x + width,
@@ -2488,7 +2055,6 @@ function roundRect(
         r
     );
 
-
     ctx.arcTo(
         x,
         y + height,
@@ -2497,7 +2063,6 @@ function roundRect(
         r
     );
 
-
     ctx.arcTo(
         x,
         y,
@@ -2505,9 +2070,89 @@ function roundRect(
         y,
         r
     );
-
 
     ctx.closePath();
+
+}
+
+
+// =======================================
+// MAP DECORATIONS
+// =======================================
+
+function drawMapDecorations() {
+
+    if (!ctx || !canvas) {
+        return;
+    }
+
+
+    const ground =
+        getGroundY();
+
+
+    const objects = [
+        { x: 300, type: "tree" },
+        { x: 950, type: "tree" },
+        { x: 1500, type: "tree" },
+        { x: 2100, type: "tree" },
+        { x: 2850, type: "tree" },
+        { x: 3500, type: "tree" },
+        { x: 4200, type: "tree" },
+        { x: 4750, type: "tree" }
+    ];
+
+
+    objects.forEach(
+        function (obj) {
+
+            const x =
+                obj.x - cameraX;
+
+            if (
+                x < -100 ||
+                x > canvas.width + 100
+            ) {
+                return;
+            }
+
+
+            if (obj.type === "tree") {
+
+                // تنه
+
+                ctx.fillStyle =
+                    "#78350f";
+
+                ctx.fillRect(
+                    x - 10,
+                    ground - 80,
+                    20,
+                    80
+                );
+
+
+                // برگ
+
+                ctx.fillStyle =
+                    "#15803d";
+
+                ctx.beginPath();
+
+                ctx.arc(
+                    x,
+                    ground - 100,
+                    42,
+                    0,
+                    Math.PI * 2
+                );
+
+                ctx.fill();
+
+            }
+
+        }
+    );
 
 }
 
@@ -2518,13 +2163,8 @@ function roundRect(
 
 function drawGame() {
 
-    if (
-        !ctx ||
-        !canvas
-    ) {
-
+    if (!ctx || !canvas) {
         return;
-
     }
 
 
@@ -2532,8 +2172,10 @@ function drawGame() {
 
     drawGround();
 
+    drawMapDecorations();
 
-    // MY PLAYER
+
+    // PLAYER
 
     if (myPlayer) {
 
@@ -2559,34 +2201,59 @@ function drawGame() {
 
     // ONLINE PLAYERS
 
-    if (
-        gameMode === "ONLINE"
-    ) {
+    if (gameMode === "ONLINE") {
 
-        Object.values(
-            players
-        ).forEach(
-            function (player) {
+        Object.values(players)
+            .forEach(
+                function (player) {
 
-                if (
-                    player.id ===
-                    socket.id
-                ) {
+                    if (
+                        player.id ===
+                        socket.id
+                    ) {
 
-                    return;
+                        return;
+
+                    }
+
+                    drawStickman(
+                        player,
+                        false
+                    );
 
                 }
-
-
-                drawStickman(
-                    player,
-                    false
-                );
-
-            }
-        );
+            );
 
     }
+
+
+    // MAP POSITION
+
+    ctx.save();
+
+    ctx.fillStyle =
+        "#00000099";
+
+    ctx.font =
+        "bold 14px Arial";
+
+    ctx.textAlign =
+        "left";
+
+    ctx.fillText(
+        "MAP: " +
+        Math.round(
+            myPlayer
+                ? myPlayer.x
+                : 0
+        ) +
+        " / " +
+        MAP_WIDTH,
+        15,
+        canvas.height - 15
+    );
+
+    ctx.restore();
 
 }
 
@@ -2605,17 +2272,16 @@ function gameLoop() {
     updatePlayer();
 
 
-    if (
-        gameMode === "AI"
-    ) {
+    if (gameMode === "AI") {
 
         updateAI();
 
     }
 
 
-    updateGameUI();
+    updateCamera();
 
+    updateGameUI();
 
     drawGame();
 
