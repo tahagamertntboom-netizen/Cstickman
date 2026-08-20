@@ -9,69 +9,171 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 8080;
 
-// ======================================================
-// EXPRESS
-// ======================================================
-
 app.use(express.static(__dirname));
 
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// ======================================================
-// ROOMS
-// ======================================================
-
 const rooms = {};
 
-// ======================================================
-// RANDOM ROOM CODE
-// ======================================================
-
 function generateRoomCode() {
-
     let code;
 
     do {
-
         code = String(
             Math.floor(
-                100000 +
-                Math.random() * 900000
+                100000 + Math.random() * 900000
             )
         );
-
     } while (rooms[code]);
 
     return code;
 }
 
-// ======================================================
-// PLAYER
-// ======================================================
-
 function createPlayer(socket, name) {
-
     return {
-
         id: socket.id,
-
-        name:
-            String(name || "Player")
-                .substring(0, 20),
-
+        name: String(name || "Player").substring(0, 20),
         x: 300,
-
         y: 0,
-
         health: 100,
-
         level: 1,
-
         ready: false
-
     };
+}
+
+// ======================================================
+// MOB
+// ======================================================
+
+let nextMobId = 1;
+
+function createMob(x, y) {
+    return {
+        id: "mob_" + nextMobId++,
+        type: "monster",
+        x,
+        y,
+        health: 100,
+        maxHealth: 100,
+        speed: 1.5,
+        damageCooldown: 0,
+        dead: false,
+        respawnTimer: 0
+    };
+}
+
+function createRoomMobs() {
+    return [
+        createMob(650, 500),
+        createMob(950, 500),
+        createMob(1250, 500)
+    ];
+}
+
+function updateRoomMobs(roomCode, room) {
+    if (!room.started) return;
+
+    const players = Object.values(room.players);
+
+    if (players.length === 0) return;
+
+    const groundY = 500;
+
+    room.mobs.forEach((mob) => {
+
+        // مرده
+        if (mob.dead) {
+
+            mob.respawnTimer--;
+
+            if (mob.respawnTimer <= 0) {
+                mob.dead = false;
+                mob.health = mob.maxHealth;
+
+                mob.x =
+                    500 +
+                    Math.floor(Math.random() * 1200);
+
+                mob.y = groundY;
+                mob.damageCooldown = 0;
+            }
+
+            return;
+        }
+
+        // پیدا کردن نزدیک‌ترین بازیکن
+        let target = null;
+        let closest = Infinity;
+
+        players.forEach((player) => {
+
+            if (player.health <= 0) return;
+
+            const distance =
+                Math.abs(player.x - mob.x);
+
+            if (distance < closest) {
+                closest = distance;
+                target = player;
+            }
+        });
+
+        if (!target) return;
+
+        // حرکت هیولا
+        if (closest > 45) {
+
+            if (target.x > mob.x) {
+                mob.x += mob.speed;
+            } else {
+                mob.x -= mob.speed;
+            }
+        }
+
+        mob.x = Math.max(
+            40,
+            Math.min(
+                5000,
+                mob.x
+            )
+        );
+
+        mob.y = groundY;
+
+        // کاهش cooldown
+        if (mob.damageCooldown > 0) {
+            mob.damageCooldown--;
+        }
+
+        // ضربه به بازیکن
+        if (
+            closest <= 55 &&
+            mob.damageCooldown <= 0
+        ) {
+
+            target.health = Math.max(
+                0,
+                target.health - 10
+            );
+
+            mob.damageCooldown = 60;
+
+            io.to(roomCode).emit(
+                "playerHealth",
+                {
+                    id: target.id,
+                    health: target.health
+                }
+            );
+        }
+    });
+
+    io.to(roomCode).emit(
+        "mobsUpdate",
+        room.mobs
+    );
 }
 
 // ======================================================
@@ -101,13 +203,11 @@ io.on("connection", (socket) => {
             );
 
         rooms[roomCode] = {
-
             players: {},
-
             ready: {},
+            started: false,
 
-            started: false
-
+            mobs: createRoomMobs()
         };
 
         rooms[roomCode].players[
@@ -116,11 +216,8 @@ io.on("connection", (socket) => {
 
         socket.join(roomCode);
 
-        socket.roomCode =
-            roomCode;
-
-        socket.player =
-            player;
+        socket.roomCode = roomCode;
+        socket.player = player;
 
         socket.emit(
             "roomCreated",
@@ -133,7 +230,6 @@ io.on("connection", (socket) => {
         console.log(
             `Room ${roomCode} created by ${player.name}`
         );
-
     });
 
     // ==================================================
@@ -148,14 +244,11 @@ io.on("connection", (socket) => {
                 data.roomCode
                     ? data.roomCode
                     : ""
-            ).replace(
-                /\D/g,
-                ""
-            ).substring(0, 6);
+            )
+                .replace(/\D/g, "")
+                .substring(0, 6);
 
-        if (
-            roomCode.length !== 6
-        ) {
+        if (roomCode.length !== 6) {
 
             socket.emit(
                 "roomError",
@@ -165,8 +258,7 @@ io.on("connection", (socket) => {
             return;
         }
 
-        const room =
-            rooms[roomCode];
+        const room = rooms[roomCode];
 
         if (!room) {
 
@@ -212,11 +304,8 @@ io.on("connection", (socket) => {
 
         socket.join(roomCode);
 
-        socket.roomCode =
-            roomCode;
-
-        socket.player =
-            player;
+        socket.roomCode = roomCode;
+        socket.player = player;
 
         socket.emit(
             "roomJoined",
@@ -228,15 +317,12 @@ io.on("connection", (socket) => {
 
         io.to(roomCode).emit(
             "playersUpdate",
-            Object.values(
-                room.players
-            )
+            Object.values(room.players)
         );
 
         console.log(
             `${player.name} joined room ${roomCode}`
         );
-
     });
 
     // ==================================================
@@ -248,44 +334,31 @@ io.on("connection", (socket) => {
         const roomCode =
             socket.roomCode;
 
-        if (!roomCode) {
-            return;
-        }
+        if (!roomCode) return;
 
         const room =
             rooms[roomCode];
 
-        if (!room) {
-            return;
-        }
+        if (!room) return;
 
         const player =
-            room.players[
-                socket.id
-            ];
+            room.players[socket.id];
 
-        if (!player) {
-            return;
-        }
+        if (!player) return;
 
         player.ready = true;
 
-        room.ready[
-            socket.id
-        ] = true;
+        room.ready[socket.id] = true;
 
         const total =
-            Object.keys(
-                room.players
-            ).length;
+            Object.keys(room.players).length;
 
         const ready =
-            Object.keys(
-                room.ready
-            ).filter(
-                id =>
-                    room.ready[id]
-            ).length;
+            Object.keys(room.ready)
+                .filter(
+                    id => room.ready[id]
+                )
+                .length;
 
         io.to(roomCode).emit(
             "readyUpdate",
@@ -295,7 +368,6 @@ io.on("connection", (socket) => {
             }
         );
 
-        // حداقل 1 نفر آماده باشد بازی شروع می‌شود
         if (
             ready >= 1 &&
             total >= 1 &&
@@ -315,23 +387,24 @@ io.on("connection", (socket) => {
                         250 +
                         index * 100;
 
-                    p.y =
-                        groundY;
+                    p.y = groundY;
 
-                    p.health =
-                        100;
-
-                    p.level =
-                        1;
-
+                    p.health = 100;
+                    p.level = 1;
                 }
             );
 
+            room.mobs =
+                createRoomMobs();
+
             io.to(roomCode).emit(
                 "playersUpdate",
-                Object.values(
-                    room.players
-                )
+                Object.values(room.players)
+            );
+
+            io.to(roomCode).emit(
+                "mobsUpdate",
+                room.mobs
             );
 
             io.to(roomCode).emit(
@@ -341,9 +414,7 @@ io.on("connection", (socket) => {
             console.log(
                 `Game started in room ${roomCode}`
             );
-
         }
-
     });
 
     // ==================================================
@@ -357,37 +428,26 @@ io.on("connection", (socket) => {
             const roomCode =
                 socket.roomCode;
 
-            if (!roomCode) {
-                return;
-            }
+            if (!roomCode) return;
 
             const room =
                 rooms[roomCode];
 
-            if (!room) {
-                return;
-            }
+            if (!room) return;
 
             const player =
-                room.players[
-                    socket.id
-                ];
+                room.players[socket.id];
 
-            if (!player) {
-                return;
-            }
+            if (!player) return;
 
             if (
                 !data ||
                 typeof data.x !== "number" ||
                 typeof data.y !== "number"
             ) {
-
                 return;
-
             }
 
-            // جلوگیری از مختصات خراب
             player.x =
                 Math.max(
                     0,
@@ -410,9 +470,63 @@ io.on("connection", (socket) => {
                 "playerMoved",
                 player
             );
-
         }
     );
+
+    // ==================================================
+    // ATTACK MOB
+    // ==================================================
+
+    socket.on("attackMob", (data) => {
+
+        const roomCode =
+            socket.roomCode;
+
+        if (!roomCode) return;
+
+        const room =
+            rooms[roomCode];
+
+        if (!room || !room.started) return;
+
+        const player =
+            room.players[socket.id];
+
+        if (!player) return;
+
+        const mob =
+            room.mobs.find(
+                m =>
+                    m.id === data?.mobId
+            );
+
+        if (!mob || mob.dead) return;
+
+        const distance =
+            Math.abs(
+                player.x - mob.x
+            );
+
+        if (distance > 120) return;
+
+        mob.health =
+            Math.max(
+                0,
+                mob.health - 25
+            );
+
+        if (mob.health <= 0) {
+
+            mob.health = 0;
+            mob.dead = true;
+            mob.respawnTimer = 180;
+        }
+
+        io.to(roomCode).emit(
+            "mobsUpdate",
+            room.mobs
+        );
+    });
 
     // ==================================================
     // DISCONNECT
@@ -428,16 +542,12 @@ io.on("connection", (socket) => {
         const roomCode =
             socket.roomCode;
 
-        if (!roomCode) {
-            return;
-        }
+        if (!roomCode) return;
 
         const room =
             rooms[roomCode];
 
-        if (!room) {
-            return;
-        }
+        if (!room) return;
 
         delete room.players[
             socket.id
@@ -461,32 +571,43 @@ io.on("connection", (socket) => {
 
             io.to(roomCode).emit(
                 "playersUpdate",
-                Object.values(
-                    room.players
-                )
+                Object.values(room.players)
             );
 
-        }
+        } else {
 
-        // اگر اتاق خالی شد حذفش کن
-        if (remaining === 0) {
-
-            delete rooms[
-                roomCode
-            ];
+            delete rooms[roomCode];
 
             console.log(
                 `Room ${roomCode} deleted`
             );
-
         }
-
     });
-
 });
 
 // ======================================================
-// START SERVER
+// MOB GAME LOOP
+// ======================================================
+
+setInterval(() => {
+
+    Object.keys(rooms).forEach(
+        (roomCode) => {
+
+            const room =
+                rooms[roomCode];
+
+            updateRoomMobs(
+                roomCode,
+                room
+            );
+        }
+    );
+
+}, 1000 / 30);
+
+// ======================================================
+// START
 // ======================================================
 
 server.listen(
