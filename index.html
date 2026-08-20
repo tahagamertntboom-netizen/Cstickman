@@ -40,6 +40,8 @@ body{
 .box{
     width:92%;
     max-width:560px;
+    max-height:95vh;
+    overflow-y:auto;
     padding:30px;
     background:#111827;
     color:white;
@@ -88,11 +90,12 @@ button:active{
     transform:scale(.97);
 }
 
-.green{background:#16a34a}
-.blue{background:#2563eb}
-.purple{background:#7c3aed}
-.gray{background:#374151}
-.red{background:#dc2626}
+.green{background:#16a34a;}
+.blue{background:#2563eb;}
+.purple{background:#7c3aed;}
+.gray{background:#374151;}
+.red{background:#dc2626;}
+.orange{background:#ea580c;}
 
 .cardRow{
     display:grid;
@@ -130,6 +133,10 @@ button:active{
     background:linear-gradient(135deg,#7c3aed,#5b21b6);
 }
 
+.offlineOption{
+    min-height:140px;
+}
+
 .aiCard{
     background:linear-gradient(135deg,#16a34a,#15803d);
 }
@@ -144,7 +151,10 @@ button:active{
     margin-top:10px;
 }
 
-/* GAME */
+
+/* =========================
+   GAME
+========================= */
 
 #gameScreen{
     display:none;
@@ -161,6 +171,11 @@ button:active{
     height:100%;
     touch-action:none;
 }
+
+
+/* =========================
+   GAME TOP
+========================= */
 
 #gameTop{
     position:fixed;
@@ -183,141 +198,182 @@ button:active{
     font-weight:bold;
 }
 
-/* ABILITY BUTTON */
+
+/* =========================
+   ABILITY BUTTON
+========================= */
 
 #abilityButton{
     position:fixed;
     top:70px;
     right:15px;
-    z-index:50;
-
+    z-index:40;
     width:auto;
-    min-width:130px;
-
-    padding:12px 16px;
+    min-width:125px;
+    padding:11px 15px;
     margin:0;
-
     background:#7c3aed;
-    border:2px solid #ffffff44;
+    display:none;
 }
 
-/* ABILITY PANEL */
+#gameScreen #abilityButton{
+    display:block;
+}
+
+
+/* =========================
+   ABILITY PANEL
+========================= */
 
 #abilityPanel{
     position:fixed;
     top:125px;
     right:15px;
-    width:290px;
+    width:300px;
     max-width:calc(100vw - 30px);
-
-    z-index:60;
-
+    max-height:70vh;
+    overflow-y:auto;
+    z-index:50;
     background:#111827f5;
     color:white;
-
-    border:2px solid #ffffff22;
+    border:1px solid #ffffff22;
     border-radius:18px;
-
-    padding:15px;
-
-    box-shadow:0 15px 50px #000b;
+    padding:16px;
+    box-shadow:0 20px 60px #000b;
 }
 
 #abilityPanel h3{
     margin:0 0 8px;
 }
 
-#abilityCode{
-    margin-top:8px;
-    direction:ltr;
+.abilityHint{
+    color:#9ca3af;
+    font-size:13px;
+    line-height:1.7;
 }
 
-.abilityButtons{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:8px;
+.abilityCode{
+    direction:ltr;
+    text-align:left;
+    background:#020617;
+    color:#86efac;
+    padding:13px;
+    border-radius:10px;
+    margin-top:10px;
+    font-family:monospace;
+    white-space:pre-wrap;
+    word-break:break-word;
+}
+
+.abilityInput{
+    direction:ltr;
+    text-align:left;
+    background:white;
+    color:#111827;
     margin-top:10px;
 }
 
-.abilityButtons button{
-    margin:0;
-    padding:11px 5px;
-    font-size:14px;
-}
-
-.targetSelect{
-    width:100%;
-    padding:12px;
-    border-radius:10px;
-    border:0;
-    margin-top:8px;
-    font-size:15px;
-}
-
-/* ADMIN */
-
-#adminPanel{
-    position:fixed;
-    top:125px;
-    left:15px;
-
-    width:320px;
-    max-width:calc(100vw - 30px);
-
-    max-height:75vh;
-    overflow:auto;
-
-    z-index:70;
-
-    background:#111827f5;
-    color:white;
-
-    border:2px solid #facc1544;
-    border-radius:18px;
-
-    padding:15px;
-
-    box-shadow:0 15px 50px #000b;
-}
-
-#adminPanel h3{
-    margin:0;
+#abilityResult{
+    min-height:24px;
     color:#facc15;
+    font-size:13px;
+    margin-top:8px;
 }
 
-#adminCode{
-    direction:ltr;
-}
 
-.adminButtons{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:8px;
-}
-
-.adminButtons button{
-    margin:0;
-    padding:10px 5px;
-    font-size:14px;
-}
+/* =========================
+   ADMIN
+========================= */
 
 #adminButton{
     position:fixed;
-    top:70px;
+    top:115px;
     left:15px;
-    z-index:50;
-
+    z-index:40;
     width:auto;
+    min-width:125px;
+    padding:11px 15px;
     margin:0;
-
-    background:#ca8a04;
+    background:#b91c1c;
+    display:none;
 }
 
-#adminPlayers{
+#adminPanel{
+    position:fixed;
+    top:165px;
+    left:15px;
+    width:340px;
+    max-width:calc(100vw - 30px);
+    max-height:72vh;
+    overflow-y:auto;
+    z-index:60;
+    background:#111827f7;
+    color:white;
+    border:1px solid #ef444455;
+    border-radius:20px;
+    padding:18px;
+    box-shadow:0 20px 70px #000b;
+}
+
+#adminPanel h3{
+    margin-top:0;
+    color:#f87171;
+}
+
+.adminCode{
+    direction:ltr;
+    text-align:left;
+    background:#020617;
+    border:1px solid #ffffff18;
+    border-radius:12px;
+    padding:14px;
+    margin-top:12px;
+    color:#facc15;
+    font-family:monospace;
+    line-height:1.8;
+    white-space:pre-wrap;
+    word-break:break-word;
+}
+
+.adminInput{
+    direction:ltr;
+    text-align:left;
+    background:white;
+    color:#111827;
+}
+
+.adminPlayers{
     margin-top:10px;
+    padding:10px;
+    background:#020617;
+    border-radius:12px;
+    max-height:140px;
+    overflow-y:auto;
 }
 
-/* MOBILE */
+.adminPlayer{
+    padding:8px;
+    margin:4px 0;
+    background:#1f2937;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.adminPlayer.selected{
+    background:#7c3aed;
+}
+
+.adminResult{
+    min-height:24px;
+    color:#facc15;
+    font-size:13px;
+    margin-top:8px;
+}
+
+
+/* =========================
+   MOBILE CONTROLS
+========================= */
 
 #mobileControls{
     position:fixed;
@@ -325,17 +381,16 @@ button:active{
     right:0;
     bottom:25px;
     z-index:30;
-
     display:none;
-
     justify-content:space-between;
     align-items:flex-end;
-
     padding:0 20px;
-
     direction:ltr;
-
     pointer-events:none;
+}
+
+#gameScreen #mobileControls{
+    display:none;
 }
 
 .controlGroup{
@@ -349,17 +404,11 @@ button:active{
     height:72px;
     padding:0;
     margin:0;
-
     border-radius:20px;
-
     border:2px solid #ffffff55;
-
     background:#111827dd;
-
     color:white;
-
     font-size:28px;
-
     pointer-events:auto;
     touch-action:none;
 }
@@ -395,8 +444,13 @@ button:active{
 }
 
 @media(max-width:600px){
+
     h1{
         font-size:34px;
+    }
+
+    .cardRow{
+        gap:10px;
     }
 
     .modeCard{
@@ -414,11 +468,11 @@ button:active{
     }
 
     #abilityPanel{
-        width:250px;
+        width:270px;
     }
 
     #adminPanel{
-        width:270px;
+        width:290px;
     }
 }
 </style>
@@ -426,9 +480,11 @@ button:active{
 
 <body>
 
+
 <!-- NAME -->
 
 <div id="nameScreen" class="screen">
+
     <div class="box">
 
         <h1>STICKMAN 🎮</h1>
@@ -442,19 +498,24 @@ button:active{
             autocomplete="off"
         >
 
-        <button id="confirmName" class="green">
+        <button
+            id="confirmName"
+            class="green"
+        >
             تأیید اسم ✅
         </button>
 
         <div id="nameError" class="error"></div>
 
     </div>
+
 </div>
 
 
 <!-- MODE -->
 
 <div id="modeScreen" class="screen hidden">
+
     <div class="box">
 
         <h1>🎮 حالت بازی</h1>
@@ -463,27 +524,40 @@ button:active{
 
         <div class="cardRow">
 
-            <div id="onlineCard" class="modeCard onlineCard">
+            <div id="onlineCard"
+                 class="modeCard onlineCard">
+
                 <div class="icon">🌐</div>
+
                 <h2>آنلاین</h2>
+
                 <p>بازی با دوستت</p>
+
             </div>
 
-            <div id="offlineCard" class="modeCard offlineCard">
+            <div id="offlineCard"
+                 class="modeCard offlineCard">
+
                 <div class="icon">📴</div>
+
                 <h2>آفلاین</h2>
+
                 <p>بدون اینترنت</p>
+
             </div>
 
         </div>
 
     </div>
+
 </div>
 
 
 <!-- OFFLINE -->
 
-<div id="offlineScreen" class="screen hidden">
+<div id="offlineScreen"
+     class="screen hidden">
+
     <div class="box">
 
         <h1>📴 آفلاین</h1>
@@ -492,44 +566,61 @@ button:active{
 
         <div class="cardRow">
 
-            <div id="aiCard" class="modeCard aiCard">
+            <div id="aiCard"
+                 class="modeCard offlineOption aiCard">
+
                 <div class="icon">🤖</div>
+
                 <h2>بازی با AI</h2>
+
                 <p>با حریف کامپیوتری بازی کن</p>
+
             </div>
 
-            <div id="soloCard" class="modeCard soloCard">
+            <div id="soloCard"
+                 class="modeCard offlineOption soloCard">
+
                 <div class="icon">👤</div>
+
                 <h2>تنهایی</h2>
+
                 <p>فقط خودت در زمین</p>
+
             </div>
 
         </div>
 
-        <button id="backToModes" class="gray">
+        <button id="backToModes"
+                class="gray">
             ↩️ برگشت
         </button>
 
     </div>
+
 </div>
 
 
 <!-- ONLINE -->
 
-<div id="onlineScreen" class="screen hidden">
+<div id="onlineScreen"
+     class="screen hidden">
+
     <div class="box">
 
         <h1>🌐 آنلاین</h1>
 
-        <button id="createRoom" class="blue">
+        <button id="createRoom"
+                class="blue">
             🏠 ساخت اتاق
         </button>
 
-        <button id="showJoin" class="purple">
+        <button id="showJoin"
+                class="purple">
             🔢 ورود به اتاق
         </button>
 
-        <div id="joinBox" class="hidden">
+        <div id="joinBox"
+             class="hidden">
 
             <input
                 id="roomInput"
@@ -538,42 +629,46 @@ button:active{
                 placeholder="کد ۶ رقمی"
             >
 
-            <button id="joinRoom" class="purple">
+            <button id="joinRoom"
+                    class="purple">
                 🚪 ورود
             </button>
 
         </div>
 
-        <div id="onlineError" class="error"></div>
+        <div id="onlineError"
+             class="error"></div>
 
-        <button id="backFromOnline" class="gray">
+        <button id="backFromOnline"
+                class="gray">
             ↩️ برگشت
         </button>
 
     </div>
+
 </div>
 
 
 <!-- ROOM -->
 
-<div id="roomScreen" class="screen hidden">
+<div id="roomScreen"
+     class="screen hidden">
+
     <div class="box">
 
         <h1>🎮 اتاق</h1>
 
         <p>کد اتاق:</p>
 
-        <div
-            id="roomCode"
-            style="
+        <div id="roomCode"
+             style="
                 direction:ltr;
                 font-size:48px;
                 font-weight:bold;
                 letter-spacing:8px;
                 color:#22c55e;
                 margin:25px 0;
-            "
-        >
+             ">
             ------
         </div>
 
@@ -581,11 +676,13 @@ button:active{
             کد را به دوستت بده
         </p>
 
-        <button id="readyButton" class="green">
+        <button id="readyButton"
+                class="green">
             🎮 بزن بریم تو بازی
         </button>
 
     </div>
+
 </div>
 
 
@@ -595,160 +692,148 @@ button:active{
 
     <canvas id="gameCanvas"></canvas>
 
+
     <div id="gameTop">
 
-        <div id="gameMode" class="topBadge">
+        <div id="gameMode"
+             class="topBadge">
             🎮 Stickman
         </div>
 
-        <div id="gameScore" class="topBadge">
+        <div id="gameScore"
+             class="topBadge">
             ❤️ 100
         </div>
 
     </div>
 
 
-    <!-- قابلیت عادی -->
+    <!-- قابلیت‌های بازیکن -->
 
-    <button id="abilityButton">
+    <button id="abilityButton"
+            type="button">
         ⚡ قابلیت‌ها
     </button>
 
-    <div id="abilityPanel" class="hidden">
+    <div id="abilityPanel"
+         class="hidden">
 
-        <h3>⚡ قابلیت‌های من</h3>
+        <h3>⚡ قابلیت شخصی</h3>
 
-        <p style="font-size:13px">
-            این قابلیت‌ها فقط روی خودت اعمال می‌شوند.
-        </p>
+        <div class="abilityHint">
+            هر بازیکن فقط می‌تواند قابلیت را روی
+            خودش اجرا کند.
+        </div>
+
+        <div class="abilityCode">
+speed 10
+jump 20
+fly
+god
+heal
+monster
+            </div>
 
         <input
-            id="abilityCode"
-            placeholder="مثلاً speed"
+            id="abilityInput"
+            class="abilityInput"
+            placeholder="کد را وارد کن..."
             autocomplete="off"
         >
 
-        <div class="abilityButtons">
-
-            <button class="blue" data-ability="speed">
-                🏃 سرعت
-            </button>
-
-            <button class="purple" data-ability="jump">
-                🦘 پرش
-            </button>
-
-            <button class="green" data-ability="heal">
-                ❤️ سلامتی
-            </button>
-
-            <button class="gray" data-ability="god">
-                🛡️ گاد
-            </button>
-
-            <button class="blue" data-ability="fly">
-                🪽 پرواز
-            </button>
-
-        </div>
-
-        <button id="useAbility" class="green">
-            ▶️ اجرای کد
+        <button id="abilityRun"
+                class="purple">
+            ▶ اجرای قابلیت
         </button>
 
-        <div id="abilityMessage" class="error"></div>
+        <div id="abilityResult"></div>
 
     </div>
 
 
     <!-- پنل ادمین -->
 
-    <button id="adminButton" class="hidden">
-        👑 ADMIN
+    <button id="adminButton"
+            type="button">
+        👑 پنل ادمین
     </button>
 
-    <div id="adminPanel" class="hidden">
+    <div id="adminPanel"
+         class="hidden">
 
-        <h3>👑 پنل مدیریت</h3>
+        <h3>👑 پنل ادمین</h3>
 
-        <p style="font-size:13px">
-            قابلیت را انتخاب کن و بازیکن هدف را مشخص کن.
+        <div class="abilityHint">
+            فقط برای tahagamertnt
+        </div>
+
+        <div class="adminCode">
+/give player fly
+/give player god
+/give player speed 10
+/kill player
+/spawn monster
+            </div>
+
+        <p style="margin-bottom:5px;">
+            بازیکن هدف:
         </p>
 
-        <select id="adminPlayers" class="targetSelect">
-            <option value="">انتخاب بازیکن</option>
-        </select>
+        <div id="adminPlayers"
+             class="adminPlayers">
+            هنوز بازیکنی نیست
+        </div>
 
         <input
-            id="adminCode"
-            placeholder="کد واقعی قابلیت"
+            id="adminInput"
+            class="adminInput"
+            placeholder="مثلاً /give player fly"
             autocomplete="off"
         >
 
-        <div class="adminButtons">
-
-            <button class="blue" data-admin="speed">
-                🏃 Speed
-            </button>
-
-            <button class="purple" data-admin="jump">
-                🦘 Jump
-            </button>
-
-            <button class="green" data-admin="heal">
-                ❤️ Heal
-            </button>
-
-            <button class="gray" data-admin="god">
-                🛡️ God
-            </button>
-
-            <button class="blue" data-admin="fly">
-                🪽 Fly
-            </button>
-
-            <button class="red" data-admin="kill">
-                ☠️ Kill
-            </button>
-
-            <button class="red" data-admin="kick">
-                🚪 Kick
-            </button>
-
-        </div>
-
-        <button id="useAdminCode" class="green">
-            ▶️ اجرای کد ادمین
+        <button id="adminRun"
+                class="red">
+            👑 اجرای کد ادمین
         </button>
 
-        <div id="adminMessage" class="error"></div>
+        <div id="adminResult"
+             class="adminResult"></div>
 
     </div>
 
 
-    <!-- موبایل -->
+    <!-- کنترل موبایل -->
 
     <div id="mobileControls">
 
         <div class="controlGroup">
 
-            <button id="leftButton" class="mobileButton">
+            <button id="leftButton"
+                    class="mobileButton"
+                    type="button">
                 ⬅️
             </button>
 
-            <button id="rightButton" class="mobileButton">
+            <button id="rightButton"
+                    class="mobileButton"
+                    type="button">
                 ➡️
             </button>
 
         </div>
 
-        <div class="controlGroup">
+        <div class="controlGroup"
+             style="align-items:flex-end;">
 
-            <button id="jumpButton" class="mobileButton">
+            <button id="jumpButton"
+                    class="mobileButton"
+                    type="button">
                 🦘
             </button>
 
-            <button id="attackButton" class="mobileButton">
+            <button id="attackButton"
+                    class="mobileButton"
+                    type="button">
                 ⚔️
             </button>
 
