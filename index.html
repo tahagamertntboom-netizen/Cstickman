@@ -93,7 +93,7 @@ button:active{
 .purple{background:#7c3aed}
 .gray{background:#374151}
 .red{background:#dc2626}
-.yellow{background:#ca8a04}
+.orange{background:#ea580c}
 
 .cardRow{
     display:grid;
@@ -145,7 +145,6 @@ button:active{
     margin-top:10px;
 }
 
-
 /* =========================
    GAME
 ========================= */
@@ -165,11 +164,6 @@ button:active{
     height:100%;
     touch-action:none;
 }
-
-
-/* =========================
-   GAME TOP
-========================= */
 
 #gameTop{
     position:fixed;
@@ -191,7 +185,6 @@ button:active{
     background:#0009;
     font-weight:bold;
 }
-
 
 /* =========================
    ABILITY
@@ -256,7 +249,6 @@ button:active{
     font-size:14px;
 }
 
-
 /* =========================
    ADMIN
 ========================= */
@@ -310,6 +302,7 @@ button:active{
     position:fixed;
     top:70px;
     left:15px;
+
     z-index:50;
 
     width:auto;
@@ -322,16 +315,6 @@ button:active{
     margin-top:10px;
 }
 
-.targetSelect{
-    width:100%;
-    padding:12px;
-    border-radius:10px;
-    border:0;
-    margin-top:8px;
-    font-size:15px;
-}
-
-
 /* =========================
    MOBILE
 ========================= */
@@ -341,6 +324,7 @@ button:active{
     left:0;
     right:0;
     bottom:25px;
+
     z-index:30;
 
     display:none;
@@ -371,7 +355,6 @@ button:active{
     border-radius:20px;
 
     border:2px solid #ffffff55;
-
     background:#111827dd;
 
     color:white;
@@ -384,10 +367,6 @@ button:active{
 
 #jumpButton{
     background:#16a34add;
-}
-
-#attackButton{
-    display:none !important;
 }
 
 #gameScreen #attackButton{
@@ -409,7 +388,6 @@ button:active{
     #gameScreen #mobileControls{
         display:flex;
     }
-
 }
 
 @media(min-width:901px){
@@ -417,7 +395,6 @@ button:active{
     #gameScreen #mobileControls{
         display:none !important;
     }
-
 }
 
 @media(max-width:600px){
@@ -453,8 +430,9 @@ button:active{
 
 <body>
 
-
-<!-- NAME -->
+<!-- =========================
+     NAME
+========================= -->
 
 <div id="nameScreen" class="screen">
 
@@ -482,7 +460,9 @@ button:active{
 </div>
 
 
-<!-- MODE -->
+<!-- =========================
+     MODE
+========================= -->
 
 <div id="modeScreen" class="screen hidden">
 
@@ -522,7 +502,9 @@ button:active{
 </div>
 
 
-<!-- OFFLINE -->
+<!-- =========================
+     OFFLINE
+========================= -->
 
 <div id="offlineScreen" class="screen hidden">
 
@@ -566,7 +548,9 @@ button:active{
 </div>
 
 
-<!-- ONLINE -->
+<!-- =========================
+     ONLINE
+========================= -->
 
 <div id="onlineScreen" class="screen hidden">
 
@@ -608,7 +592,9 @@ button:active{
 </div>
 
 
-<!-- ROOM -->
+<!-- =========================
+     ROOM
+========================= -->
 
 <div id="roomScreen" class="screen hidden">
 
@@ -645,11 +631,14 @@ button:active{
 </div>
 
 
-<!-- GAME -->
+<!-- =========================
+     GAME
+========================= -->
 
 <div id="gameScreen">
 
     <canvas id="gameCanvas"></canvas>
+
 
     <div id="gameTop">
 
@@ -664,11 +653,12 @@ button:active{
     </div>
 
 
-    <!-- ABILITY -->
+    <!-- قابلیت عادی -->
 
     <button id="abilityButton">
         ⚡ قابلیت‌ها
     </button>
+
 
     <div id="abilityPanel" class="hidden">
 
@@ -717,11 +707,14 @@ button:active{
     </div>
 
 
-    <!-- ADMIN -->
+    <!-- =========================
+         ADMIN
+    ========================= -->
 
     <button id="adminButton" class="hidden">
         👑 ADMIN
     </button>
+
 
     <div id="adminPanel" class="hidden">
 
@@ -731,6 +724,7 @@ button:active{
             قابلیت را انتخاب کن و بازیکن هدف را مشخص کن.
         </p>
 
+
         <select id="adminPlayers" class="targetSelect">
 
             <option value="">
@@ -739,11 +733,13 @@ button:active{
 
         </select>
 
+
         <input
             id="adminCode"
             placeholder="کد واقعی قابلیت"
             autocomplete="off"
         >
+
 
         <div class="adminButtons">
 
@@ -775,16 +771,14 @@ button:active{
                 🚪 Kick
             </button>
 
-            <!-- جدید -->
+            <!-- قابلیت جدید هیولا -->
 
-            <button
-                class="yellow"
-                data-admin="monster"
-            >
+            <button class="orange" data-admin="monster">
                 👹 Monster
             </button>
 
         </div>
+
 
         <button id="useAdminCode" class="green">
             ▶️ اجرای کد ادمین
@@ -795,41 +789,32 @@ button:active{
     </div>
 
 
-    <!-- MOBILE -->
+    <!-- =========================
+         MOBILE
+    ========================= -->
 
     <div id="mobileControls">
 
         <div class="controlGroup">
 
-            <button
-                id="leftButton"
-                class="mobileButton"
-            >
+            <button id="leftButton" class="mobileButton">
                 ⬅️
             </button>
 
-            <button
-                id="rightButton"
-                class="mobileButton"
-            >
+            <button id="rightButton" class="mobileButton">
                 ➡️
             </button>
 
         </div>
 
+
         <div class="controlGroup">
 
-            <button
-                id="jumpButton"
-                class="mobileButton"
-            >
+            <button id="jumpButton" class="mobileButton">
                 🦘
             </button>
 
-            <button
-                id="attackButton"
-                class="mobileButton"
-            >
+            <button id="attackButton" class="mobileButton">
                 ⚔️
             </button>
 
