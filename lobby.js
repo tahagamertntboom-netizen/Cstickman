@@ -20,12 +20,8 @@ let aiVelocityY = 0;
 let aiOnGround = false;
 let aiDirectionTimer = 0;
 
-let mobs = {};
-
 let attackCooldown = false;
 let attacking = false;
-
-let selectedAdminTarget = null;
 
 const nameScreen = document.getElementById("nameScreen");
 const modeScreen = document.getElementById("modeScreen");
@@ -59,23 +55,20 @@ const ctx = canvas ? canvas.getContext("2d") : null;
 
 const attackButton = document.getElementById("attackButton");
 
-const codeButton = document.getElementById("codeButton");
-const codePanel = document.getElementById("codePanel");
-const closeCode = document.getElementById("closeCode");
-const codeInput = document.getElementById("codeInput");
-const runCode = document.getElementById("runCode");
-const codeResult = document.getElementById("codeResult");
+const abilityButton = document.getElementById("abilityButton");
+const abilityPanel = document.getElementById("abilityPanel");
+const abilityCode = document.getElementById("abilityCode");
+const useAbility = document.getElementById("useAbility");
+const abilityMessage = document.getElementById("abilityMessage");
 
+const adminButton = document.getElementById("adminButton");
 const adminPanel = document.getElementById("adminPanel");
-const closeAdmin = document.getElementById("closeAdmin");
-const adminCodeInput = document.getElementById("adminCodeInput");
-const runAdminCode = document.getElementById("runAdminCode");
-const adminResult = document.getElementById("adminResult");
 const adminPlayers = document.getElementById("adminPlayers");
-const adminTargetText = document.getElementById("adminTargetText");
+const adminCode = document.getElementById("adminCode");
+const useAdminCode = document.getElementById("useAdminCode");
+const adminMessage = document.getElementById("adminMessage");
 
 function showScreen(screen) {
-
     [
         nameScreen,
         modeScreen,
@@ -94,7 +87,6 @@ function showScreen(screen) {
 }
 
 function updateAttackButtonVisibility() {
-
     if (!attackButton) return;
 
     const inGame =
@@ -102,135 +94,97 @@ function updateAttackButtonVisibility() {
         gameScreen &&
         gameScreen.style.display === "block";
 
-    attackButton.style.display =
-        inGame ? "block" : "none";
+    attackButton.style.display = inGame ? "block" : "none";
 }
 
 async function enterGameFullscreen() {
-
     try {
-
         if (document.fullscreenElement) return;
 
         if (document.documentElement.requestFullscreen) {
-
             await document.documentElement.requestFullscreen({
                 navigationUI: "hide"
             });
-
         }
-
     } catch (error) {
-
-        console.log(
-            "Fullscreen unavailable:",
-            error
-        );
-
+        console.log("Fullscreen unavailable:", error);
     }
 }
 
-if (confirmName) {
+function isAdmin() {
+    return String(playerName).trim().toLowerCase() === "tahagamertnt";
+}
 
+if (confirmName) {
     confirmName.onclick = function () {
 
-        const name =
-            nameInput.value.trim();
+        const name = nameInput.value.trim();
 
         if (!name) {
-
-            const error =
-                document.getElementById("nameError");
+            const error = document.getElementById("nameError");
 
             if (error) {
-                error.textContent =
-                    "اول اسمت رو وارد کن.";
+                error.textContent = "اول اسمت رو وارد کن.";
             }
 
             return;
         }
 
-        playerName =
-            name.substring(0, 20);
+        playerName = name.substring(0, 20);
 
         showScreen(modeScreen);
     };
 }
 
 if (nameInput) {
-
-    nameInput.addEventListener(
-        "keydown",
-        function(e) {
-
-            if (e.key === "Enter") {
-                confirmName.click();
-            }
-
+    nameInput.addEventListener("keydown", e => {
+        if (e.key === "Enter") {
+            confirmName.click();
         }
-    );
+    });
 }
 
 if (onlineCard) {
-
-    onlineCard.onclick = function() {
+    onlineCard.onclick = () => {
         showScreen(onlineScreen);
     };
-
 }
 
 if (offlineCard) {
-
-    offlineCard.onclick = function() {
+    offlineCard.onclick = () => {
         showScreen(offlineScreen);
     };
-
 }
 
 if (backToModes) {
-
-    backToModes.onclick = function() {
+    backToModes.onclick = () => {
         showScreen(modeScreen);
     };
-
 }
 
 if (backFromOnline) {
-
-    backFromOnline.onclick = function() {
+    backFromOnline.onclick = () => {
         showScreen(modeScreen);
     };
-
 }
 
 if (aiCard) {
-
-    aiCard.onclick = async function() {
-
+    aiCard.onclick = async () => {
         await enterGameFullscreen();
-
         startOfflineGame(true);
-
     };
-
 }
 
 if (soloCard) {
-
-    soloCard.onclick = async function() {
-
+    soloCard.onclick = async () => {
         await enterGameFullscreen();
-
         startOfflineGame(false);
-
     };
-
 }
 
 function startOfflineGame(withAI) {
 
-    gameMode =
-        withAI ? "AI" : "SOLO";
+    gameMode = withAI ? "AI" : "SOLO";
 
     nameScreen.classList.add("hidden");
     modeScreen.classList.add("hidden");
@@ -238,14 +192,15 @@ function startOfflineGame(withAI) {
     onlineScreen.classList.add("hidden");
     roomScreen.classList.add("hidden");
 
-    gameScreen.style.display =
-        "block";
+    gameScreen.style.display = "block";
 
     gameRunning = true;
 
     setupOfflinePlayers(withAI);
 
     resizeCanvas();
+
+    setupAbilityUI();
 
     updateAttackButtonVisibility();
 
@@ -255,37 +210,21 @@ function startOfflineGame(withAI) {
 function setupOfflinePlayers(withAI) {
 
     players = {};
-    mobs = {};
 
     myPlayer = {
-
         id: "player",
-
-        name:
-            playerName || "Player",
-
+        name: playerName || "Player",
         x: 250,
-
         y: getGroundY(),
-
         health: 100,
-
         maxHealth: 100,
-
-        speed: SPEED,
-
-        jump: JUMP,
-
+        speedBoost: false,
+        jumpBoost: false,
         fly: false,
-
-        doubleJump: false,
-
-        color: "#22c55e"
-
+        god: false
     };
 
-    players.player =
-        myPlayer;
+    players.player = myPlayer;
 
     velocityY = 0;
     onGround = true;
@@ -293,24 +232,15 @@ function setupOfflinePlayers(withAI) {
     if (withAI) {
 
         ai = {
-
             id: "ai",
-
             name: "AI",
-
             x: Math.min(
                 700,
-                Math.max(
-                    450,
-                    canvas.width - 250
-                )
+                Math.max(450, canvas.width - 250)
             ),
-
             y: getGroundY(),
-
             health: 100,
             maxHealth: 100
-
         };
 
         aiVelocityY = 0;
@@ -323,114 +253,80 @@ function setupOfflinePlayers(withAI) {
 
     }
 
-    const modeText =
-        document.getElementById("gameMode");
+    const modeText = document.getElementById("gameMode");
 
     if (modeText) {
-
         modeText.textContent =
             withAI
                 ? "🤖 بازی با AI"
                 : "👤 بازی تنهایی";
-
     }
+
+    setupAbilityUI();
 }
 
 if (showJoin) {
-
-    showJoin.onclick = function() {
-
+    showJoin.onclick = () => {
         if (joinBox) {
             joinBox.classList.toggle("hidden");
         }
-
     };
-
 }
 
 if (roomInput) {
-
-    roomInput.addEventListener(
-        "input",
-        function() {
-
-            roomInput.value =
-                roomInput.value
-                    .replace(/\D/g, "")
-                    .substring(0, 6);
-
-        }
-    );
-
+    roomInput.addEventListener("input", () => {
+        roomInput.value =
+            roomInput.value
+                .replace(/\D/g, "")
+                .substring(0, 6);
+    });
 }
 
 if (createRoom) {
-
-    createRoom.onclick = function() {
+    createRoom.onclick = () => {
 
         createRoom.disabled = true;
-        createRoom.textContent =
-            "⏳ در حال ساخت...";
+        createRoom.textContent = "⏳ در حال ساخت...";
 
-        socket.emit(
-            "createRoom",
-            {
-                name: playerName
-            }
-        );
-
+        socket.emit("createRoom", {
+            name: playerName
+        });
     };
-
 }
 
-socket.on(
-    "roomCreated",
-    function(data) {
+socket.on("roomCreated", data => {
 
-        roomCode =
-            String(data.roomCode)
-                .replace(/\D/g, "");
+    roomCode =
+        String(data.roomCode)
+            .replace(/\D/g, "");
 
-        myPlayer =
-            data.player;
+    myPlayer = data.player;
 
-        players = {};
+    players = {};
 
-        if (myPlayer) {
-            players[myPlayer.id] =
-                myPlayer;
-        }
-
-        showScreen(roomScreen);
-
-        if (roomCodeElement) {
-            roomCodeElement.textContent =
-                roomCode;
-        }
-
-        if (createRoom) {
-
-            createRoom.disabled =
-                false;
-
-            createRoom.textContent =
-                "🏠 ساخت اتاق";
-
-        }
-
+    if (myPlayer) {
+        players[myPlayer.id] = myPlayer;
     }
-);
+
+    showScreen(roomScreen);
+
+    if (roomCodeElement) {
+        roomCodeElement.textContent = roomCode;
+    }
+
+    createRoom.disabled = false;
+    createRoom.textContent = "🏠 ساخت اتاق";
+});
 
 if (joinRoom) {
 
-    joinRoom.onclick = function() {
+    joinRoom.onclick = () => {
 
-        const code =
-            roomInput
-                ? roomInput.value
-                    .replace(/\D/g, "")
-                    .substring(0, 6)
-                : "";
+        const code = roomInput
+            ? roomInput.value
+                .replace(/\D/g, "")
+                .substring(0, 6)
+            : "";
 
         if (code.length !== 6) {
 
@@ -438,147 +334,105 @@ if (joinRoom) {
                 document.getElementById("onlineError");
 
             if (error) {
-
                 error.textContent =
                     "کد باید ۶ رقمی باشد.";
-
             }
 
             return;
         }
 
         joinRoom.disabled = true;
+        joinRoom.textContent = "⏳ در حال ورود...";
 
-        joinRoom.textContent =
-            "⏳ در حال ورود...";
-
-        socket.emit(
-            "joinRoom",
-            {
-                roomCode: code,
-                name: playerName
-            }
-        );
-
+        socket.emit("joinRoom", {
+            roomCode: code,
+            name: playerName
+        });
     };
-
 }
 
-socket.on(
-    "roomJoined",
-    function(data) {
+socket.on("roomJoined", data => {
 
-        roomCode =
-            String(data.roomCode)
-                .replace(/\D/g, "");
+    roomCode =
+        String(data.roomCode)
+            .replace(/\D/g, "");
 
-        myPlayer =
-            data.player;
+    myPlayer = data.player;
 
-        players = {};
+    players = {};
 
-        if (myPlayer) {
-            players[myPlayer.id] =
-                myPlayer;
-        }
-
-        showScreen(roomScreen);
-
-        if (roomCodeElement) {
-            roomCodeElement.textContent =
-                roomCode;
-        }
-
-        if (joinRoom) {
-
-            joinRoom.disabled =
-                false;
-
-            joinRoom.textContent =
-                "🚪 ورود";
-
-        }
-
+    if (myPlayer) {
+        players[myPlayer.id] = myPlayer;
     }
-);
+
+    showScreen(roomScreen);
+
+    if (roomCodeElement) {
+        roomCodeElement.textContent = roomCode;
+    }
+
+    joinRoom.disabled = false;
+    joinRoom.textContent = "🚪 ورود";
+});
 
 if (readyButton) {
 
-    readyButton.onclick = async function() {
+    readyButton.onclick = async () => {
 
         await enterGameFullscreen();
 
         readyButton.disabled = true;
-
-        readyButton.textContent =
-            "✅ آماده شدی";
+        readyButton.textContent = "✅ آماده شدی";
 
         if (roomStatus) {
-
             roomStatus.textContent =
                 "⏳ منتظر بازیکن دیگر...";
-
         }
 
-        socket.emit(
-            "readyForGame"
-        );
-
+        socket.emit("readyForGame");
     };
-
 }
 
-socket.on(
-    "readyUpdate",
-    function(data) {
+socket.on("readyUpdate", data => {
 
-        if (!roomStatus) return;
+    if (!roomStatus) return;
 
-        roomStatus.textContent =
-            "بازیکنان آماده: " +
-            data.ready +
-            " / " +
-            data.total;
+    roomStatus.textContent =
+        "بازیکنان آماده: " +
+        data.ready +
+        " / " +
+        data.total;
+});
 
-    }
-);
+socket.on("startGame", async () => {
 
-socket.on(
-    "startGame",
-    async function() {
+    await enterGameFullscreen();
 
-        await enterGameFullscreen();
+    gameMode = "ONLINE";
 
-        gameMode = "ONLINE";
+    roomScreen.classList.add("hidden");
 
-        roomScreen.classList.add("hidden");
+    gameScreen.style.display = "block";
 
-        gameScreen.style.display =
-            "block";
+    gameRunning = true;
 
-        gameRunning = true;
+    resizeCanvas();
 
-        resizeCanvas();
+    setupAbilityUI();
 
-        updateAttackButtonVisibility();
+    updateAttackButtonVisibility();
 
-        requestAnimationFrame(gameLoop);
-
-    }
-);
+    requestAnimationFrame(gameLoop);
+});
 
 function resizeCanvas() {
 
     if (!canvas) return;
 
-    canvas.width =
-        window.innerWidth;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-    canvas.height =
-        window.innerHeight;
-
-    const ground =
-        getGroundY();
+    const ground = getGroundY();
 
     if (myPlayer && onGround) {
         myPlayer.y = ground;
@@ -587,344 +441,421 @@ function resizeCanvas() {
     if (ai && aiOnGround) {
         ai.y = ground;
     }
-
 }
 
-window.addEventListener(
-    "resize",
-    resizeCanvas
-);
+window.addEventListener("resize", resizeCanvas);
 
 function getGroundY() {
 
     if (!canvas) return 500;
 
     return canvas.height - 120;
-
 }
 
 function fixPlayerSpawn(player) {
 
     if (!player) return;
 
-    const ground =
-        getGroundY();
+    const ground = getGroundY();
 
     if (
         player.y === undefined ||
         player.y === null ||
-        !Number.isFinite(
-            Number(player.y)
-        ) ||
+        !Number.isFinite(Number(player.y)) ||
         Number(player.y) <= 0
     ) {
-
         player.y = ground;
-
     }
 
+    if (typeof player.health !== "number") {
+        player.health = 100;
+    }
 }
 
-socket.on(
-    "playersUpdate",
-    function(list) {
+socket.on("playersUpdate", list => {
 
-        players = {};
+    players = {};
 
-        if (!Array.isArray(list)) return;
+    if (!Array.isArray(list)) return;
 
-        list.forEach(function(player) {
-
-            if (!player) return;
-
-            fixPlayerSpawn(player);
-
-            players[player.id] =
-                player;
-
-            if (player.id === socket.id) {
-
-                myPlayer =
-                    player;
-
-                const ground =
-                    getGroundY();
-
-                if (
-                    !Number.isFinite(
-                        Number(myPlayer.y)
-                    ) ||
-                    myPlayer.y <= 0
-                ) {
-
-                    myPlayer.y =
-                        ground;
-
-                }
-
-                onGround =
-                    Math.abs(
-                        myPlayer.y - ground
-                    ) < 5;
-
-                if (onGround) {
-                    velocityY = 0;
-                }
-
-            }
-
-        });
-
-        updateAdminPlayers();
-
-    }
-);
-
-socket.on(
-    "playerMoved",
-    function(player) {
+    list.forEach(player => {
 
         if (!player) return;
 
         fixPlayerSpawn(player);
 
-        if (!players[player.id]) {
+        players[player.id] = player;
 
-            players[player.id] =
-                player;
+        if (player.id === socket.id) {
 
-        } else {
+            myPlayer = player;
 
-            players[player.id].x =
-                player.x;
+            const ground = getGroundY();
 
-            players[player.id].y =
-                player.y;
+            onGround =
+                Math.abs(myPlayer.y - ground) < 5;
 
-            players[player.id].health =
-                player.health;
-
-            players[player.id].speed =
-                player.speed;
-
-            players[player.id].jump =
-                player.jump;
-
-            players[player.id].fly =
-                player.fly;
-
-            players[player.id].doubleJump =
-                player.doubleJump;
-
-            players[player.id].color =
-                player.color;
-
+            if (onGround) {
+                velocityY = 0;
+            }
         }
+    });
+
+    updateAdminPlayers();
+});
+
+socket.on("playerMoved", player => {
+
+    if (!player) return;
+
+    fixPlayerSpawn(player);
+
+    if (!players[player.id]) {
+        players[player.id] = player;
+    } else {
+
+        players[player.id].x = player.x;
+        players[player.id].y = player.y;
 
     }
-);
 
-socket.on(
-    "playerLeft",
-    function(id) {
+    updateAdminPlayers();
+});
 
-        delete players[id];
+socket.on("playerLeft", id => {
 
-        updateAdminPlayers();
+    delete players[id];
 
+    updateAdminPlayers();
+});
+
+socket.on("abilityResult", data => {
+
+    if (!data) return;
+
+    if (abilityMessage) {
+        abilityMessage.textContent =
+            data.message || "قابلیت اجرا شد.";
     }
-);
 
-socket.on(
-    "roomError",
-    function(message) {
+    if (adminMessage && data.admin) {
+        adminMessage.textContent =
+            data.message || "انجام شد.";
+    }
+});
 
-        const error =
-            document.getElementById(
-                "onlineError"
-            );
+socket.on("playerAbilityUpdate", data => {
 
-        if (error) {
+    if (!data || !data.player) return;
 
+    const p = data.player;
+
+    players[p.id] = p;
+
+    if (p.id === socket.id) {
+        myPlayer = p;
+    }
+
+    updateAdminPlayers();
+});
+
+socket.on("adminKicked", () => {
+
+    gameRunning = false;
+
+    alert("👑 ادمین شما را از بازی خارج کرد.");
+
+    location.reload();
+});
+
+socket.on("roomError", message => {
+
+    const error =
+        document.getElementById("onlineError");
+
+    if (error) {
+
+        if (
+            typeof message === "object" &&
+            message !== null
+        ) {
             error.textContent =
-                typeof message === "object" &&
-                message !== null
-                    ? message.message || "خطا"
-                    : String(message);
-
+                message.message || "خطا";
+        } else {
+            error.textContent = String(message);
         }
+    }
 
-        if (joinRoom) {
+    if (joinRoom) {
+        joinRoom.disabled = false;
+        joinRoom.textContent = "🚪 ورود";
+    }
 
-            joinRoom.disabled =
-                false;
+    if (createRoom) {
+        createRoom.disabled = false;
+        createRoom.textContent = "🏠 ساخت اتاق";
+    }
+});
 
-            joinRoom.textContent =
-                "🚪 ورود";
 
-        }
+/* =========================
+   ABILITIES
+========================= */
 
-        if (createRoom) {
+function setupAbilityUI() {
 
-            createRoom.disabled =
-                false;
+    if (!abilityButton || !abilityPanel) return;
 
-            createRoom.textContent =
-                "🏠 ساخت اتاق";
+    abilityButton.classList.remove("hidden");
 
-        }
+    abilityButton.onclick = () => {
+        abilityPanel.classList.toggle("hidden");
+    };
+
+    if (isAdmin()) {
+
+        adminButton.classList.remove("hidden");
+
+        adminButton.onclick = () => {
+            adminPanel.classList.toggle("hidden");
+            updateAdminPlayers();
+        };
+
+    } else {
+
+        adminButton.classList.add("hidden");
+        adminPanel.classList.add("hidden");
 
     }
-);
+}
 
-socket.on(
-    "abilityResult",
-    function(data) {
+function executeAbility(code) {
 
-        if (!data) return;
+    code =
+        String(code || "")
+            .trim()
+            .toLowerCase();
 
-        if (data.player) {
+    if (!code) {
+        if (abilityMessage) {
+            abilityMessage.textContent =
+                "کد قابلیت را بنویس.";
+        }
+        return;
+    }
 
-            players[data.player.id] =
-                data.player;
+    if (gameMode === "ONLINE") {
 
-            if (
-                data.player.id ===
-                socket.id
-            ) {
+        socket.emit("useAbility", {
+            code: code
+        });
 
-                myPlayer =
-                    data.player;
+    } else {
 
+        applyOfflineAbility(code);
+
+    }
+}
+
+function applyOfflineAbility(code) {
+
+    if (!myPlayer) return;
+
+    switch (code) {
+
+        case "speed":
+            myPlayer.speedBoost = true;
+            break;
+
+        case "jump":
+            myPlayer.jumpBoost = true;
+            break;
+
+        case "heal":
+            myPlayer.health = 100;
+            break;
+
+        case "god":
+            myPlayer.god = true;
+            break;
+
+        case "fly":
+            myPlayer.fly = true;
+            break;
+
+        default:
+
+            if (abilityMessage) {
+                abilityMessage.textContent =
+                    "❌ این کد وجود ندارد.";
             }
 
-        }
-
-        if (codeResult) {
-
-            codeResult.style.color =
-                "#4ade80";
-
-            codeResult.textContent =
-                data.message ||
-                "قابلیت اعمال شد.";
-
-        }
-
-        if (adminResult) {
-
-            adminResult.style.color =
-                "#4ade80";
-
-            adminResult.textContent =
-                data.message ||
-                "قابلیت اعمال شد.";
-
-        }
-
-    }
-);
-
-socket.on(
-    "abilityError",
-    function(data) {
-
-        const message =
-            data && data.message
-                ? data.message
-                : "کد قابل اجرا نیست.";
-
-        if (codeResult) {
-            codeResult.textContent =
-                message;
-        }
-
-        if (adminResult) {
-            adminResult.textContent =
-                message;
-        }
-
-    }
-);
-
-socket.on(
-    "mobsUpdate",
-    function(list) {
-
-        mobs = {};
-
-        if (!Array.isArray(list)) {
             return;
-        }
+    }
 
-        list.forEach(mob => {
+    if (abilityMessage) {
+        abilityMessage.textContent =
+            "✅ قابلیت " + code + " فعال شد.";
+    }
+}
 
-            if (mob && mob.id) {
-                mobs[mob.id] = mob;
-            }
+if (useAbility) {
+    useAbility.onclick = () => {
+        executeAbility(
+            abilityCode
+                ? abilityCode.value
+                : ""
+        );
+    };
+}
+
+document.querySelectorAll("[data-ability]")
+    .forEach(button => {
+
+        button.addEventListener("click", () => {
+
+            executeAbility(
+                button.dataset.ability
+            );
 
         });
 
+    });
+
+
+/* =========================
+   ADMIN
+========================= */
+
+function updateAdminPlayers() {
+
+    if (!adminPlayers) return;
+
+    if (!isAdmin()) return;
+
+    const old =
+        adminPlayers.value;
+
+    adminPlayers.innerHTML =
+        '<option value="">انتخاب بازیکن</option>';
+
+    Object.values(players).forEach(player => {
+
+        if (!player) return;
+
+        const option =
+            document.createElement("option");
+
+        option.value = player.id;
+
+        option.textContent =
+            (player.name || "Player") +
+            (player.id === socket.id
+                ? " (من)"
+                : "");
+
+        adminPlayers.appendChild(option);
+    });
+
+    if (
+        old &&
+        [...adminPlayers.options]
+            .some(o => o.value === old)
+    ) {
+        adminPlayers.value = old;
     }
-);
+}
 
-socket.on(
-    "adminStatus",
-    function(data) {
+function executeAdminAbility(code) {
 
-        if (
-            data &&
-            data.admin &&
-            playerName === "tahagamertnt"
-        ) {
+    if (!isAdmin()) return;
 
-            console.log(
-                "Admin verified by server."
+    code =
+        String(code || "")
+            .trim()
+            .toLowerCase();
+
+    if (!code) {
+        adminMessage.textContent =
+            "کد ادمین را وارد کن.";
+        return;
+    }
+
+    const target =
+        adminPlayers
+            ? adminPlayers.value
+            : "";
+
+    if (!target) {
+        adminMessage.textContent =
+            "اول بازیکن هدف را انتخاب کن.";
+        return;
+    }
+
+    socket.emit("adminAbility", {
+        code: code,
+        targetId: target
+    });
+}
+
+if (useAdminCode) {
+
+    useAdminCode.onclick = () => {
+
+        executeAdminAbility(
+            adminCode
+                ? adminCode.value
+                : ""
+        );
+
+    };
+}
+
+document.querySelectorAll("[data-admin]")
+    .forEach(button => {
+
+        button.addEventListener("click", () => {
+
+            executeAdminAbility(
+                button.dataset.admin
             );
 
-        }
+        });
 
-    }
-);
+    });
+
+
+/* =========================
+   KEYBOARD
+========================= */
 
 const keys = {};
 
-document.addEventListener(
-    "keydown",
-    function(e) {
+document.addEventListener("keydown", e => {
 
-        keys[e.key.toLowerCase()] =
-            true;
+    keys[e.key.toLowerCase()] = true;
 
-        if (e.code === "Space") {
-            keys.space = true;
-        }
-
-        if (
-            e.key.toLowerCase() === "f" &&
-            gameRunning
-        ) {
-
-            attack();
-
-        }
-
+    if (e.code === "Space") {
+        keys.space = true;
     }
-);
 
-document.addEventListener(
-    "keyup",
-    function(e) {
-
-        keys[e.key.toLowerCase()] =
-            false;
-
-        if (e.code === "Space") {
-            keys.space = false;
-        }
-
+    if (
+        e.key.toLowerCase() === "f" &&
+        gameRunning
+    ) {
+        attack();
     }
-);
+});
+
+document.addEventListener("keyup", e => {
+
+    keys[e.key.toLowerCase()] = false;
+
+    if (e.code === "Space") {
+        keys.space = false;
+    }
+});
+
 
 function setupMobileButton(id, key) {
 
@@ -935,80 +866,63 @@ function setupMobileButton(id, key) {
 
     button.addEventListener(
         "touchstart",
-        function(e) {
+        e => {
 
             e.preventDefault();
-
             keys[key] = true;
 
         },
-        {passive:false}
+        { passive:false }
     );
 
     button.addEventListener(
         "touchend",
-        function(e) {
+        e => {
 
             e.preventDefault();
-
             keys[key] = false;
 
         },
-        {passive:false}
+        { passive:false }
     );
 
     button.addEventListener(
         "touchcancel",
-        function() {
-
+        () => {
             keys[key] = false;
-
         }
     );
 
     button.addEventListener(
         "mousedown",
-        function() {
-
+        () => {
             keys[key] = true;
-
         }
     );
 
     button.addEventListener(
         "mouseup",
-        function() {
-
+        () => {
             keys[key] = false;
-
         }
     );
 
     button.addEventListener(
         "mouseleave",
-        function() {
-
+        () => {
             keys[key] = false;
-
         }
     );
-
 }
 
-setupMobileButton(
-    "leftButton",
-    "mobileLeft"
-);
+setupMobileButton("leftButton", "mobileLeft");
+setupMobileButton("rightButton", "mobileRight");
+setupMobileButton("jumpButton", "mobileJump");
 
-setupMobileButton(
-    "rightButton",
-    "mobileRight"
-);
 
-setupMobileButton(
-    "jumpButton",
-    "mobileJump"
-);
+/* =========================
+   ATTACK
+========================= */
 
 function attack() {
 
@@ -1019,25 +933,18 @@ function attack() {
     attackCooldown = true;
     attacking = true;
 
-    setTimeout(
-        () => attacking = false,
-        180
-    );
+    setTimeout(() => {
+        attacking = false;
+    }, 180);
 
-    setTimeout(
-        () => attackCooldown = false,
-        400
-    );
+    setTimeout(() => {
+        attackCooldown = false;
+    }, 400);
 
-    if (
-        gameMode === "AI" &&
-        ai
-    ) {
+    if (gameMode === "AI" && ai) {
 
         const distance =
-            Math.abs(
-                myPlayer.x - ai.x
-            );
+            Math.abs(myPlayer.x - ai.x);
 
         if (distance < 100) {
 
@@ -1058,93 +965,71 @@ function attack() {
                         )
                     );
 
-                ai.y =
-                    getGroundY();
+                ai.y = getGroundY();
 
                 ai.health = 100;
 
                 aiVelocityY = 0;
                 aiOnGround = true;
-
             }
-
         }
-
     }
 
     if (gameMode === "ONLINE") {
 
-        socket.emit(
-            "attack",
-            {
-                x: myPlayer.x,
-                y: myPlayer.y
-            }
-        );
+        socket.emit("attack", {
+            x: myPlayer.x,
+            y: myPlayer.y
+        });
 
     }
-
 }
 
 if (attackButton) {
 
-    attackButton.style.display =
-        "none";
-
     attackButton.addEventListener(
         "touchstart",
-        function(e) {
+        e => {
 
             e.preventDefault();
 
-            if (
-                gameRunning &&
-                gameScreen.style.display ===
-                    "block"
-            ) {
-
+            if (gameRunning) {
                 attack();
-
             }
 
         },
-        {passive:false}
+        { passive:false }
     );
 
     attackButton.addEventListener(
         "click",
-        function(e) {
+        e => {
 
             e.preventDefault();
 
-            if (
-                gameRunning &&
-                gameScreen.style.display ===
-                    "block"
-            ) {
-
+            if (gameRunning) {
                 attack();
-
             }
 
         }
     );
-
 }
+
+
+/* =========================
+   PLAYER
+========================= */
 
 function updatePlayer() {
 
     if (!myPlayer) return;
 
-    const speed =
-        Number(myPlayer.speed) ||
-        SPEED;
-
-    const jump =
-        Number(myPlayer.jump) ||
-        JUMP;
-
     let moving = false;
+
+    const speed =
+        myPlayer.speedBoost
+            ? SPEED * 2
+            : SPEED;
 
     if (
         keys.a ||
@@ -1154,7 +1039,6 @@ function updatePlayer() {
 
         myPlayer.x -= speed;
         moving = true;
-
     }
 
     if (
@@ -1165,8 +1049,12 @@ function updatePlayer() {
 
         myPlayer.x += speed;
         moving = true;
-
     }
+
+    const jumpPower =
+        myPlayer.jumpBoost
+            ? JUMP * 1.7
+            : JUMP;
 
     if (
         (
@@ -1175,44 +1063,38 @@ function updatePlayer() {
             keys.space ||
             keys.mobileJump
         ) &&
-        onGround
+        (onGround || myPlayer.fly)
     ) {
 
-        velocityY =
-            -jump;
-
+        velocityY = -jumpPower;
         onGround = false;
 
     }
 
     if (myPlayer.fly) {
 
-        if (keys.w || keys.arrowup) {
-            myPlayer.y -= speed;
+        if (keys.w || keys.arrowup || keys.mobileJump) {
+            myPlayer.y -= 5;
         }
 
         if (keys.s || keys.arrowdown) {
-            myPlayer.y += speed;
+            myPlayer.y += 5;
         }
 
     } else {
 
         velocityY += GRAVITY;
-
         myPlayer.y += velocityY;
 
-        const ground =
-            getGroundY();
+    }
 
-        if (myPlayer.y >= ground) {
+    const ground = getGroundY();
 
-            myPlayer.y = ground;
+    if (!myPlayer.fly && myPlayer.y >= ground) {
 
-            velocityY = 0;
-
-            onGround = true;
-
-        }
+        myPlayer.y = ground;
+        velocityY = 0;
+        onGround = true;
 
     }
 
@@ -1220,15 +1102,11 @@ function updatePlayer() {
         myPlayer.x = 35;
     }
 
-    if (
-        canvas &&
-        myPlayer.x >
-            canvas.width - 35
-    ) {
+    if (canvas &&
+        myPlayer.x > canvas.width - 35) {
 
         myPlayer.x =
             canvas.width - 35;
-
     }
 
     if (
@@ -1236,24 +1114,24 @@ function updatePlayer() {
         (moving || !onGround)
     ) {
 
-        socket.emit(
-            "playerMovement",
-            {
-                x: myPlayer.x,
-                y: myPlayer.y
-            }
-        );
+        socket.emit("playerMovement", {
+            x: myPlayer.x,
+            y: myPlayer.y
+        });
 
     }
-
 }
+
+
+/* =========================
+   AI
+========================= */
 
 function updateAI() {
 
     if (!ai || !myPlayer) return;
 
-    const ground =
-        getGroundY();
+    const ground = getGroundY();
 
     const distance =
         myPlayer.x - ai.x;
@@ -1283,9 +1161,7 @@ function updateAI() {
     if (ai.y >= ground) {
 
         ai.y = ground;
-
         aiVelocityY = 0;
-
         aiOnGround = true;
 
     }
@@ -1309,64 +1185,36 @@ function updateAI() {
                 -JUMP * 0.85;
 
             aiOnGround = false;
-
         }
-
     }
-
 }
 
-function updateMobs() {
 
-    Object.values(mobs)
-        .forEach(mob => {
-
-            if (!mob) return;
-
-            const distance =
-                myPlayer
-                    ? myPlayer.x - mob.x
-                    : 0;
-
-            if (
-                Math.abs(distance) > 40
-            ) {
-
-                mob.x +=
-                    distance > 0
-                        ? mob.speed || 1
-                        : -(mob.speed || 1);
-
-            }
-
-            mob.y =
-                getGroundY();
-
-        });
-
-}
+/* =========================
+   UI
+========================= */
 
 function updateGameUI() {
 
     const score =
-        document.getElementById(
-            "gameScore"
-        );
+        document.getElementById("gameScore");
 
     if (!score) return;
 
-    score.textContent =
-        "❤️ " +
-        Math.max(
-            0,
-            Math.round(
-                Number(
-                    myPlayer?.health || 100
-                )
-            )
-        );
+    const hp =
+        myPlayer &&
+        typeof myPlayer.health === "number"
+            ? myPlayer.health
+            : 100;
 
+    score.textContent =
+        "❤️ " + hp;
 }
+
+
+/* =========================
+   DRAW
+========================= */
 
 function drawSky() {
 
@@ -1380,15 +1228,8 @@ function drawSky() {
             canvas.height
         );
 
-    gradient.addColorStop(
-        0,
-        "#38bdf8"
-    );
-
-    gradient.addColorStop(
-        1,
-        "#bae6fd"
-    );
+    gradient.addColorStop(0, "#38bdf8");
+    gradient.addColorStop(1, "#bae6fd");
 
     ctx.fillStyle = gradient;
 
@@ -1399,8 +1240,7 @@ function drawSky() {
         canvas.height
     );
 
-    ctx.fillStyle =
-        "#fde047";
+    ctx.fillStyle = "#fde047";
 
     ctx.beginPath();
 
@@ -1416,15 +1256,13 @@ function drawSky() {
 
     drawCloud(130,110,1);
     drawCloud(420,160,.8);
-
 }
 
 function drawCloud(x,y,scale) {
 
     if (!ctx) return;
 
-    ctx.fillStyle =
-        "#ffffffcc";
+    ctx.fillStyle = "#ffffffcc";
 
     ctx.beginPath();
 
@@ -1460,18 +1298,15 @@ function drawCloud(x,y,scale) {
     );
 
     ctx.fill();
-
 }
 
 function drawGround() {
 
     if (!ctx || !canvas) return;
 
-    const ground =
-        getGroundY();
+    const ground = getGroundY();
 
-    ctx.fillStyle =
-        "#22c55e";
+    ctx.fillStyle = "#22c55e";
 
     ctx.fillRect(
         0,
@@ -1480,8 +1315,7 @@ function drawGround() {
         120
     );
 
-    ctx.fillStyle =
-        "#166534";
+    ctx.fillStyle = "#166534";
 
     ctx.fillRect(
         0,
@@ -1490,8 +1324,7 @@ function drawGround() {
         9
     );
 
-    ctx.fillStyle =
-        "#92400e";
+    ctx.fillStyle = "#92400e";
 
     ctx.fillRect(
         0,
@@ -1500,8 +1333,7 @@ function drawGround() {
         111
     );
 
-    ctx.fillStyle =
-        "#6b3f1f";
+    ctx.fillStyle = "#6b3f1f";
 
     for (
         let x = 20;
@@ -1520,15 +1352,10 @@ function drawGround() {
         );
 
         ctx.fill();
-
     }
-
 }
 
-function drawStickman(
-    player,
-    isAI = false
-) {
+function drawStickman(player,isAI=false) {
 
     if (!ctx || !player) return;
 
@@ -1552,32 +1379,30 @@ function drawStickman(
 
     const s = scale;
 
-    const color =
-        player.color ||
-        (
-            isAI
-                ? "#ef4444"
-                : "#2563eb"
-        );
+    const bodyColor =
+        isAI
+            ? "#ef4444"
+            : "#2563eb";
 
     const bodyDark =
         isAI
             ? "#b91c1c"
             : "#1d4ed8";
 
-    const skin =
-        "#f4c7a1";
+    const skin = "#f4c7a1";
+    const shoe = "#111827";
 
-    const shoe =
-        "#111827";
+    const shirt =
+        isAI
+            ? "#dc2626"
+            : "#22c55e";
 
     ctx.save();
 
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    ctx.fillStyle =
-        "rgba(0,0,0,.20)";
+    ctx.fillStyle = "rgba(0,0,0,.20)";
 
     ctx.beginPath();
 
@@ -1593,42 +1418,20 @@ function drawStickman(
 
     ctx.fill();
 
-    ctx.strokeStyle =
-        "#1f2937";
-
-    ctx.lineWidth =
-        8*s;
+    ctx.strokeStyle = "#1f2937";
+    ctx.lineWidth = 8*s;
 
     ctx.beginPath();
-
-    ctx.moveTo(
-        x,
-        y+20*s
-    );
-
-    ctx.lineTo(
-        x-18*s,
-        y+53*s
-    );
-
+    ctx.moveTo(x,y+20*s);
+    ctx.lineTo(x-18*s,y+53*s);
     ctx.stroke();
 
     ctx.beginPath();
-
-    ctx.moveTo(
-        x,
-        y+20*s
-    );
-
-    ctx.lineTo(
-        x+18*s,
-        y+53*s
-    );
-
+    ctx.moveTo(x,y+20*s);
+    ctx.lineTo(x+18*s,y+53*s);
     ctx.stroke();
 
-    ctx.fillStyle =
-        shoe;
+    ctx.fillStyle = shoe;
 
     roundRect(
         x-32*s,
@@ -1650,8 +1453,7 @@ function drawStickman(
 
     ctx.fill();
 
-    ctx.fillStyle =
-        color;
+    ctx.fillStyle = shirt;
 
     roundRect(
         x-19*s,
@@ -1663,45 +1465,34 @@ function drawStickman(
 
     ctx.fill();
 
-    ctx.strokeStyle =
-        bodyDark;
+    ctx.fillStyle = bodyColor;
 
-    ctx.lineWidth =
-        8*s;
+    roundRect(
+        x-13*s,
+        y-22*s,
+        26*s,
+        35*s,
+        8*s
+    );
+
+    ctx.fill();
+
+    ctx.strokeStyle = bodyDark;
+    ctx.lineWidth = 8*s;
 
     ctx.beginPath();
-
-    ctx.moveTo(
-        x-16*s,
-        y-15*s
-    );
-
-    ctx.lineTo(
-        x-38*s,
-        y+8*s
-    );
-
+    ctx.moveTo(x-16*s,y-15*s);
+    ctx.lineTo(x-38*s,y+8*s);
     ctx.stroke();
 
     ctx.beginPath();
-
-    ctx.moveTo(
-        x+16*s,
-        y-15*s
-    );
-
-    ctx.lineTo(
-        x+38*s,
-        y+8*s
-    );
-
+    ctx.moveTo(x+16*s,y-15*s);
+    ctx.lineTo(x+38*s,y+8*s);
     ctx.stroke();
 
-    ctx.fillStyle =
-        skin;
+    ctx.fillStyle = skin;
 
     ctx.beginPath();
-
     ctx.arc(
         x-40*s,
         y+10*s,
@@ -1709,11 +1500,9 @@ function drawStickman(
         0,
         Math.PI*2
     );
-
     ctx.fill();
 
     ctx.beginPath();
-
     ctx.arc(
         x+40*s,
         y+10*s,
@@ -1721,7 +1510,6 @@ function drawStickman(
         0,
         Math.PI*2
     );
-
     ctx.fill();
 
     roundRect(
@@ -1746,8 +1534,7 @@ function drawStickman(
 
     ctx.fill();
 
-    ctx.fillStyle =
-        "#111827";
+    ctx.fillStyle = "#111827";
 
     ctx.beginPath();
 
@@ -1789,11 +1576,14 @@ function drawStickman(
         player.name ||
         (isAI ? "AI" : "Player");
 
-    ctx.font =
-        `bold ${Math.max(
+    const fontSize =
+        Math.max(
             12,
             15*s
-        )}px Arial`;
+        );
+
+    ctx.font =
+        `bold ${fontSize}px Arial`;
 
     const textWidth =
         ctx.measureText(name).width;
@@ -1811,14 +1601,10 @@ function drawStickman(
 
     ctx.fill();
 
-    ctx.fillStyle =
-        "#fff";
+    ctx.fillStyle = "#fff";
 
-    ctx.textAlign =
-        "center";
-
-    ctx.textBaseline =
-        "middle";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
 
     ctx.fillText(
         name,
@@ -1828,8 +1614,7 @@ function drawStickman(
 
     if (isAI) {
 
-        ctx.fillStyle =
-            "#facc15";
+        ctx.fillStyle = "#facc15";
 
         ctx.font =
             `bold ${12*s}px Arial`;
@@ -1840,6 +1625,35 @@ function drawStickman(
             y-118*s
         );
 
+        if (
+            typeof ai.health === "number"
+        ) {
+
+            const barWidth = 60*s;
+            const barHeight = 7*s;
+
+            ctx.fillStyle = "#111827";
+
+            ctx.fillRect(
+                x-barWidth/2,
+                y-132*s,
+                barWidth,
+                barHeight
+            );
+
+            ctx.fillStyle = "#22c55e";
+
+            ctx.fillRect(
+                x-barWidth/2,
+                y-132*s,
+                barWidth*
+                Math.max(
+                    0,
+                    ai.health/100
+                ),
+                barHeight
+            );
+        }
     }
 
     if (
@@ -1847,11 +1661,8 @@ function drawStickman(
         player === myPlayer
     ) {
 
-        ctx.strokeStyle =
-            "#facc15";
-
-        ctx.lineWidth =
-            6*s;
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 6*s;
 
         ctx.beginPath();
 
@@ -1864,107 +1675,27 @@ function drawStickman(
         );
 
         ctx.stroke();
-
     }
 
-    if (player.fly) {
+    if (player.god) {
 
-        ctx.fillStyle =
-            "#38bdf8";
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 4;
 
-        ctx.font =
-            `${18*s}px Arial`;
+        ctx.beginPath();
 
-        ctx.fillText(
-            "🪽",
+        ctx.arc(
             x,
-            y-130*s
+            y-20*s,
+            55*s,
+            0,
+            Math.PI*2
         );
 
+        ctx.stroke();
     }
 
     ctx.restore();
-
-}
-
-function drawMob(mob) {
-
-    if (!ctx || !mob) return;
-
-    const x = mob.x;
-    const y = mob.y;
-
-    ctx.save();
-
-    ctx.fillStyle =
-        mob.type === "zombie"
-            ? "#16a34a"
-            : "#7c3aed";
-
-    ctx.beginPath();
-
-    ctx.arc(
-        x,
-        y-35,
-        28,
-        0,
-        Math.PI*2
-    );
-
-    ctx.fill();
-
-    ctx.fillStyle =
-        "#111827";
-
-    ctx.fillRect(
-        x-20,
-        y-10,
-        40,
-        45
-    );
-
-    ctx.fillStyle =
-        "#ef4444";
-
-    ctx.beginPath();
-
-    ctx.arc(
-        x-10,
-        y-40,
-        4,
-        0,
-        Math.PI*2
-    );
-
-    ctx.arc(
-        x+10,
-        y-40,
-        4,
-        0,
-        Math.PI*2
-    );
-
-    ctx.fill();
-
-    ctx.fillStyle =
-        "#fff";
-
-    ctx.font =
-        "bold 13px Arial";
-
-    ctx.textAlign =
-        "center";
-
-    ctx.fillText(
-        mob.type === "zombie"
-            ? "Zombie"
-            : "Monster",
-        x,
-        y-70
-    );
-
-    ctx.restore();
-
 }
 
 function roundRect(
@@ -1986,10 +1717,7 @@ function roundRect(
 
     ctx.beginPath();
 
-    ctx.moveTo(
-        x+r,
-        y
-    );
+    ctx.moveTo(x+r,y);
 
     ctx.arcTo(
         x+width,
@@ -2024,7 +1752,6 @@ function roundRect(
     );
 
     ctx.closePath();
-
 }
 
 function drawGame() {
@@ -2035,38 +1762,23 @@ function drawGame() {
     drawGround();
 
     if (myPlayer) {
-        drawStickman(
-            myPlayer,
-            false
-        );
+        drawStickman(myPlayer,false);
     }
 
     if (ai) {
-        drawStickman(
-            ai,
-            true
-        );
+        drawStickman(ai,true);
     }
 
-    Object.values(players)
-        .forEach(player => {
+    if (gameMode === "ONLINE") {
 
-            if (
-                player.id === socket.id
-            ) {
-                return;
-            }
+        Object.values(players).forEach(player => {
 
-            drawStickman(
-                player,
-                false
-            );
+            if (player.id === socket.id) return;
+
+            drawStickman(player,false);
 
         });
-
-    Object.values(mobs)
-        .forEach(drawMob);
-
+    }
 }
 
 function gameLoop() {
@@ -2079,197 +1791,13 @@ function gameLoop() {
         updateAI();
     }
 
-    updateMobs();
-
     updateGameUI();
-
     drawGame();
 
     updateAttackButtonVisibility();
 
-    requestAnimationFrame(
-        gameLoop
-    );
-
+    requestAnimationFrame(gameLoop);
 }
 
-/* =====================================================
-   CODE SYSTEM
-===================================================== */
-
-if (codeButton) {
-
-    codeButton.onclick =
-        function() {
-
-            if (!gameRunning) return;
-
-            if (playerName === "tahagamertnt") {
-
-                adminPanel.classList.remove(
-                    "hidden"
-                );
-
-                updateAdminPlayers();
-
-            } else {
-
-                codePanel.classList.remove(
-                    "hidden"
-                );
-
-            }
-
-        };
-
-}
-
-if (closeCode) {
-
-    closeCode.onclick =
-        function() {
-
-            codePanel.classList.add(
-                "hidden"
-            );
-
-        };
-
-}
-
-if (closeAdmin) {
-
-    closeAdmin.onclick =
-        function() {
-
-            adminPanel.classList.add(
-                "hidden"
-            );
-
-        };
-
-}
-
-if (runCode) {
-
-    runCode.onclick =
-        function() {
-
-            if (!codeInput) return;
-
-            codeResult.textContent =
-                "⏳ در حال اجرا...";
-
-            socket.emit(
-                "runPlayerCode",
-                {
-                    code:
-                        codeInput.value
-                }
-            );
-
-        };
-
-}
-
-function updateAdminPlayers() {
-
-    if (!adminPlayers) return;
-
-    adminPlayers.innerHTML = "";
-
-    if (
-        playerName !==
-        "tahagamertnt"
-    ) {
-
-        return;
-
-    }
-
-    Object.values(players)
-        .forEach(player => {
-
-            const div =
-                document.createElement(
-                    "div"
-                );
-
-            div.className =
-                "adminPlayer";
-
-            if (
-                selectedAdminTarget ===
-                player.id
-            ) {
-
-                div.classList.add(
-                    "selected"
-                );
-
-            }
-
-            div.textContent =
-                "👤 " +
-                player.name;
-
-            div.onclick =
-                function() {
-
-                    selectedAdminTarget =
-                        player.id;
-
-                    if (adminTargetText) {
-
-                        adminTargetText.textContent =
-                            "هدف: " +
-                            player.name;
-
-                    }
-
-                    updateAdminPlayers();
-
-                };
-
-            adminPlayers.appendChild(
-                div
-            );
-
-        });
-
-}
-
-if (runAdminCode) {
-
-    runAdminCode.onclick =
-        function() {
-
-            if (
-                playerName !==
-                "tahagamertnt"
-            ) {
-
-                return;
-
-            }
-
-            adminResult.textContent =
-                "⏳ در حال اجرا...";
-
-            socket.emit(
-                "runAdminCode",
-                {
-                    targetId:
-                        selectedAdminTarget ||
-                        socket.id,
-
-                    code:
-                        adminCodeInput.value
-                }
-            );
-
-        };
-
-}
-
+setupAbilityUI();
 updateAttackButtonVisibility();
