@@ -4,611 +4,1154 @@ const { Server } = require("socket.io");
 const path = require("path");
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
 
-const PORT = process.env.PORT || 8080;
+const server =
+    http.createServer(app);
 
-app.use(express.static(__dirname));
+const io =
+    new Server(server);
 
-app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "index.html"));
-});
+const PORT =
+    process.env.PORT || 8080;
+
+app.use(
+    express.static(__dirname)
+);
+
+app.get(
+    "/",
+    (req,res) => {
+
+        res.sendFile(
+            path.join(
+                __dirname,
+                "index.html"
+            )
+        );
+
+    }
+);
+
+/* =====================================================
+   ROOMS
+===================================================== */
 
 const rooms = {};
 
+/* =====================================================
+   ADMIN
+===================================================== */
+
+const ADMIN_NAME =
+    "tahagamertnt";
+
+/* =====================================================
+   ROOM CODE
+===================================================== */
+
 function generateRoomCode() {
+
     let code;
 
     do {
-        code = String(
-            Math.floor(
-                100000 + Math.random() * 900000
-            )
-        );
+
+        code =
+            String(
+                Math.floor(
+                    100000 +
+                    Math.random() * 900000
+                )
+            );
+
     } while (rooms[code]);
 
     return code;
+
 }
 
-function createPlayer(socket, name) {
+/* =====================================================
+   PLAYER
+===================================================== */
+
+function createPlayer(
+    socket,
+    name
+) {
+
+    const safeName =
+        String(
+            name || "Player"
+        )
+        .substring(0,20);
+
     return {
-        id: socket.id,
-        name: String(name || "Player").substring(0, 20),
-        x: 300,
-        y: 0,
-        health: 100,
-        level: 1,
-        ready: false
+
+        id:
+            socket.id,
+
+        name:
+            safeName,
+
+        x:
+            300,
+
+        y:
+            0,
+
+        health:
+            100,
+
+        maxHealth:
+            100,
+
+        level:
+            1,
+
+        ready:
+            false,
+
+        speed:
+            5,
+
+        jump:
+            13,
+
+        fly:
+            false,
+
+        doubleJump:
+            false,
+
+        color:
+            "#22c55e"
+
     };
+
 }
 
-// ======================================================
-// MOB
-// ======================================================
+/* =====================================================
+   CHECK ADMIN
+===================================================== */
 
-let nextMobId = 1;
+function isAdmin(socket) {
 
-function createMob(x, y) {
-    return {
-        id: "mob_" + nextMobId++,
-        type: "monster",
-        x,
-        y,
-        health: 100,
-        maxHealth: 100,
-        speed: 1.5,
-        damageCooldown: 0,
-        dead: false,
-        respawnTimer: 0
-    };
-}
-
-function createRoomMobs() {
-    return [
-        createMob(650, 500),
-        createMob(950, 500),
-        createMob(1250, 500)
-    ];
-}
-
-function updateRoomMobs(roomCode, room) {
-    if (!room.started) return;
-
-    const players = Object.values(room.players);
-
-    if (players.length === 0) return;
-
-    const groundY = 500;
-
-    room.mobs.forEach((mob) => {
-
-        // مرده
-        if (mob.dead) {
-
-            mob.respawnTimer--;
-
-            if (mob.respawnTimer <= 0) {
-                mob.dead = false;
-                mob.health = mob.maxHealth;
-
-                mob.x =
-                    500 +
-                    Math.floor(Math.random() * 1200);
-
-                mob.y = groundY;
-                mob.damageCooldown = 0;
-            }
-
-            return;
-        }
-
-        // پیدا کردن نزدیک‌ترین بازیکن
-        let target = null;
-        let closest = Infinity;
-
-        players.forEach((player) => {
-
-            if (player.health <= 0) return;
-
-            const distance =
-                Math.abs(player.x - mob.x);
-
-            if (distance < closest) {
-                closest = distance;
-                target = player;
-            }
-        });
-
-        if (!target) return;
-
-        // حرکت هیولا
-        if (closest > 45) {
-
-            if (target.x > mob.x) {
-                mob.x += mob.speed;
-            } else {
-                mob.x -= mob.speed;
-            }
-        }
-
-        mob.x = Math.max(
-            40,
-            Math.min(
-                5000,
-                mob.x
-            )
-        );
-
-        mob.y = groundY;
-
-        // کاهش cooldown
-        if (mob.damageCooldown > 0) {
-            mob.damageCooldown--;
-        }
-
-        // ضربه به بازیکن
-        if (
-            closest <= 55 &&
-            mob.damageCooldown <= 0
-        ) {
-
-            target.health = Math.max(
-                0,
-                target.health - 10
-            );
-
-            mob.damageCooldown = 60;
-
-            io.to(roomCode).emit(
-                "playerHealth",
-                {
-                    id: target.id,
-                    health: target.health
-                }
-            );
-        }
-    });
-
-    io.to(roomCode).emit(
-        "mobsUpdate",
-        room.mobs
-    );
-}
-
-// ======================================================
-// SOCKET.IO
-// ======================================================
-
-io.on("connection", (socket) => {
-
-    console.log(
-        "Player connected:",
-        socket.id
+    return (
+        socket &&
+        socket.player &&
+        socket.player.name ===
+            ADMIN_NAME
     );
 
-    // ==================================================
-    // CREATE ROOM
-    // ==================================================
+}
 
-    socket.on("createRoom", (data) => {
+/* =====================================================
+   CODE PARSER
+===================================================== */
 
-        const roomCode =
-            generateRoomCode();
+function applyCodeToPlayer(
+    player,
+    code
+) {
 
-        const player =
-            createPlayer(
-                socket,
-                data && data.name
-            );
+    if (!player) {
 
-        rooms[roomCode] = {
-            players: {},
-            ready: {},
-            started: false,
-
-            mobs: createRoomMobs()
+        return {
+            ok:false,
+            message:"بازیکن پیدا نشد."
         };
 
-        rooms[roomCode].players[
-            socket.id
-        ] = player;
+    }
 
-        socket.join(roomCode);
+    if (
+        typeof code !==
+        "string"
+    ) {
 
-        socket.roomCode = roomCode;
-        socket.player = player;
+        return {
+            ok:false,
+            message:"کد نامعتبر است."
+        };
 
-        socket.emit(
-            "roomCreated",
-            {
-                roomCode,
-                player
-            }
-        );
+    }
 
-        console.log(
-            `Room ${roomCode} created by ${player.name}`
-        );
-    });
+    if (code.length > 3000) {
 
-    // ==================================================
-    // JOIN ROOM
-    // ==================================================
+        return {
+            ok:false,
+            message:"کد بیش از حد طولانی است."
+        };
 
-    socket.on("joinRoom", (data) => {
+    }
 
-        const roomCode =
-            String(
-                data &&
-                data.roomCode
-                    ? data.roomCode
-                    : ""
+    const clean =
+        code
+            .replace(
+                /\/\/.*$/gm,
+                ""
             )
-                .replace(/\D/g, "")
-                .substring(0, 6);
+            .trim();
 
-        if (roomCode.length !== 6) {
+    if (!clean) {
 
-            socket.emit(
-                "roomError",
-                "کد اتاق باید ۶ رقمی باشد."
+        return {
+            ok:false,
+            message:"کدی وارد نشده."
+        };
+
+    }
+
+    /*
+       فقط دستورهای مجاز بازی.
+       JavaScript syntax قبول می‌شود،
+       اما اجرای JS آزاد روی سرور نداریم.
+    */
+
+    const commands =
+        clean
+            .split(";")
+            .map(x => x.trim())
+            .filter(Boolean);
+
+    let changed = [];
+
+    for (
+        const command of commands
+    ) {
+
+        let match;
+
+        match =
+            command.match(
+                /^speed\s*=\s*(\d+(?:\.\d+)?)$/
             );
 
-            return;
-        }
+        if (match) {
 
-        const room = rooms[roomCode];
-
-        if (!room) {
-
-            socket.emit(
-                "roomError",
-                "این اتاق وجود ندارد."
-            );
-
-            return;
-        }
-
-        if (
-            Object.keys(room.players).length >= 15
-        ) {
-
-            socket.emit(
-                "roomError",
-                "اتاق پر است."
-            );
-
-            return;
-        }
-
-        if (room.started) {
-
-            socket.emit(
-                "roomError",
-                "بازی این اتاق شروع شده است."
-            );
-
-            return;
-        }
-
-        const player =
-            createPlayer(
-                socket,
-                data && data.name
-            );
-
-        room.players[
-            socket.id
-        ] = player;
-
-        socket.join(roomCode);
-
-        socket.roomCode = roomCode;
-        socket.player = player;
-
-        socket.emit(
-            "roomJoined",
-            {
-                roomCode,
-                player
-            }
-        );
-
-        io.to(roomCode).emit(
-            "playersUpdate",
-            Object.values(room.players)
-        );
-
-        console.log(
-            `${player.name} joined room ${roomCode}`
-        );
-    });
-
-    // ==================================================
-    // READY
-    // ==================================================
-
-    socket.on("readyForGame", () => {
-
-        const roomCode =
-            socket.roomCode;
-
-        if (!roomCode) return;
-
-        const room =
-            rooms[roomCode];
-
-        if (!room) return;
-
-        const player =
-            room.players[socket.id];
-
-        if (!player) return;
-
-        player.ready = true;
-
-        room.ready[socket.id] = true;
-
-        const total =
-            Object.keys(room.players).length;
-
-        const ready =
-            Object.keys(room.ready)
-                .filter(
-                    id => room.ready[id]
-                )
-                .length;
-
-        io.to(roomCode).emit(
-            "readyUpdate",
-            {
-                ready,
-                total
-            }
-        );
-
-        if (
-            ready >= 1 &&
-            total >= 1 &&
-            !room.started
-        ) {
-
-            room.started = true;
-
-            const groundY = 500;
-
-            Object.values(
-                room.players
-            ).forEach(
-                (p, index) => {
-
-                    p.x =
-                        250 +
-                        index * 100;
-
-                    p.y = groundY;
-
-                    p.health = 100;
-                    p.level = 1;
-                }
-            );
-
-            room.mobs =
-                createRoomMobs();
-
-            io.to(roomCode).emit(
-                "playersUpdate",
-                Object.values(room.players)
-            );
-
-            io.to(roomCode).emit(
-                "mobsUpdate",
-                room.mobs
-            );
-
-            io.to(roomCode).emit(
-                "startGame"
-            );
-
-            console.log(
-                `Game started in room ${roomCode}`
-            );
-        }
-    });
-
-    // ==================================================
-    // PLAYER MOVEMENT
-    // ==================================================
-
-    socket.on(
-        "playerMovement",
-        (data) => {
-
-            const roomCode =
-                socket.roomCode;
-
-            if (!roomCode) return;
-
-            const room =
-                rooms[roomCode];
-
-            if (!room) return;
-
-            const player =
-                room.players[socket.id];
-
-            if (!player) return;
+            const value =
+                Number(match[1]);
 
             if (
-                !data ||
-                typeof data.x !== "number" ||
-                typeof data.y !== "number"
+                value < 1 ||
+                value > 30
             ) {
-                return;
+
+                return {
+                    ok:false,
+                    message:
+                        "speed باید بین 1 و 30 باشد."
+                };
+
             }
 
-            player.x =
-                Math.max(
-                    0,
-                    Math.min(
-                        100000,
-                        data.x
-                    )
-                );
+            player.speed =
+                value;
 
-            player.y =
-                Math.max(
-                    -5000,
-                    Math.min(
-                        5000,
-                        data.y
-                    )
-                );
-
-            socket.to(roomCode).emit(
-                "playerMoved",
-                player
-            );
-        }
-    );
-
-    // ==================================================
-    // ATTACK MOB
-    // ==================================================
-
-    socket.on("attackMob", (data) => {
-
-        const roomCode =
-            socket.roomCode;
-
-        if (!roomCode) return;
-
-        const room =
-            rooms[roomCode];
-
-        if (!room || !room.started) return;
-
-        const player =
-            room.players[socket.id];
-
-        if (!player) return;
-
-        const mob =
-            room.mobs.find(
-                m =>
-                    m.id === data?.mobId
+            changed.push(
+                "speed"
             );
 
-        if (!mob || mob.dead) return;
+            continue;
 
-        const distance =
-            Math.abs(
-                player.x - mob.x
-            );
-
-        if (distance > 120) return;
-
-        mob.health =
-            Math.max(
-                0,
-                mob.health - 25
-            );
-
-        if (mob.health <= 0) {
-
-            mob.health = 0;
-            mob.dead = true;
-            mob.respawnTimer = 180;
         }
 
-        io.to(roomCode).emit(
-            "mobsUpdate",
-            room.mobs
-        );
-    });
+        match =
+            command.match(
+                /^jump\s*=\s*(\d+(?:\.\d+)?)$/
+            );
 
-    // ==================================================
-    // DISCONNECT
-    // ==================================================
+        if (match) {
 
-    socket.on("disconnect", () => {
+            const value =
+                Number(match[1]);
+
+            if (
+                value < 1 ||
+                value > 50
+            ) {
+
+                return {
+                    ok:false,
+                    message:
+                        "jump باید بین 1 و 50 باشد."
+                };
+
+            }
+
+            player.jump =
+                value;
+
+            changed.push(
+                "jump"
+            );
+
+            continue;
+
+        }
+
+        match =
+            command.match(
+                /^health\s*=\s*(\d+(?:\.\d+)?)$/
+            );
+
+        if (match) {
+
+            const value =
+                Number(match[1]);
+
+            if (
+                value < 1 ||
+                value > 10000
+            ) {
+
+                return {
+                    ok:false,
+                    message:
+                        "health باید بین 1 و 10000 باشد."
+                };
+
+            }
+
+            player.health =
+                value;
+
+            player.maxHealth =
+                Math.max(
+                    player.maxHealth || 100,
+                    value
+                );
+
+            changed.push(
+                "health"
+            );
+
+            continue;
+
+        }
+
+        match =
+            command.match(
+                /^fly\s*=\s*(true|false)$/
+            );
+
+        if (match) {
+
+            player.fly =
+                match[1] ===
+                "true";
+
+            changed.push(
+                "fly"
+            );
+
+            continue;
+
+        }
+
+        match =
+            command.match(
+                /^doubleJump\s*=\s*(true|false)$/
+            );
+
+        if (match) {
+
+            player.doubleJump =
+                match[1] ===
+                "true";
+
+            changed.push(
+                "doubleJump"
+            );
+
+            continue;
+
+        }
+
+        match =
+            command.match(
+                /^setColor\(\s*["'](#[0-9a-fA-F]{6})["']\s*\)$/
+            );
+
+        if (match) {
+
+            player.color =
+                match[1];
+
+            changed.push(
+                "color"
+            );
+
+            continue;
+
+        }
+
+        return {
+            ok:false,
+            message:
+                "این دستور مجاز نیست: " +
+                command
+        };
+
+    }
+
+    return {
+
+        ok:true,
+
+        message:
+            changed.length
+                ? "قابلیت‌ها اعمال شدند: " +
+                  changed.join(", ")
+                : "هیچ تغییری انجام نشد."
+
+    };
+
+}
+
+/* =====================================================
+   SOCKET
+===================================================== */
+
+io.on(
+    "connection",
+    (socket) => {
 
         console.log(
-            "Player disconnected:",
+            "Player connected:",
             socket.id
         );
 
-        const roomCode =
-            socket.roomCode;
+        /* =============================================
+           CREATE ROOM
+        ============================================= */
 
-        if (!roomCode) return;
+        socket.on(
+            "createRoom",
+            (data) => {
 
-        const room =
-            rooms[roomCode];
+                const roomCode =
+                    generateRoomCode();
 
-        if (!room) return;
+                const player =
+                    createPlayer(
+                        socket,
+                        data &&
+                        data.name
+                    );
 
-        delete room.players[
-            socket.id
-        ];
+                rooms[roomCode] = {
 
-        delete room.ready[
-            socket.id
-        ];
+                    players:{},
 
-        io.to(roomCode).emit(
-            "playerLeft",
-            socket.id
+                    ready:{},
+
+                    started:false,
+
+                    mobs:{}
+
+                };
+
+                rooms[
+                    roomCode
+                ].players[
+                    socket.id
+                ] = player;
+
+                socket.join(
+                    roomCode
+                );
+
+                socket.roomCode =
+                    roomCode;
+
+                socket.player =
+                    player;
+
+                socket.emit(
+                    "roomCreated",
+                    {
+                        roomCode,
+                        player
+                    }
+                );
+
+                console.log(
+                    `Room ${roomCode} created by ${player.name}`
+                );
+
+            }
         );
 
-        const remaining =
-            Object.keys(
-                room.players
-            ).length;
+        /* =============================================
+           JOIN ROOM
+        ============================================= */
 
-        if (remaining > 0) {
+        socket.on(
+            "joinRoom",
+            (data) => {
 
-            io.to(roomCode).emit(
-                "playersUpdate",
-                Object.values(room.players)
-            );
+                const roomCode =
+                    String(
+                        data &&
+                        data.roomCode
+                            ? data.roomCode
+                            : ""
+                    )
+                    .replace(
+                        /\D/g,
+                        ""
+                    )
+                    .substring(
+                        0,
+                        6
+                    );
 
-        } else {
+                if (
+                    roomCode.length !==
+                    6
+                ) {
 
-            delete rooms[roomCode];
+                    socket.emit(
+                        "roomError",
+                        "کد اتاق باید ۶ رقمی باشد."
+                    );
 
-            console.log(
-                `Room ${roomCode} deleted`
-            );
-        }
-    });
-});
+                    return;
 
-// ======================================================
-// MOB GAME LOOP
-// ======================================================
+                }
 
-setInterval(() => {
+                const room =
+                    rooms[
+                        roomCode
+                    ];
 
-    Object.keys(rooms).forEach(
-        (roomCode) => {
+                if (!room) {
 
-            const room =
-                rooms[roomCode];
+                    socket.emit(
+                        "roomError",
+                        "این اتاق وجود ندارد."
+                    );
 
-            updateRoomMobs(
-                roomCode,
-                room
-            );
-        }
-    );
+                    return;
 
-}, 1000 / 30);
+                }
 
-// ======================================================
-// START
-// ======================================================
+                if (
+                    Object.keys(
+                        room.players
+                    ).length >= 15
+                ) {
+
+                    socket.emit(
+                        "roomError",
+                        "اتاق پر است."
+                    );
+
+                    return;
+
+                }
+
+                if (room.started) {
+
+                    socket.emit(
+                        "roomError",
+                        "بازی این اتاق شروع شده است."
+                    );
+
+                    return;
+
+                }
+
+                const player =
+                    createPlayer(
+                        socket,
+                        data &&
+                        data.name
+                    );
+
+                room.players[
+                    socket.id
+                ] = player;
+
+                socket.join(
+                    roomCode
+                );
+
+                socket.roomCode =
+                    roomCode;
+
+                socket.player =
+                    player;
+
+                socket.emit(
+                    "roomJoined",
+                    {
+                        roomCode,
+                        player
+                    }
+                );
+
+                io.to(
+                    roomCode
+                ).emit(
+                    "playersUpdate",
+                    Object.values(
+                        room.players
+                    )
+                );
+
+                console.log(
+                    `${player.name} joined room ${roomCode}`
+                );
+
+            }
+        );
+
+        /* =============================================
+           READY
+        ============================================= */
+
+        socket.on(
+            "readyForGame",
+            () => {
+
+                const roomCode =
+                    socket.roomCode;
+
+                if (!roomCode) return;
+
+                const room =
+                    rooms[
+                        roomCode
+                    ];
+
+                if (!room) return;
+
+                const player =
+                    room.players[
+                        socket.id
+                    ];
+
+                if (!player) return;
+
+                player.ready =
+                    true;
+
+                room.ready[
+                    socket.id
+                ] = true;
+
+                const total =
+                    Object.keys(
+                        room.players
+                    ).length;
+
+                const ready =
+                    Object.keys(
+                        room.ready
+                    )
+                    .filter(
+                        id =>
+                            room.ready[id]
+                    )
+                    .length;
+
+                io.to(
+                    roomCode
+                ).emit(
+                    "readyUpdate",
+                    {
+                        ready,
+                        total
+                    }
+                );
+
+                if (
+                    ready >= 1 &&
+                    total >= 1 &&
+                    !room.started
+                ) {
+
+                    room.started =
+                        true;
+
+                    const groundY =
+                        500;
+
+                    Object.values(
+                        room.players
+                    )
+                    .forEach(
+                        (p,index) => {
+
+                            p.x =
+                                250 +
+                                index * 100;
+
+                            p.y =
+                                groundY;
+
+                            p.health =
+                                100;
+
+                            p.maxHealth =
+                                100;
+
+                            p.level =
+                                1;
+
+                        }
+                    );
+
+                    io.to(
+                        roomCode
+                    ).emit(
+                        "playersUpdate",
+                        Object.values(
+                            room.players
+                        )
+                    );
+
+                    io.to(
+                        roomCode
+                    ).emit(
+                        "startGame"
+                    );
+
+                    console.log(
+                        `Game started in room ${roomCode}`
+                    );
+
+                }
+
+            }
+        );
+
+        /* =============================================
+           PLAYER MOVEMENT
+        ============================================= */
+
+        socket.on(
+            "playerMovement",
+            (data) => {
+
+                const roomCode =
+                    socket.roomCode;
+
+                if (!roomCode) return;
+
+                const room =
+                    rooms[
+                        roomCode
+                    ];
+
+                if (!room) return;
+
+                const player =
+                    room.players[
+                        socket.id
+                    ];
+
+                if (!player) return;
+
+                if (
+                    !data ||
+                    typeof data.x !==
+                        "number" ||
+                    typeof data.y !==
+                        "number"
+                ) {
+
+                    return;
+
+                }
+
+                player.x =
+                    Math.max(
+                        0,
+                        Math.min(
+                            100000,
+                            data.x
+                        )
+                    );
+
+                player.y =
+                    Math.max(
+                        -5000,
+                        Math.min(
+                            5000,
+                            data.y
+                        )
+                    );
+
+                socket.to(
+                    roomCode
+                ).emit(
+                    "playerMoved",
+                    player
+                );
+
+            }
+        );
+
+        /* =============================================
+           NORMAL PLAYER CODE
+        ============================================= */
+
+        socket.on(
+            "runPlayerCode",
+            (data) => {
+
+                const player =
+                    socket.player;
+
+                if (!player) {
+
+                    socket.emit(
+                        "abilityError",
+                        {
+                            message:
+                                "بازیکن پیدا نشد."
+                        }
+                    );
+
+                    return;
+
+                }
+
+                const result =
+                    applyCodeToPlayer(
+                        player,
+                        data &&
+                        data.code
+                    );
+
+                if (!result.ok) {
+
+                    socket.emit(
+                        "abilityError",
+                        {
+                            message:
+                                result.message
+                        }
+                    );
+
+                    return;
+
+                }
+
+                socket.emit(
+                    "abilityResult",
+                    {
+                        message:
+                            result.message,
+
+                        player
+                    }
+                );
+
+                if (socket.roomCode) {
+
+                    socket.to(
+                        socket.roomCode
+                    ).emit(
+                        "playerMoved",
+                        player
+                    );
+
+                }
+
+            }
+        );
+
+        /* =============================================
+           ADMIN CODE
+        ============================================= */
+
+        socket.on(
+            "runAdminCode",
+            (data) => {
+
+                if (!isAdmin(socket)) {
+
+                    socket.emit(
+                        "abilityError",
+                        {
+                            message:
+                                "دسترسی Admin نداری."
+                        }
+                    );
+
+                    return;
+
+                }
+
+                const room =
+                    rooms[
+                        socket.roomCode
+                    ];
+
+                if (!room) {
+
+                    socket.emit(
+                        "abilityError",
+                        {
+                            message:
+                                "اتاق پیدا نشد."
+                        }
+                    );
+
+                    return;
+
+                }
+
+                const targetId =
+                    data &&
+                    data.targetId
+                        ? String(
+                            data.targetId
+                        )
+                        : socket.id;
+
+                const target =
+                    room.players[
+                        targetId
+                    ];
+
+                if (!target) {
+
+                    socket.emit(
+                        "abilityError",
+                        {
+                            message:
+                                "بازیکن هدف پیدا نشد."
+                        }
+                    );
+
+                    return;
+
+                }
+
+                const code =
+                    data &&
+                    data.code
+                        ? String(
+                            data.code
+                        )
+                        : "";
+
+                /*
+                   spawnMob دستوری است که
+                   مخصوص Admin است.
+                */
+
+                const mobMatches =
+                    [
+                        ...code.matchAll(
+                            /spawnMob\(\s*["'](monster|zombie)["']\s*\)\s*;?/gi
+                        )
+                    ];
+
+                let cleanedCode =
+                    code;
+
+                mobMatches.forEach(
+                    match => {
+
+                        const type =
+                            match[1]
+                                .toLowerCase();
+
+                        const mobId =
+                            "mob_" +
+                            Date.now() +
+                            "_" +
+                            Math.random()
+                                .toString(36)
+                                .substring(
+                                    2,
+                                    7
+                                );
+
+                        room.mobs[
+                            mobId
+                        ] = {
+
+                            id:
+                                mobId,
+
+                            type,
+
+                            x:
+                                target.x + 180,
+
+                            y:
+                                target.y,
+
+                            health:
+                                100,
+
+                            speed:
+                                type ===
+                                "zombie"
+                                    ? 1.2
+                                    : 1.6
+
+                        };
+
+                    }
+                );
+
+                cleanedCode =
+                    cleanedCode.replace(
+                        /spawnMob\(\s*["'](monster|zombie)["']\s*\)\s*;?/gi,
+                        ""
+                    );
+
+                const result =
+                    applyCodeToPlayer(
+                        target,
+                        cleanedCode
+                    );
+
+                if (!result.ok) {
+
+                    socket.emit(
+                        "abilityError",
+                        {
+                            message:
+                                result.message
+                        }
+                    );
+
+                    return;
+
+                }
+
+                io.to(
+                    socket.roomCode
+                ).emit(
+                    "playersUpdate",
+                    Object.values(
+                        room.players
+                    )
+                );
+
+                io.to(
+                    socket.roomCode
+                ).emit(
+                    "mobsUpdate",
+                    Object.values(
+                        room.mobs
+                    )
+                );
+
+                socket.emit(
+                    "abilityResult",
+                    {
+                        message:
+                            "👑 " +
+                            result.message,
+
+                        player:
+                            target
+                    }
+                );
+
+            }
+        );
+
+        /* =============================================
+           DISCONNECT
+        ============================================= */
+
+        socket.on(
+            "disconnect",
+            () => {
+
+                console.log(
+                    "Player disconnected:",
+                    socket.id
+                );
+
+                const roomCode =
+                    socket.roomCode;
+
+                if (!roomCode) return;
+
+                const room =
+                    rooms[
+                        roomCode
+                    ];
+
+                if (!room) return;
+
+                delete room.players[
+                    socket.id
+                ];
+
+                delete room.ready[
+                    socket.id
+                ];
+
+                io.to(
+                    roomCode
+                ).emit(
+                    "playerLeft",
+                    socket.id
+                );
+
+                const remaining =
+                    Object.keys(
+                        room.players
+                    ).length;
+
+                if (
+                    remaining > 0
+                ) {
+
+                    io.to(
+                        roomCode
+                    ).emit(
+                        "playersUpdate",
+                        Object.values(
+                            room.players
+                        )
+                    );
+
+                    io.to(
+                        roomCode
+                    ).emit(
+                        "mobsUpdate",
+                        Object.values(
+                            room.mobs
+                        )
+                    );
+
+                }
+
+                if (
+                    remaining === 0
+                ) {
+
+                    delete rooms[
+                        roomCode
+                    ];
+
+                    console.log(
+                        `Room ${roomCode} deleted`
+                    );
+
+                }
+
+            }
+        );
+
+    }
+);
+
+/* =====================================================
+   SERVER
+===================================================== */
 
 server.listen(
     PORT,
