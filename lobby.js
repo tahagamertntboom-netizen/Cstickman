@@ -11,7 +11,7 @@ let gameRunning = false;
 let velocityY = 0;
 let onGround = false;
 
-let SPEED = 5;
+const SPEED = 5;
 const GRAVITY = 0.7;
 const JUMP = 13;
 
@@ -20,14 +20,15 @@ let aiVelocityY = 0;
 let aiOnGround = false;
 let aiDirectionTimer = 0;
 
-let monsters = {};
-
-let isAdmin = false;
-
 let attackCooldown = false;
 let attacking = false;
 
-const keys = {};
+/* =========================
+   MONSTER
+========================= */
+
+let monster = null;
+let monsterAttackFlash = 0;
 
 const nameScreen = document.getElementById("nameScreen");
 const modeScreen = document.getElementById("modeScreen");
@@ -61,6 +62,24 @@ const ctx = canvas ? canvas.getContext("2d") : null;
 
 const attackButton = document.getElementById("attackButton");
 
+const abilityButton = document.getElementById("abilityButton");
+const abilityPanel = document.getElementById("abilityPanel");
+const abilityCode = document.getElementById("abilityCode");
+const useAbility = document.getElementById("useAbility");
+const abilityMessage = document.getElementById("abilityMessage");
+
+const adminButton = document.getElementById("adminButton");
+const adminPanel = document.getElementById("adminPanel");
+const adminPlayers = document.getElementById("adminPlayers");
+const adminCode = document.getElementById("adminCode");
+const useAdminCode = document.getElementById("useAdminCode");
+const adminMessage = document.getElementById("adminMessage");
+
+
+/* =========================
+   SCREEN
+========================= */
+
 function showScreen(screen) {
 
     [
@@ -69,7 +88,7 @@ function showScreen(screen) {
         offlineScreen,
         onlineScreen,
         roomScreen
-    ].forEach((s) => {
+    ].forEach(s => {
 
         if (s) {
             s.classList.add("hidden");
@@ -84,6 +103,7 @@ function showScreen(screen) {
     updateAttackButtonVisibility();
 }
 
+
 function updateAttackButtonVisibility() {
 
     if (!attackButton) return;
@@ -96,6 +116,11 @@ function updateAttackButtonVisibility() {
     attackButton.style.display =
         inGame ? "block" : "none";
 }
+
+
+/* =========================
+   FULLSCREEN
+========================= */
 
 async function enterGameFullscreen() {
 
@@ -121,11 +146,27 @@ async function enterGameFullscreen() {
         );
 
     }
+
 }
 
-/* =====================================================
+
+/* =========================
+   ADMIN
+========================= */
+
+function isAdmin() {
+
+    return String(playerName)
+        .trim()
+        .toLowerCase()
+        === "tahagamertnt";
+
+}
+
+
+/* =========================
    NAME
-===================================================== */
+========================= */
 
 if (confirmName) {
 
@@ -137,76 +178,99 @@ if (confirmName) {
         if (!name) {
 
             const error =
-                document.getElementById("nameError");
+                document.getElementById(
+                    "nameError"
+                );
 
             if (error) {
+
                 error.textContent =
                     "اول اسمت رو وارد کن.";
+
             }
 
             return;
         }
 
         playerName =
-            name.substring(0, 20);
+            name.substring(0,20);
 
         showScreen(modeScreen);
+
     };
+
 }
+
 
 if (nameInput) {
 
     nameInput.addEventListener(
         "keydown",
-        function (e) {
+        e => {
 
             if (e.key === "Enter") {
+
                 confirmName.click();
+
             }
 
         }
     );
+
 }
 
-/* =====================================================
-   MODE
-===================================================== */
+
+/* =========================
+   MODES
+========================= */
 
 if (onlineCard) {
 
-    onlineCard.onclick = function () {
+    onlineCard.onclick = () => {
+
         showScreen(onlineScreen);
+
     };
 
 }
+
 
 if (offlineCard) {
 
-    offlineCard.onclick = function () {
+    offlineCard.onclick = () => {
+
         showScreen(offlineScreen);
+
     };
 
 }
+
 
 if (backToModes) {
 
-    backToModes.onclick = function () {
+    backToModes.onclick = () => {
+
         showScreen(modeScreen);
+
     };
 
 }
+
 
 if (backFromOnline) {
 
-    backFromOnline.onclick = function () {
+    backFromOnline.onclick = () => {
+
         showScreen(modeScreen);
+
     };
 
 }
 
+
 if (aiCard) {
 
-    aiCard.onclick = async function () {
+    aiCard.onclick = async () => {
 
         await enterGameFullscreen();
 
@@ -216,9 +280,10 @@ if (aiCard) {
 
 }
 
+
 if (soloCard) {
 
-    soloCard.onclick = async function () {
+    soloCard.onclick = async () => {
 
         await enterGameFullscreen();
 
@@ -228,14 +293,17 @@ if (soloCard) {
 
 }
 
-/* =====================================================
+
+/* =========================
    OFFLINE
-===================================================== */
+========================= */
 
 function startOfflineGame(withAI) {
 
     gameMode =
-        withAI ? "AI" : "SOLO";
+        withAI
+            ? "AI"
+            : "SOLO";
 
     nameScreen.classList.add("hidden");
     modeScreen.classList.add("hidden");
@@ -247,31 +315,32 @@ function startOfflineGame(withAI) {
 
     gameRunning = true;
 
-    isAdmin =
-        playerName === "tahagamertnt";
+    monster = null;
 
     setupOfflinePlayers(withAI);
 
-    setupAdminPanel();
-
     resizeCanvas();
+
+    setupAbilityUI();
 
     updateAttackButtonVisibility();
 
     requestAnimationFrame(gameLoop);
+
 }
+
 
 function setupOfflinePlayers(withAI) {
 
     players = {};
-    monsters = {};
 
     myPlayer = {
 
         id: "player",
 
         name:
-            playerName || "Player",
+            playerName ||
+            "Player",
 
         x: 250,
 
@@ -281,14 +350,20 @@ function setupOfflinePlayers(withAI) {
 
         maxHealth: 100,
 
-        dead: false
+        speedBoost: false,
+
+        jumpBoost: false,
+
+        fly: false,
+
+        god: false
 
     };
 
-    players.player =
-        myPlayer;
+    players.player = myPlayer;
 
     velocityY = 0;
+
     onGround = true;
 
     if (withAI) {
@@ -299,21 +374,19 @@ function setupOfflinePlayers(withAI) {
 
             name: "AI",
 
-            x:
-                Math.min(
-                    700,
-                    Math.max(
-                        450,
-                        canvas.width - 250
-                    )
-                ),
+            x: Math.min(
+                700,
+                Math.max(
+                    450,
+                    canvas.width - 250
+                )
+            ),
 
             y: getGroundY(),
 
             health: 100,
-            maxHealth: 100,
 
-            dead: false
+            maxHealth: 100
 
         };
 
@@ -328,7 +401,9 @@ function setupOfflinePlayers(withAI) {
     }
 
     const modeText =
-        document.getElementById("gameMode");
+        document.getElementById(
+            "gameMode"
+        );
 
     if (modeText) {
 
@@ -338,43 +413,53 @@ function setupOfflinePlayers(withAI) {
                 : "👤 بازی تنهایی";
 
     }
+
+    setupAbilityUI();
+
 }
 
-/* =====================================================
-   ROOM
-===================================================== */
+
+/* =========================
+   ONLINE ROOM
+========================= */
 
 if (showJoin) {
 
-    showJoin.onclick = function () {
+    showJoin.onclick = () => {
 
         if (joinBox) {
-            joinBox.classList.toggle("hidden");
+
+            joinBox.classList.toggle(
+                "hidden"
+            );
+
         }
 
     };
 
 }
 
+
 if (roomInput) {
 
     roomInput.addEventListener(
         "input",
-        function () {
+        () => {
 
             roomInput.value =
                 roomInput.value
-                    .replace(/\D/g, "")
-                    .substring(0, 6);
+                    .replace(/\D/g,"")
+                    .substring(0,6);
 
         }
     );
 
 }
 
+
 if (createRoom) {
 
-    createRoom.onclick = function () {
+    createRoom.onclick = () => {
 
         createRoom.disabled = true;
 
@@ -392,20 +477,16 @@ if (createRoom) {
 
 }
 
-/* =====================================================
-   ROOM CREATED
-===================================================== */
 
 socket.on(
     "roomCreated",
-    function (data) {
+    data => {
 
         roomCode =
             String(data.roomCode)
-                .replace(/\D/g, "");
+                .replace(/\D/g,"");
 
-        myPlayer =
-            data.player;
+        myPlayer = data.player;
 
         players = {};
 
@@ -417,14 +498,6 @@ socket.on(
 
         }
 
-        isAdmin =
-            !!(
-                myPlayer &&
-                myPlayer.isAdmin
-            );
-
-        setupAdminPanel();
-
         showScreen(roomScreen);
 
         if (roomCodeElement) {
@@ -434,37 +507,32 @@ socket.on(
 
         }
 
-        if (createRoom) {
+        createRoom.disabled = false;
 
-            createRoom.disabled = false;
-
-            createRoom.textContent =
-                "🏠 ساخت اتاق";
-
-        }
+        createRoom.textContent =
+            "🏠 ساخت اتاق";
 
     }
 );
 
-/* =====================================================
-   JOIN
-===================================================== */
 
 if (joinRoom) {
 
-    joinRoom.onclick = function () {
+    joinRoom.onclick = () => {
 
         const code =
             roomInput
                 ? roomInput.value
-                    .replace(/\D/g, "")
-                    .substring(0, 6)
+                    .replace(/\D/g,"")
+                    .substring(0,6)
                 : "";
 
         if (code.length !== 6) {
 
             const error =
-                document.getElementById("onlineError");
+                document.getElementById(
+                    "onlineError"
+                );
 
             if (error) {
 
@@ -493,20 +561,16 @@ if (joinRoom) {
 
 }
 
-/* =====================================================
-   ROOM JOINED
-===================================================== */
 
 socket.on(
     "roomJoined",
-    function (data) {
+    data => {
 
         roomCode =
             String(data.roomCode)
-                .replace(/\D/g, "");
+                .replace(/\D/g,"");
 
-        myPlayer =
-            data.player;
+        myPlayer = data.player;
 
         players = {};
 
@@ -518,14 +582,6 @@ socket.on(
 
         }
 
-        isAdmin =
-            !!(
-                myPlayer &&
-                myPlayer.isAdmin
-            );
-
-        setupAdminPanel();
-
         showScreen(roomScreen);
 
         if (roomCodeElement) {
@@ -535,45 +591,23 @@ socket.on(
 
         }
 
-        if (joinRoom) {
+        joinRoom.disabled = false;
 
-            joinRoom.disabled = false;
-
-            joinRoom.textContent =
-                "🚪 ورود";
-
-        }
+        joinRoom.textContent =
+            "🚪 ورود";
 
     }
 );
 
-/* =====================================================
-   ADMIN STATE
-===================================================== */
 
-socket.on(
-    "adminState",
-    function (data) {
-
-        isAdmin =
-            !!(
-                data &&
-                data.isAdmin
-            );
-
-        setupAdminPanel();
-
-    }
-);
-
-/* =====================================================
+/* =========================
    READY
-===================================================== */
+========================= */
 
 if (readyButton) {
 
     readyButton.onclick =
-        async function () {
+        async () => {
 
             await enterGameFullscreen();
 
@@ -597,9 +631,10 @@ if (readyButton) {
 
 }
 
+
 socket.on(
     "readyUpdate",
-    function (data) {
+    data => {
 
         if (!roomStatus) return;
 
@@ -612,18 +647,14 @@ socket.on(
     }
 );
 
-/* =====================================================
-   START ONLINE GAME
-===================================================== */
 
 socket.on(
     "startGame",
-    async function () {
+    async () => {
 
         await enterGameFullscreen();
 
-        gameMode =
-            "ONLINE";
+        gameMode = "ONLINE";
 
         roomScreen.classList.add(
             "hidden"
@@ -634,11 +665,9 @@ socket.on(
 
         gameRunning = true;
 
-        monsters = {};
-
-        setupAdminPanel();
-
         resizeCanvas();
+
+        setupAbilityUI();
 
         updateAttackButtonVisibility();
 
@@ -649,9 +678,10 @@ socket.on(
     }
 );
 
-/* =====================================================
+
+/* =========================
    CANVAS
-===================================================== */
+========================= */
 
 function resizeCanvas() {
 
@@ -666,20 +696,14 @@ function resizeCanvas() {
     const ground =
         getGroundY();
 
-    if (
-        myPlayer &&
-        onGround
-    ) {
+    if (myPlayer && onGround) {
 
         myPlayer.y =
             ground;
 
     }
 
-    if (
-        ai &&
-        aiOnGround
-    ) {
+    if (ai && aiOnGround) {
 
         ai.y =
             ground;
@@ -688,23 +712,21 @@ function resizeCanvas() {
 
 }
 
+
 window.addEventListener(
     "resize",
     resizeCanvas
 );
 
+
 function getGroundY() {
 
-    if (!canvas) {
-        return 500;
-    }
+    if (!canvas) return 500;
 
     return canvas.height - 120;
+
 }
 
-/* =====================================================
-   PLAYER FIX
-===================================================== */
 
 function fixPlayerSpawn(player) {
 
@@ -727,15 +749,25 @@ function fixPlayerSpawn(player) {
 
     }
 
+    if (
+        typeof player.health !==
+        "number"
+    ) {
+
+        player.health = 100;
+
+    }
+
 }
 
-/* =====================================================
+
+/* =========================
    PLAYERS UPDATE
-===================================================== */
+========================= */
 
 socket.on(
     "playersUpdate",
-    function (list) {
+    list => {
 
         players = {};
 
@@ -744,7 +776,7 @@ socket.on(
         }
 
         list.forEach(
-            function (player) {
+            player => {
 
                 if (!player) return;
 
@@ -755,29 +787,13 @@ socket.on(
                 ] = player;
 
                 if (
-                    player.id ===
-                    socket.id
+                    player.id === socket.id
                 ) {
 
-                    myPlayer =
-                        player;
+                    myPlayer = player;
 
                     const ground =
                         getGroundY();
-
-                    if (
-                        !Number.isFinite(
-                            Number(
-                                myPlayer.y
-                            )
-                        ) ||
-                        myPlayer.y <= 0
-                    ) {
-
-                        myPlayer.y =
-                            ground;
-
-                    }
 
                     onGround =
                         Math.abs(
@@ -786,7 +802,9 @@ socket.on(
                         ) < 5;
 
                     if (onGround) {
+
                         velocityY = 0;
+
                     }
 
                 }
@@ -794,24 +812,21 @@ socket.on(
             }
         );
 
+        updateAdminPlayers();
+
     }
 );
 
-/* =====================================================
-   PLAYER MOVED
-===================================================== */
 
 socket.on(
     "playerMoved",
-    function (player) {
+    player => {
 
         if (!player) return;
 
         fixPlayerSpawn(player);
 
-        if (
-            !players[player.id]
-        ) {
+        if (!players[player.id]) {
 
             players[
                 player.id
@@ -827,46 +842,108 @@ socket.on(
 
         }
 
+        updateAdminPlayers();
+
     }
 );
 
-/* =====================================================
-   PLAYER LEFT
-===================================================== */
 
 socket.on(
     "playerLeft",
-    function (id) {
+    id => {
 
         delete players[id];
 
+        updateAdminPlayers();
+
     }
 );
 
-/* =====================================================
-   HEALTH
-===================================================== */
+
+/* =========================
+   ABILITY UPDATE
+========================= */
 
 socket.on(
-    "healthUpdate",
-    function (data) {
+    "abilityResult",
+    data => {
 
         if (!data) return;
 
+        if (abilityMessage) {
+
+            abilityMessage.textContent =
+                data.message ||
+                "قابلیت اجرا شد.";
+
+        }
+
         if (
-            players[data.id]
+            adminMessage &&
+            data.admin
         ) {
 
-            players[
-                data.id
-            ].health =
+            adminMessage.textContent =
+                data.message ||
+                "انجام شد.";
+
+        }
+
+    }
+);
+
+
+socket.on(
+    "playerAbilityUpdate",
+    data => {
+
+        if (
+            !data ||
+            !data.player
+        ) return;
+
+        const p =
+            data.player;
+
+        players[p.id] = p;
+
+        if (
+            p.id === socket.id
+        ) {
+
+            myPlayer = p;
+
+        }
+
+        updateAdminPlayers();
+
+    }
+);
+
+
+/* =========================
+   HEALTH UPDATE
+========================= */
+
+socket.on(
+    "playerHealthUpdate",
+    data => {
+
+        if (!data) return;
+
+        const p =
+            players[data.id];
+
+        if (p) {
+
+            p.health =
                 data.health;
 
         }
 
         if (
             myPlayer &&
-            data.id === myPlayer.id
+            data.id === socket.id
         ) {
 
             myPlayer.health =
@@ -877,145 +954,130 @@ socket.on(
     }
 );
 
-/* =====================================================
+
+/* =========================
    DEATH
-===================================================== */
+========================= */
 
 socket.on(
     "playerDied",
-    function (data) {
+    data => {
 
         if (!data) return;
 
         if (
-            players[data.id]
+            data.id === socket.id
         ) {
 
-            players[
-                data.id
-            ].dead = true;
+            gameRunning = false;
 
-            players[
-                data.id
-            ].health = 0;
+            alert(
+                "💀 مردی!"
+            );
+
+            location.reload();
+
+            return;
 
         }
+
+        if (players[data.id]) {
+
+            players[data.id].health = 0;
+
+        }
+
+    }
+);
+
+
+/* =========================
+   KICK
+========================= */
+
+socket.on(
+    "adminKicked",
+    () => {
+
+        gameRunning = false;
+
+        alert(
+            "👑 ادمین شما را از بازی خارج کرد."
+        );
+
+        location.reload();
+
+    }
+);
+
+
+/* =========================
+   MONSTER EVENTS
+========================= */
+
+socket.on(
+    "monsterSpawned",
+    data => {
+
+        if (!data) return;
+
+        monster = data;
+
+    }
+);
+
+
+socket.on(
+    "monsterUpdate",
+    data => {
+
+        if (!data) return;
+
+        monster = data;
+
+    }
+);
+
+
+socket.on(
+    "monsterRemoved",
+    () => {
+
+        monster = null;
+
+    }
+);
+
+
+socket.on(
+    "monsterAttack",
+    data => {
+
+        if (!data) return;
+
+        monsterAttackFlash = 10;
 
         if (
             myPlayer &&
-            data.id ===
-            myPlayer.id
+            data.targetId === socket.id
         ) {
-
-            myPlayer.dead =
-                true;
 
             myPlayer.health =
-                0;
+                data.health;
 
         }
 
     }
 );
 
-/* =====================================================
-   MONSTER SPAWN
-===================================================== */
 
-socket.on(
-    "monsterSpawn",
-    function (monster) {
-
-        if (!monster) return;
-
-        monsters[
-            monster.id
-        ] = monster;
-
-    }
-);
-
-/* =====================================================
-   ABILITY GRANTED
-===================================================== */
-
-socket.on(
-    "abilityGranted",
-    function (data) {
-
-        if (!data) return;
-
-        const ability =
-            String(
-                data.ability || ""
-            ).toLowerCase();
-
-        if (
-            ability === "speed"
-        ) {
-
-            SPEED =
-                Number(data.value) || 5;
-
-            showMessage(
-                "⚡ سرعتت زیاد شد!"
-            );
-
-            return;
-        }
-
-        if (
-            ability === "god"
-        ) {
-
-            if (myPlayer) {
-
-                myPlayer.god =
-                    true;
-
-            }
-
-            showMessage(
-                "🛡️ حالت خدا فعال شد!"
-            );
-
-            return;
-        }
-
-        if (
-            ability === "heal"
-        ) {
-
-            if (myPlayer) {
-
-                myPlayer.health =
-                    myPlayer.maxHealth ||
-                    100;
-
-            }
-
-            showMessage(
-                "❤️ جانت کامل شد!"
-            );
-
-            return;
-        }
-
-        showMessage(
-            "✨ قابلیت دریافت شد: " +
-            ability
-        );
-
-    }
-);
-
-/* =====================================================
+/* =========================
    ROOM ERROR
-===================================================== */
+========================= */
 
 socket.on(
     "roomError",
-    function (message) {
+    message => {
 
         const error =
             document.getElementById(
@@ -1045,8 +1107,7 @@ socket.on(
 
         if (joinRoom) {
 
-            joinRoom.disabled =
-                false;
+            joinRoom.disabled = false;
 
             joinRoom.textContent =
                 "🚪 ورود";
@@ -1055,8 +1116,7 @@ socket.on(
 
         if (createRoom) {
 
-            createRoom.disabled =
-                false;
+            createRoom.disabled = false;
 
             createRoom.textContent =
                 "🏠 ساخت اتاق";
@@ -1066,47 +1126,371 @@ socket.on(
     }
 );
 
-/* =====================================================
-   COMMAND RESULT
-===================================================== */
 
-socket.on(
-    "commandResult",
-    function (data) {
+/* =========================
+   ABILITIES
+========================= */
 
-        if (!data) return;
+function setupAbilityUI() {
 
-        showMessage(
-            data.message ||
-            "انجام شد."
+    if (
+        !abilityButton ||
+        !abilityPanel
+    ) return;
+
+    abilityButton.classList.remove(
+        "hidden"
+    );
+
+    abilityButton.onclick = () => {
+
+        abilityPanel.classList.toggle(
+            "hidden"
+        );
+
+    };
+
+
+    if (isAdmin()) {
+
+        adminButton.classList.remove(
+            "hidden"
+        );
+
+        adminButton.onclick = () => {
+
+            adminPanel.classList.toggle(
+                "hidden"
+            );
+
+            updateAdminPlayers();
+
+        };
+
+    } else {
+
+        adminButton.classList.add(
+            "hidden"
+        );
+
+        adminPanel.classList.add(
+            "hidden"
         );
 
     }
-);
 
-/* =====================================================
+}
+
+
+function executeAbility(code) {
+
+    code =
+        String(code || "")
+            .trim()
+            .toLowerCase();
+
+    if (!code) {
+
+        if (abilityMessage) {
+
+            abilityMessage.textContent =
+                "کد قابلیت را بنویس.";
+
+        }
+
+        return;
+    }
+
+    if (gameMode === "ONLINE") {
+
+        socket.emit(
+            "useAbility",
+            {
+                code: code
+            }
+        );
+
+    } else {
+
+        applyOfflineAbility(code);
+
+    }
+
+}
+
+
+function applyOfflineAbility(code) {
+
+    if (!myPlayer) return;
+
+    switch (code) {
+
+        case "speed":
+
+            myPlayer.speedBoost = true;
+
+            break;
+
+        case "jump":
+
+            myPlayer.jumpBoost = true;
+
+            break;
+
+        case "heal":
+
+            myPlayer.health = 100;
+
+            break;
+
+        case "god":
+
+            myPlayer.god = true;
+
+            break;
+
+        case "fly":
+
+            myPlayer.fly = true;
+
+            break;
+
+        default:
+
+            if (abilityMessage) {
+
+                abilityMessage.textContent =
+                    "❌ این کد وجود ندارد.";
+
+            }
+
+            return;
+
+    }
+
+    if (abilityMessage) {
+
+        abilityMessage.textContent =
+            "✅ قابلیت " +
+            code +
+            " فعال شد.";
+
+    }
+
+}
+
+
+if (useAbility) {
+
+    useAbility.onclick = () => {
+
+        executeAbility(
+            abilityCode
+                ? abilityCode.value
+                : ""
+        );
+
+    };
+
+}
+
+
+document
+    .querySelectorAll("[data-ability]")
+    .forEach(button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                executeAbility(
+                    button.dataset.ability
+                );
+
+            }
+        );
+
+    });
+
+
+/* =========================
+   ADMIN
+========================= */
+
+function updateAdminPlayers() {
+
+    if (!adminPlayers) return;
+
+    if (!isAdmin()) return;
+
+    const old =
+        adminPlayers.value;
+
+    adminPlayers.innerHTML =
+        '<option value="">انتخاب بازیکن</option>';
+
+    Object.values(players)
+        .forEach(player => {
+
+            if (!player) return;
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+            option.value =
+                player.id;
+
+            option.textContent =
+                (player.name ||
+                    "Player") +
+                (
+                    player.id === socket.id
+                        ? " (من)"
+                        : ""
+                );
+
+            adminPlayers.appendChild(
+                option
+            );
+
+        });
+
+    if (
+        old &&
+        [...adminPlayers.options]
+            .some(
+                o =>
+                    o.value === old
+            )
+    ) {
+
+        adminPlayers.value = old;
+
+    }
+
+}
+
+
+function executeAdminAbility(code) {
+
+    if (!isAdmin()) return;
+
+    code =
+        String(code || "")
+            .trim()
+            .toLowerCase();
+
+    if (!code) {
+
+        adminMessage.textContent =
+            "کد ادمین را وارد کن.";
+
+        return;
+
+    }
+
+
+    /*
+      Monster به بازیکن هدف نیاز ندارد.
+    */
+
+    if (code === "monster") {
+
+        socket.emit(
+            "adminAbility",
+            {
+                code: "monster",
+                targetId: ""
+            }
+        );
+
+        return;
+
+    }
+
+
+    const target =
+        adminPlayers
+            ? adminPlayers.value
+            : "";
+
+    if (!target) {
+
+        adminMessage.textContent =
+            "اول بازیکن هدف را انتخاب کن.";
+
+        return;
+
+    }
+
+    socket.emit(
+        "adminAbility",
+        {
+            code: code,
+            targetId: target
+        }
+    );
+
+}
+
+
+if (useAdminCode) {
+
+    useAdminCode.onclick = () => {
+
+        executeAdminAbility(
+            adminCode
+                ? adminCode.value
+                : ""
+        );
+
+    };
+
+}
+
+
+document
+    .querySelectorAll("[data-admin]")
+    .forEach(button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                executeAdminAbility(
+                    button.dataset.admin
+                );
+
+            }
+        );
+
+    });
+
+
+/* =========================
    KEYBOARD
-===================================================== */
+========================= */
+
+const keys = {};
 
 document.addEventListener(
     "keydown",
-    function (e) {
+    e => {
 
         keys[
             e.key.toLowerCase()
         ] = true;
 
-        if (
-            e.code === "Space"
-        ) {
+        if (e.code === "Space") {
 
             keys.space = true;
 
         }
 
         if (
-            e.key.toLowerCase() ===
-            "f" &&
+            e.key.toLowerCase() === "f" &&
             gameRunning
         ) {
 
@@ -1117,17 +1501,16 @@ document.addEventListener(
     }
 );
 
+
 document.addEventListener(
     "keyup",
-    function (e) {
+    e => {
 
         keys[
             e.key.toLowerCase()
         ] = false;
 
-        if (
-            e.code === "Space"
-        ) {
+        if (e.code === "Space") {
 
             keys.space = false;
 
@@ -1136,14 +1519,12 @@ document.addEventListener(
     }
 );
 
-/* =====================================================
-   MOBILE
-===================================================== */
 
-function setupMobileButton(
-    id,
-    key
-) {
+/* =========================
+   MOBILE BUTTONS
+========================= */
+
+function setupMobileButton(id,key) {
 
     const button =
         document.getElementById(id);
@@ -1152,35 +1533,31 @@ function setupMobileButton(
 
     button.addEventListener(
         "touchstart",
-        function (e) {
+        e => {
 
             e.preventDefault();
 
             keys[key] = true;
 
         },
-        {
-            passive: false
-        }
+        {passive:false}
     );
 
     button.addEventListener(
         "touchend",
-        function (e) {
+        e => {
 
             e.preventDefault();
 
             keys[key] = false;
 
         },
-        {
-            passive: false
-        }
+        {passive:false}
     );
 
     button.addEventListener(
         "touchcancel",
-        function () {
+        () => {
 
             keys[key] = false;
 
@@ -1189,7 +1566,7 @@ function setupMobileButton(
 
     button.addEventListener(
         "mousedown",
-        function () {
+        () => {
 
             keys[key] = true;
 
@@ -1198,7 +1575,7 @@ function setupMobileButton(
 
     button.addEventListener(
         "mouseup",
-        function () {
+        () => {
 
             keys[key] = false;
 
@@ -1207,13 +1584,15 @@ function setupMobileButton(
 
     button.addEventListener(
         "mouseleave",
-        function () {
+        () => {
 
             keys[key] = false;
 
         }
     );
+
 }
+
 
 setupMobileButton(
     "leftButton",
@@ -1230,9 +1609,10 @@ setupMobileButton(
     "mobileJump"
 );
 
-/* =====================================================
+
+/* =========================
    ATTACK
-===================================================== */
+========================= */
 
 function attack() {
 
@@ -1240,15 +1620,14 @@ function attack() {
 
     if (!myPlayer) return;
 
-    if (myPlayer.dead) return;
-
     if (attackCooldown) return;
 
     attackCooldown = true;
+
     attacking = true;
 
     setTimeout(
-        function () {
+        () => {
 
             attacking = false;
 
@@ -1257,7 +1636,7 @@ function attack() {
     );
 
     setTimeout(
-        function () {
+        () => {
 
             attackCooldown = false;
 
@@ -1265,7 +1644,6 @@ function attack() {
         400
     );
 
-    /* OFFLINE AI */
 
     if (
         gameMode === "AI" &&
@@ -1278,9 +1656,7 @@ function attack() {
                 ai.x
             );
 
-        if (
-            distance < 100
-        ) {
+        if (distance < 100) {
 
             ai.health =
                 Math.max(
@@ -1288,9 +1664,7 @@ function attack() {
                     ai.health - 25
                 );
 
-            if (
-                ai.health <= 0
-            ) {
+            if (ai.health <= 0) {
 
                 ai.x =
                     Math.min(
@@ -1304,20 +1678,18 @@ function attack() {
                 ai.y =
                     getGroundY();
 
-                ai.health =
-                    100;
+                ai.health = 100;
 
                 aiVelocityY = 0;
+
                 aiOnGround = true;
 
             }
 
         }
 
-        return;
     }
 
-    /* ONLINE */
 
     if (
         gameMode === "ONLINE"
@@ -1332,46 +1704,35 @@ function attack() {
         );
 
     }
+
 }
+
 
 if (attackButton) {
 
-    attackButton.style.display =
-        "none";
-
     attackButton.addEventListener(
         "touchstart",
-        function (e) {
+        e => {
 
             e.preventDefault();
 
-            if (
-                gameRunning &&
-                gameScreen.style.display ===
-                "block"
-            ) {
+            if (gameRunning) {
 
                 attack();
 
             }
 
         },
-        {
-            passive: false
-        }
+        {passive:false}
     );
 
     attackButton.addEventListener(
         "click",
-        function (e) {
+        e => {
 
             e.preventDefault();
 
-            if (
-                gameRunning &&
-                gameScreen.style.display ===
-                "block"
-            ) {
+            if (gameRunning) {
 
                 attack();
 
@@ -1379,21 +1740,25 @@ if (attackButton) {
 
         }
     );
+
 }
 
-/* =====================================================
-   PLAYER UPDATE
-===================================================== */
+
+/* =========================
+   PLAYER
+========================= */
 
 function updatePlayer() {
 
     if (!myPlayer) return;
 
-    if (myPlayer.dead) {
-        return;
-    }
-
     let moving = false;
+
+    const speed =
+        myPlayer.speedBoost
+            ? SPEED * 2
+            : SPEED;
+
 
     if (
         keys.a ||
@@ -1401,11 +1766,12 @@ function updatePlayer() {
         keys.mobileLeft
     ) {
 
-        myPlayer.x -= SPEED;
+        myPlayer.x -= speed;
 
         moving = true;
 
     }
+
 
     if (
         keys.d ||
@@ -1413,11 +1779,18 @@ function updatePlayer() {
         keys.mobileRight
     ) {
 
-        myPlayer.x += SPEED;
+        myPlayer.x += speed;
 
         moving = true;
 
     }
+
+
+    const jumpPower =
+        myPlayer.jumpBoost
+            ? JUMP * 1.7
+            : JUMP;
+
 
     if (
         (
@@ -1426,25 +1799,56 @@ function updatePlayer() {
             keys.space ||
             keys.mobileJump
         ) &&
-        onGround
+        (
+            onGround ||
+            myPlayer.fly
+        )
     ) {
 
         velocityY =
-            -JUMP;
+            -jumpPower;
 
         onGround = false;
 
     }
 
-    velocityY += GRAVITY;
 
-    myPlayer.y +=
-        velocityY;
+    if (myPlayer.fly) {
+
+        if (
+            keys.w ||
+            keys.arrowup ||
+            keys.mobileJump
+        ) {
+
+            myPlayer.y -= 5;
+
+        }
+
+        if (
+            keys.s ||
+            keys.arrowdown
+        ) {
+
+            myPlayer.y += 5;
+
+        }
+
+    } else {
+
+        velocityY += GRAVITY;
+
+        myPlayer.y += velocityY;
+
+    }
+
 
     const ground =
         getGroundY();
 
+
     if (
+        !myPlayer.fly &&
         myPlayer.y >= ground
     ) {
 
@@ -1457,13 +1861,13 @@ function updatePlayer() {
 
     }
 
-    if (
-        myPlayer.x < 35
-    ) {
+
+    if (myPlayer.x < 35) {
 
         myPlayer.x = 35;
 
     }
+
 
     if (
         canvas &&
@@ -1476,12 +1880,10 @@ function updatePlayer() {
 
     }
 
+
     if (
         gameMode === "ONLINE" &&
-        (
-            moving ||
-            !onGround
-        )
+        (moving || !onGround)
     ) {
 
         socket.emit(
@@ -1493,28 +1895,24 @@ function updatePlayer() {
         );
 
     }
+
 }
 
-/* =====================================================
+
+/* =========================
    AI
-===================================================== */
+========================= */
 
 function updateAI() {
 
-    if (!ai || !myPlayer) {
-        return;
-    }
-
-    if (myPlayer.dead) {
-        return;
-    }
+    if (!ai || !myPlayer) return;
 
     const ground =
         getGroundY();
 
     const distance =
-        myPlayer.x -
-        ai.x;
+        myPlayer.x - ai.x;
+
 
     if (
         Math.abs(distance) > 30
@@ -1532,6 +1930,7 @@ function updateAI() {
 
     }
 
+
     ai.x =
         Math.max(
             50,
@@ -1541,14 +1940,13 @@ function updateAI() {
             )
         );
 
+
     aiVelocityY += GRAVITY;
 
-    ai.y +=
-        aiVelocityY;
+    ai.y += aiVelocityY;
 
-    if (
-        ai.y >= ground
-    ) {
+
+    if (ai.y >= ground) {
 
         ai.y =
             ground;
@@ -1559,7 +1957,9 @@ function updateAI() {
 
     }
 
+
     aiDirectionTimer--;
+
 
     if (
         aiDirectionTimer <= 0
@@ -1568,9 +1968,9 @@ function updateAI() {
         aiDirectionTimer =
             100 +
             Math.floor(
-                Math.random() *
-                150
+                Math.random()*150
             );
+
 
         if (
             Math.abs(distance) < 300 &&
@@ -1585,66 +1985,13 @@ function updateAI() {
         }
 
     }
+
 }
 
-/* =====================================================
-   MONSTER UPDATE
-===================================================== */
 
-function updateMonsters() {
-
-    Object.values(
-        monsters
-    ).forEach(
-        function (monster) {
-
-            if (!monster) return;
-
-            if (!myPlayer) return;
-
-            if (myPlayer.dead) return;
-
-            const distance =
-                myPlayer.x -
-                monster.x;
-
-            if (
-                Math.abs(distance) >
-                55
-            ) {
-
-                if (distance > 0) {
-
-                    monster.x +=
-                        monster.speed ||
-                        1.8;
-
-                } else {
-
-                    monster.x -=
-                        monster.speed ||
-                        1.8;
-
-                }
-
-            }
-
-            monster.x =
-                Math.max(
-                    50,
-                    Math.min(
-                        canvas.width - 50,
-                        monster.x
-                    )
-                );
-
-        }
-    );
-}
-
-/* =====================================================
+/* =========================
    UI
-===================================================== */
+========================= */
 
 function updateGameUI() {
 
@@ -1655,365 +2002,26 @@ function updateGameUI() {
 
     if (!score) return;
 
-    if (
+    const hp =
         myPlayer &&
         typeof myPlayer.health ===
-        "number"
-    ) {
-
-        score.textContent =
-            "❤️ " +
-            Math.max(
-                0,
-                myPlayer.health
-            );
-
-        return;
-    }
+            "number"
+            ? myPlayer.health
+            : 100;
 
     score.textContent =
-        "❤️ 100";
+        "❤️ " + hp;
+
 }
 
-/* =====================================================
-   MESSAGE
-===================================================== */
 
-function showMessage(text) {
-
-    let message =
-        document.getElementById(
-            "gameMessage"
-        );
-
-    if (!message) {
-
-        message =
-            document.createElement(
-                "div"
-            );
-
-        message.id =
-            "gameMessage";
-
-        message.style.position =
-            "fixed";
-
-        message.style.left =
-            "50%";
-
-        message.style.top =
-            "90px";
-
-        message.style.transform =
-            "translateX(-50%)";
-
-        message.style.zIndex =
-            "1000";
-
-        message.style.padding =
-            "12px 20px";
-
-        message.style.borderRadius =
-            "12px";
-
-        message.style.background =
-            "#111827dd";
-
-        message.style.color =
-            "white";
-
-        message.style.fontWeight =
-            "bold";
-
-        message.style.fontSize =
-            "16px";
-
-        message.style.pointerEvents =
-            "none";
-
-        document.body.appendChild(
-            message
-        );
-
-    }
-
-    message.textContent =
-        text;
-
-    clearTimeout(
-        message._timer
-    );
-
-    message._timer =
-        setTimeout(
-            function () {
-
-                message.remove();
-
-            },
-            2200
-        );
-}
-
-/* =====================================================
-   ADMIN PANEL
-===================================================== */
-
-function setupAdminPanel() {
-
-    let panel =
-        document.getElementById(
-            "adminPanel"
-        );
-
-    if (!isAdmin) {
-
-        if (panel) {
-            panel.remove();
-        }
-
-        return;
-    }
-
-    if (panel) return;
-
-    panel =
-        document.createElement(
-            "div"
-        );
-
-    panel.id =
-        "adminPanel";
-
-    panel.style.position =
-        "fixed";
-
-    panel.style.right =
-        "15px";
-
-    panel.style.top =
-        "70px";
-
-    panel.style.zIndex =
-        "999";
-
-    panel.style.width =
-        "300px";
-
-    panel.style.maxWidth =
-        "calc(100vw - 30px)";
-
-    panel.style.padding =
-        "16px";
-
-    panel.style.borderRadius =
-        "18px";
-
-    panel.style.background =
-        "#111827ee";
-
-    panel.style.color =
-        "white";
-
-    panel.style.boxShadow =
-        "0 15px 40px #0009";
-
-    panel.style.direction =
-        "rtl";
-
-    const title =
-        document.createElement(
-            "div"
-        );
-
-    title.textContent =
-        "👑 پنل ادمین";
-
-    title.style.fontSize =
-        "22px";
-
-    title.style.fontWeight =
-        "bold";
-
-    title.style.marginBottom =
-        "12px";
-
-    panel.appendChild(
-        title
-    );
-
-    const help =
-        document.createElement(
-            "div"
-        );
-
-    help.textContent =
-        "کد واقعی را وارد کن:";
-
-    help.style.marginBottom =
-        "8px";
-
-    panel.appendChild(
-        help
-    );
-
-    const input =
-        document.createElement(
-            "input"
-        );
-
-    input.id =
-        "adminCommandInput";
-
-    input.placeholder =
-        "/monster";
-
-    input.autocomplete =
-        "off";
-
-    input.style.width =
-        "100%";
-
-    input.style.padding =
-        "13px";
-
-    input.style.border =
-        "0";
-
-    input.style.borderRadius =
-        "10px";
-
-    input.style.margin =
-        "8px 0 12px";
-
-    input.style.fontSize =
-        "16px";
-
-    input.style.textAlign =
-        "left";
-
-    input.style.direction =
-        "ltr";
-
-    panel.appendChild(
-        input
-    );
-
-    const run =
-        document.createElement(
-            "button"
-        );
-
-    run.textContent =
-        "▶️ اجرای دستور";
-
-    run.style.width =
-        "100%";
-
-    run.style.padding =
-        "12px";
-
-    run.style.border =
-        "0";
-
-    run.style.borderRadius =
-        "10px";
-
-    run.style.background =
-        "#7c3aed";
-
-    run.style.color =
-        "white";
-
-    run.style.fontWeight =
-        "bold";
-
-    run.style.cursor =
-        "pointer";
-
-    run.onclick =
-        function () {
-
-            const command =
-                input.value.trim();
-
-            if (!command) return;
-
-            socket.emit(
-                "adminCommand",
-                {
-                    command
-                }
-            );
-
-            input.value =
-                "";
-
-        };
-
-    panel.appendChild(
-        run
-    );
-
-    const commands =
-        document.createElement(
-            "div"
-        );
-
-    commands.style.marginTop =
-        "12px";
-
-    commands.style.fontSize =
-        "13px";
-
-    commands.style.lineHeight =
-        "1.8";
-
-    commands.innerHTML =
-        `
-        <b>دستورها:</b><br>
-        /monster<br>
-        /heal<br>
-        /kill اسم<br>
-        /give اسم قابلیت<br>
-        /speed عدد
-        `;
-
-    panel.appendChild(
-        commands
-    );
-
-    input.addEventListener(
-        "keydown",
-        function (e) {
-
-            if (
-                e.key ===
-                "Enter"
-            ) {
-
-                run.click();
-
-            }
-
-        }
-    );
-
-    document.body.appendChild(
-        panel
-    );
-}
-
-/* =====================================================
-   SKY
-===================================================== */
+/* =========================
+   DRAW SKY
+========================= */
 
 function drawSky() {
 
-    if (!ctx || !canvas) {
-        return;
-    }
+    if (!ctx || !canvas) return;
 
     const gradient =
         ctx.createLinearGradient(
@@ -2043,6 +2051,7 @@ function drawSky() {
         canvas.height
     );
 
+
     ctx.fillStyle =
         "#fde047";
 
@@ -2067,9 +2076,11 @@ function drawSky() {
     drawCloud(
         420,
         160,
-        0.8
+        .8
     );
+
 }
+
 
 function drawCloud(
     x,
@@ -2087,46 +2098,46 @@ function drawCloud(
     ctx.arc(
         x,
         y,
-        22 * scale,
+        22*scale,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.arc(
-        x + 25 * scale,
-        y - 8 * scale,
-        28 * scale,
+        x+25*scale,
+        y-8*scale,
+        28*scale,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.arc(
-        x + 55 * scale,
+        x+55*scale,
         y,
-        22 * scale,
+        22*scale,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fillRect(
-        x - 5 * scale,
+        x-5*scale,
         y,
-        65 * scale,
-        20 * scale
+        65*scale,
+        20*scale
     );
 
     ctx.fill();
+
 }
 
-/* =====================================================
+
+/* =========================
    GROUND
-===================================================== */
+========================= */
 
 function drawGround() {
 
-    if (!ctx || !canvas) {
-        return;
-    }
+    if (!ctx || !canvas) return;
 
     const ground =
         getGroundY();
@@ -2156,7 +2167,7 @@ function drawGround() {
 
     ctx.fillRect(
         0,
-        ground + 9,
+        ground+9,
         canvas.width,
         111
     );
@@ -2165,38 +2176,38 @@ function drawGround() {
         "#6b3f1f";
 
     for (
-        let x = 20;
-        x < canvas.width;
-        x += 85
+        let x=20;
+        x<canvas.width;
+        x+=85
     ) {
 
         ctx.beginPath();
 
         ctx.arc(
             x,
-            ground + 42,
+            ground+42,
             5,
             0,
-            Math.PI * 2
+            Math.PI*2
         );
 
         ctx.fill();
 
     }
+
 }
 
-/* =====================================================
+
+/* =========================
    STICKMAN
-===================================================== */
+========================= */
 
 function drawStickman(
     player,
-    isAI = false
+    isAI=false
 ) {
 
-    if (!ctx || !player) {
-        return;
-    }
+    if (!ctx || !player) return;
 
     const x =
         player.x;
@@ -2212,15 +2223,14 @@ function drawStickman(
 
     const scale =
         Math.max(
-            0.8,
+            .8,
             Math.min(
                 1.15,
-                minScreen / 850
+                minScreen/850
             )
         );
 
-    const s =
-        scale;
+    const s = scale;
 
     const bodyColor =
         isAI
@@ -2243,6 +2253,7 @@ function drawStickman(
             ? "#dc2626"
             : "#22c55e";
 
+
     ctx.save();
 
     ctx.lineCap =
@@ -2251,146 +2262,149 @@ function drawStickman(
     ctx.lineJoin =
         "round";
 
-    if (player.dead) {
-
-        ctx.globalAlpha =
-            0.35;
-
-    }
 
     ctx.fillStyle =
-        "rgba(0,0,0,0.20)";
+        "rgba(0,0,0,.20)";
 
     ctx.beginPath();
 
     ctx.ellipse(
         x,
-        y + 62 * s,
-        32 * s,
-        8 * s,
+        y+62*s,
+        32*s,
+        8*s,
         0,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fill();
+
 
     ctx.strokeStyle =
         "#1f2937";
 
     ctx.lineWidth =
-        8 * s;
+        8*s;
 
     ctx.beginPath();
 
     ctx.moveTo(
         x,
-        y + 20 * s
+        y+20*s
     );
 
     ctx.lineTo(
-        x - 18 * s,
-        y + 53 * s
+        x-18*s,
+        y+53*s
     );
 
     ctx.stroke();
+
 
     ctx.beginPath();
 
     ctx.moveTo(
         x,
-        y + 20 * s
+        y+20*s
     );
 
     ctx.lineTo(
-        x + 18 * s,
-        y + 53 * s
+        x+18*s,
+        y+53*s
     );
 
     ctx.stroke();
+
 
     ctx.fillStyle =
         shoe;
 
     roundRect(
-        x - 32 * s,
-        y + 49 * s,
-        25 * s,
-        10 * s,
-        5 * s
+        x-32*s,
+        y+49*s,
+        25*s,
+        10*s,
+        5*s
     );
 
     ctx.fill();
+
 
     roundRect(
-        x + 7 * s,
-        y + 49 * s,
-        25 * s,
-        10 * s,
-        5 * s
+        x+7*s,
+        y+49*s,
+        25*s,
+        10*s,
+        5*s
     );
 
     ctx.fill();
+
 
     ctx.fillStyle =
         shirt;
 
     roundRect(
-        x - 19 * s,
-        y - 28 * s,
-        38 * s,
-        50 * s,
-        12 * s
+        x-19*s,
+        y-28*s,
+        38*s,
+        50*s,
+        12*s
     );
 
     ctx.fill();
+
 
     ctx.fillStyle =
         bodyColor;
 
     roundRect(
-        x - 13 * s,
-        y - 22 * s,
-        26 * s,
-        35 * s,
-        8 * s
+        x-13*s,
+        y-22*s,
+        26*s,
+        35*s,
+        8*s
     );
 
     ctx.fill();
+
 
     ctx.strokeStyle =
         bodyDark;
 
     ctx.lineWidth =
-        8 * s;
+        8*s;
 
     ctx.beginPath();
 
     ctx.moveTo(
-        x - 16 * s,
-        y - 15 * s
+        x-16*s,
+        y-15*s
     );
 
     ctx.lineTo(
-        x - 38 * s,
-        y + 8 * s
+        x-38*s,
+        y+8*s
     );
 
     ctx.stroke();
+
 
     ctx.beginPath();
 
     ctx.moveTo(
-        x + 16 * s,
-        y - 15 * s
+        x+16*s,
+        y-15*s
     );
 
     ctx.lineTo(
-        x + 38 * s,
-        y + 8 * s
+        x+38*s,
+        y+8*s
     );
 
     ctx.stroke();
+
 
     ctx.fillStyle =
         skin;
@@ -2398,51 +2412,52 @@ function drawStickman(
     ctx.beginPath();
 
     ctx.arc(
-        x - 40 * s,
-        y + 10 * s,
-        6 * s,
+        x-40*s,
+        y+10*s,
+        6*s,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fill();
+
 
     ctx.beginPath();
 
     ctx.arc(
-        x + 40 * s,
-        y + 10 * s,
-        6 * s,
+        x+40*s,
+        y+10*s,
+        6*s,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fill();
 
-    ctx.fillStyle =
-        skin;
 
     roundRect(
-        x - 8 * s,
-        y - 40 * s,
-        16 * s,
-        14 * s,
-        5 * s
+        x-8*s,
+        y-40*s,
+        16*s,
+        14*s,
+        5*s
     );
 
     ctx.fill();
+
 
     ctx.beginPath();
 
     ctx.arc(
         x,
-        y - 58 * s,
-        22 * s,
+        y-58*s,
+        22*s,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fill();
+
 
     ctx.fillStyle =
         "#111827";
@@ -2451,40 +2466,40 @@ function drawStickman(
 
     ctx.arc(
         x,
-        y - 66 * s,
-        22 * s,
+        y-66*s,
+        22*s,
         Math.PI,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fill();
 
-    ctx.fillStyle =
-        "#111827";
 
     ctx.beginPath();
 
     ctx.arc(
-        x - 8 * s,
-        y - 59 * s,
-        2.5 * s,
+        x-8*s,
+        y-59*s,
+        2.5*s,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fill();
+
 
     ctx.beginPath();
 
     ctx.arc(
-        x + 8 * s,
-        y - 59 * s,
-        2.5 * s,
+        x+8*s,
+        y-59*s,
+        2.5*s,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fill();
+
 
     const name =
         player.name ||
@@ -2493,7 +2508,7 @@ function drawStickman(
     const fontSize =
         Math.max(
             12,
-            15 * s
+            15*s
         );
 
     ctx.font =
@@ -2505,20 +2520,21 @@ function drawStickman(
         ).width;
 
     ctx.fillStyle =
-        "rgba(17,24,39,0.82)";
+        "rgba(17,24,39,.82)";
 
     roundRect(
-        x - textWidth / 2 - 8,
-        y - 105 * s,
-        textWidth + 16,
-        24 * s,
+        x-textWidth/2-8,
+        y-105*s,
+        textWidth+16,
+        24*s,
         8
     );
 
     ctx.fill();
 
+
     ctx.fillStyle =
-        "#ffffff";
+        "#fff";
 
     ctx.textAlign =
         "center";
@@ -2529,26 +2545,9 @@ function drawStickman(
     ctx.fillText(
         name,
         x,
-        y - 93 * s
+        y-93*s
     );
 
-    if (
-        player.isAdmin
-    ) {
-
-        ctx.fillStyle =
-            "#facc15";
-
-        ctx.font =
-            `bold ${14 * s}px Arial`;
-
-        ctx.fillText(
-            "👑",
-            x,
-            y - 118 * s
-        );
-
-    }
 
     if (isAI) {
 
@@ -2556,58 +2555,16 @@ function drawStickman(
             "#facc15";
 
         ctx.font =
-            `bold ${12 * s}px Arial`;
+            `bold ${12*s}px Arial`;
 
         ctx.fillText(
             "🤖",
             x,
-            y - 118 * s
+            y-118*s
         );
 
     }
 
-    if (
-        typeof player.health ===
-        "number"
-    ) {
-
-        const barWidth =
-            60 * s;
-
-        const barHeight =
-            7 * s;
-
-        ctx.fillStyle =
-            "#111827";
-
-        ctx.fillRect(
-            x - barWidth / 2,
-            y - 132 * s,
-            barWidth,
-            barHeight
-        );
-
-        ctx.fillStyle =
-            player.health > 50
-                ? "#22c55e"
-                : "#ef4444";
-
-        ctx.fillRect(
-            x - barWidth / 2,
-            y - 132 * s,
-            barWidth *
-                Math.max(
-                    0,
-                    player.health /
-                    (
-                        player.maxHealth ||
-                        100
-                    )
-                ),
-            barHeight
-        );
-
-    }
 
     if (
         attacking &&
@@ -2618,16 +2575,39 @@ function drawStickman(
             "#facc15";
 
         ctx.lineWidth =
-            6 * s;
+            6*s;
 
         ctx.beginPath();
 
         ctx.arc(
             x,
-            y - 5 * s,
-            65 * s,
-            -0.8,
-            0.8
+            y-5*s,
+            65*s,
+            -.8,
+            .8
+        );
+
+        ctx.stroke();
+
+    }
+
+
+    if (player.god) {
+
+        ctx.strokeStyle =
+            "#facc15";
+
+        ctx.lineWidth =
+            4;
+
+        ctx.beginPath();
+
+        ctx.arc(
+            x,
+            y-20*s,
+            55*s,
+            0,
+            Math.PI*2
         );
 
         ctx.stroke();
@@ -2635,19 +2615,21 @@ function drawStickman(
     }
 
     ctx.restore();
+
 }
 
-/* =====================================================
+
+/* =========================
    MONSTER DRAW
-===================================================== */
+========================= */
 
-function drawMonster(
-    monster
-) {
+function drawMonster() {
 
-    if (!ctx || !monster) {
-        return;
-    }
+    if (
+        !ctx ||
+        !canvas ||
+        !monster
+    ) return;
 
     const x =
         monster.x;
@@ -2655,47 +2637,111 @@ function drawMonster(
     const y =
         monster.y;
 
-    ctx.save();
+    const size = 1;
+
+
+    /* سایه */
 
     ctx.fillStyle =
-        "#7f1d1d";
+        "rgba(0,0,0,.3)";
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        x,
+        y+55,
+        48,
+        10,
+        0,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* بدن */
+
+    ctx.fillStyle =
+        "#581c87";
 
     ctx.beginPath();
 
     ctx.arc(
         x,
-        y - 35,
-        30,
+        y,
+        38,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fill();
 
+
+    /* سر */
+
     ctx.fillStyle =
-        "#dc2626";
+        "#7e22ce";
 
     ctx.beginPath();
 
     ctx.arc(
         x,
-        y - 38,
-        22,
+        y-45,
+        32,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fill();
 
-    ctx.fillStyle =
-        "#111827";
 
-    ctx.fillRect(
-        x - 25,
-        y - 10,
-        50,
-        45
+    /* شاخ */
+
+    ctx.fillStyle =
+        "#ef4444";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x-22,
+        y-68
     );
+
+    ctx.lineTo(
+        x-10,
+        y-100
+    );
+
+    ctx.lineTo(
+        x-2,
+        y-67
+    );
+
+    ctx.fill();
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x+22,
+        y-68
+    );
+
+    ctx.lineTo(
+        x+10,
+        y-100
+    );
+
+    ctx.lineTo(
+        x+2,
+        y-67
+    );
+
+    ctx.fill();
+
+
+    /* چشم */
 
     ctx.fillStyle =
         "#facc15";
@@ -2703,83 +2749,217 @@ function drawMonster(
     ctx.beginPath();
 
     ctx.arc(
-        x - 10,
-        y - 42,
-        5,
+        x-11,
+        y-48,
+        6,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fill();
 
+
     ctx.beginPath();
 
     ctx.arc(
-        x + 10,
-        y - 42,
-        5,
+        x+11,
+        y-48,
+        6,
         0,
-        Math.PI * 2
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* دهان */
+
+    ctx.strokeStyle =
+        "#111827";
+
+    ctx.lineWidth = 5;
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x,
+        y-35,
+        15,
+        0,
+        Math.PI
+    );
+
+    ctx.stroke();
+
+
+    /* دست‌ها */
+
+    ctx.strokeStyle =
+        "#4c1d95";
+
+    ctx.lineWidth = 12;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x-30,
+        y-5
+    );
+
+    ctx.lineTo(
+        x-60,
+        y+25
+    );
+
+    ctx.stroke();
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x+30,
+        y-5
+    );
+
+    ctx.lineTo(
+        x+60,
+        y+25
+    );
+
+    ctx.stroke();
+
+
+    /* پاها */
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x-15,
+        y+30
+    );
+
+    ctx.lineTo(
+        x-25,
+        y+60
+    );
+
+    ctx.stroke();
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x+15,
+        y+30
+    );
+
+    ctx.lineTo(
+        x+25,
+        y+60
+    );
+
+    ctx.stroke();
+
+
+    /* اسم */
+
+    ctx.fillStyle =
+        "rgba(17,24,39,.85)";
+
+    roundRect(
+        x-65,
+        y-125,
+        130,
+        25,
+        8
     );
 
     ctx.fill();
 
     ctx.fillStyle =
-        "#ffffff";
+        "#fff";
 
     ctx.font =
-        "bold 14px Arial";
+        "bold 15px Arial";
 
     ctx.textAlign =
         "center";
 
+    ctx.textBaseline =
+        "middle";
+
     ctx.fillText(
-        "👹",
+        "👹 MONSTER",
         x,
-        y - 75
+        y-112
     );
 
-    if (
+
+    /* نوار جان هیولا */
+
+    const hp =
         typeof monster.health ===
-        "number"
-    ) {
+            "number"
+            ? monster.health
+            : 100;
 
-        ctx.fillStyle =
-            "#111827";
+    ctx.fillStyle =
+        "#111827";
 
-        ctx.fillRect(
-            x - 35,
-            y - 90,
-            70,
-            7
-        );
+    ctx.fillRect(
+        x-45,
+        y-140,
+        90,
+        8
+    );
 
-        ctx.fillStyle =
+    ctx.fillStyle =
+        "#ef4444";
+
+    ctx.fillRect(
+        x-45,
+        y-140,
+        90 *
+        Math.max(
+            0,
+            Math.min(
+                1,
+                hp/100
+            )
+        ),
+        8
+    );
+
+
+    if (monsterAttackFlash > 0) {
+
+        ctx.strokeStyle =
             "#ef4444";
 
-        ctx.fillRect(
-            x - 35,
-            y - 90,
-            70 *
-                Math.max(
-                    0,
-                    monster.health /
-                    (
-                        monster.maxHealth ||
-                        150
-                    )
-                ),
-            7
+        ctx.lineWidth = 8;
+
+        ctx.beginPath();
+
+        ctx.arc(
+            x,
+            y-20,
+            80,
+            0,
+            Math.PI*2
         );
+
+        ctx.stroke();
+
+        monsterAttackFlash--;
 
     }
 
-    ctx.restore();
 }
 
-/* =====================================================
+
+/* =========================
    ROUND RECT
-===================================================== */
+========================= */
 
 function roundRect(
     x,
@@ -2794,65 +2974,73 @@ function roundRect(
     const r =
         Math.min(
             radius,
-            width / 2,
-            height / 2
+            width/2,
+            height/2
         );
 
     ctx.beginPath();
 
     ctx.moveTo(
-        x + r,
+        x+r,
         y
     );
 
     ctx.arcTo(
-        x + width,
+        x+width,
         y,
-        x + width,
-        y + height,
+        x+width,
+        y+height,
         r
     );
 
     ctx.arcTo(
-        x + width,
-        y + height,
+        x+width,
+        y+height,
         x,
-        y + height,
-        r
-    );
-
-    ctx.arcTo(
-        x,
-        y + height,
-        x,
-        y,
+        y+height,
         r
     );
 
     ctx.arcTo(
         x,
+        y+height,
+        x,
         y,
-        x + width,
+        r
+    );
+
+    ctx.arcTo(
+        x,
+        y,
+        x+width,
         y,
         r
     );
 
     ctx.closePath();
+
 }
 
-/* =====================================================
+
+/* =========================
    DRAW GAME
-===================================================== */
+========================= */
 
 function drawGame() {
 
-    if (!ctx || !canvas) {
-        return;
-    }
+    if (!ctx || !canvas) return;
 
     drawSky();
 
     drawGround();
+
+
+    if (monster) {
+
+        drawMonster();
+
+    }
+
 
     if (myPlayer) {
 
@@ -2863,6 +3051,7 @@ function drawGame() {
 
     }
 
+
     if (ai) {
 
         drawStickman(
@@ -2872,55 +3061,39 @@ function drawGame() {
 
     }
 
+
     if (
         gameMode ===
         "ONLINE"
     ) {
 
-        Object.values(
-            players
-        ).forEach(
-            function (player) {
+        Object.values(players)
+            .forEach(player => {
 
                 if (
                     player.id ===
                     socket.id
-                ) {
-                    return;
-                }
+                ) return;
 
                 drawStickman(
                     player,
                     false
                 );
 
-            }
-        );
+            });
 
     }
 
-    Object.values(
-        monsters
-    ).forEach(
-        function (monster) {
-
-            drawMonster(
-                monster
-            );
-
-        }
-    );
 }
 
-/* =====================================================
+
+/* =========================
    GAME LOOP
-===================================================== */
+========================= */
 
 function gameLoop() {
 
-    if (!gameRunning) {
-        return;
-    }
+    if (!gameRunning) return;
 
     updatePlayer();
 
@@ -2933,8 +3106,6 @@ function gameLoop() {
 
     }
 
-    updateMonsters();
-
     updateGameUI();
 
     drawGame();
@@ -2944,6 +3115,10 @@ function gameLoop() {
     requestAnimationFrame(
         gameLoop
     );
+
 }
+
+
+setupAbilityUI();
 
 updateAttackButtonVisibility();
