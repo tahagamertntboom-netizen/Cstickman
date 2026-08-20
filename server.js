@@ -4,116 +4,75 @@ const { Server } = require("socket.io");
 const path = require("path");
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
-const server =
-    http.createServer(app);
-
-const io =
-    new Server(server);
-
-const PORT =
-    process.env.PORT || 8080;
+const PORT = process.env.PORT || 8080;
 
 app.use(express.static(__dirname));
 
-app.get("/", (req,res) => {
-    res.sendFile(
-        path.join(
-            __dirname,
-            "index.html"
-        )
-    );
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "index.html"));
 });
-
-
-/* =========================
-   ROOMS
-========================= */
 
 const rooms = {};
 
+const ADMIN_NAME = "tahagamertnt";
 
 function generateRoomCode() {
-
     let code;
 
     do {
-
-        code =
-            String(
-                Math.floor(
-                    100000 +
-                    Math.random()*900000
-                )
-            );
-
+        code = String(
+            Math.floor(
+                100000 + Math.random() * 900000
+            )
+        );
     } while (rooms[code]);
 
     return code;
 }
 
-
-/* =========================
-   PLAYER
-========================= */
-
-function createPlayer(socket,name) {
-
-    const cleanName =
-        String(
-            name || "Player"
-        ).substring(0,20);
+function createPlayer(socket, name) {
+    const safeName =
+        String(name || "Player")
+            .substring(0, 20);
 
     return {
-
         id: socket.id,
-
-        name: cleanName,
+        name: safeName,
 
         x: 300,
-
         y: 0,
 
         health: 100,
-
         maxHealth: 100,
 
         level: 1,
-
         ready: false,
 
-        speedBoost: false,
+        isAdmin:
+            safeName === ADMIN_NAME,
 
-        jumpBoost: false,
-
-        fly: false,
-
-        god: false
+        dead: false
     };
 }
 
-
-function isAdmin(player) {
-
-    if (!player) return false;
-
-    return (
-        String(player.name)
-            .trim()
-            .toLowerCase()
-        === "tahagamertnt"
-    );
+function getRoom(socket) {
+    if (!socket.roomCode) return null;
+    return rooms[socket.roomCode] || null;
 }
 
+function getPlayer(socket) {
+    const room = getRoom(socket);
 
-/* =========================
-   SEND PLAYERS
-========================= */
+    if (!room) return null;
 
-function sendPlayers(roomCode) {
+    return room.players[socket.id] || null;
+}
 
-    const room =
-        rooms[roomCode];
+function broadcastPlayers(roomCode) {
+    const room = rooms[roomCode];
 
     if (!room) return;
 
@@ -123,288 +82,262 @@ function sendPlayers(roomCode) {
     );
 }
 
+function sendAdminState(socket) {
+    const player = getPlayer(socket);
 
-/* =========================
-   SOCKET
-========================= */
+    if (!player) return;
 
-io.on("connection",socket => {
+    socket.emit("adminState", {
+        isAdmin: player.isAdmin
+    });
+}
+
+/* =====================================================
+   CONNECTION
+===================================================== */
+
+io.on("connection", (socket) => {
 
     console.log(
         "Player connected:",
         socket.id
     );
 
-
-    /* =====================
+    /* =================================================
        CREATE ROOM
-    ===================== */
+    ================================================= */
 
-    socket.on(
-        "createRoom",
-        data => {
+    socket.on("createRoom", (data) => {
 
-            const roomCode =
-                generateRoomCode();
+        const roomCode =
+            generateRoomCode();
 
-            const player =
-                createPlayer(
-                    socket,
-                    data && data.name
-                );
-
-            rooms[roomCode] = {
-
-                players: {},
-
-                ready: {},
-
-                started: false
-            };
-
-            rooms[roomCode]
-                .players[socket.id] =
-                player;
-
-            socket.join(roomCode);
-
-            socket.roomCode =
-                roomCode;
-
-            socket.player =
-                player;
-
-            socket.emit(
-                "roomCreated",
-                {
-                    roomCode,
-                    player
-                }
+        const player =
+            createPlayer(
+                socket,
+                data && data.name
             );
 
-            console.log(
-                `Room ${roomCode} created by ${player.name}`
-            );
-        }
-    );
+        rooms[roomCode] = {
+            players: {},
+            ready: {},
+            started: false,
+            monsters: {}
+        };
 
+        rooms[roomCode].players[
+            socket.id
+        ] = player;
 
-    /* =====================
+        socket.join(roomCode);
+
+        socket.roomCode = roomCode;
+        socket.player = player;
+
+        socket.emit(
+            "roomCreated",
+            {
+                roomCode,
+                player
+            }
+        );
+
+        sendAdminState(socket);
+
+        console.log(
+            `Room ${roomCode} created by ${player.name}`
+        );
+    });
+
+    /* =================================================
        JOIN ROOM
-    ===================== */
+    ================================================= */
 
-    socket.on(
-        "joinRoom",
-        data => {
+    socket.on("joinRoom", (data) => {
 
-            const roomCode =
-                String(
-                    data &&
-                    data.roomCode
-                        ? data.roomCode
-                        : ""
-                )
-                .replace(/\D/g,"")
-                .substring(0,6);
+        const roomCode =
+            String(
+                data && data.roomCode
+                    ? data.roomCode
+                    : ""
+            )
+                .replace(/\D/g, "")
+                .substring(0, 6);
 
-            if (roomCode.length !== 6) {
-
-                socket.emit(
-                    "roomError",
-                    "کد اتاق باید ۶ رقمی باشد."
-                );
-
-                return;
-            }
-
-            const room =
-                rooms[roomCode];
-
-            if (!room) {
-
-                socket.emit(
-                    "roomError",
-                    "این اتاق وجود ندارد."
-                );
-
-                return;
-            }
-
-            if (
-                Object.keys(
-                    room.players
-                ).length >= 15
-            ) {
-
-                socket.emit(
-                    "roomError",
-                    "اتاق پر است."
-                );
-
-                return;
-            }
-
-            if (room.started) {
-
-                socket.emit(
-                    "roomError",
-                    "بازی این اتاق شروع شده است."
-                );
-
-                return;
-            }
-
-            const player =
-                createPlayer(
-                    socket,
-                    data && data.name
-                );
-
-            room.players[socket.id] =
-                player;
-
-            socket.join(roomCode);
-
-            socket.roomCode =
-                roomCode;
-
-            socket.player =
-                player;
+        if (roomCode.length !== 6) {
 
             socket.emit(
-                "roomJoined",
-                {
-                    roomCode,
-                    player
-                }
+                "roomError",
+                "کد اتاق باید ۶ رقمی باشد."
             );
 
-            sendPlayers(roomCode);
-
-            console.log(
-                `${player.name} joined ${roomCode}`
-            );
+            return;
         }
-    );
 
+        const room =
+            rooms[roomCode];
 
-    /* =====================
+        if (!room) {
+
+            socket.emit(
+                "roomError",
+                "این اتاق وجود ندارد."
+            );
+
+            return;
+        }
+
+        if (
+            Object.keys(room.players).length >= 15
+        ) {
+
+            socket.emit(
+                "roomError",
+                "اتاق پر است."
+            );
+
+            return;
+        }
+
+        if (room.started) {
+
+            socket.emit(
+                "roomError",
+                "بازی این اتاق شروع شده است."
+            );
+
+            return;
+        }
+
+        const player =
+            createPlayer(
+                socket,
+                data && data.name
+            );
+
+        room.players[
+            socket.id
+        ] = player;
+
+        socket.join(roomCode);
+
+        socket.roomCode = roomCode;
+        socket.player = player;
+
+        socket.emit(
+            "roomJoined",
+            {
+                roomCode,
+                player
+            }
+        );
+
+        broadcastPlayers(roomCode);
+
+        sendAdminState(socket);
+
+        console.log(
+            `${player.name} joined room ${roomCode}`
+        );
+    });
+
+    /* =================================================
        READY
-    ===================== */
+    ================================================= */
 
-    socket.on(
-        "readyForGame",
-        () => {
+    socket.on("readyForGame", () => {
 
-            const roomCode =
-                socket.roomCode;
+        const room =
+            getRoom(socket);
 
-            if (!roomCode) return;
+        const player =
+            getPlayer(socket);
 
-            const room =
-                rooms[roomCode];
+        if (!room || !player) return;
 
-            if (!room) return;
+        player.ready = true;
 
-            const player =
-                room.players[socket.id];
+        room.ready[
+            socket.id
+        ] = true;
 
-            if (!player) return;
+        const total =
+            Object.keys(room.players).length;
 
-            player.ready = true;
-
-            room.ready[socket.id] = true;
-
-            const total =
-                Object.keys(
-                    room.players
-                ).length;
-
-            const ready =
-                Object.keys(
-                    room.ready
-                )
+        const ready =
+            Object.keys(room.ready)
                 .filter(
-                    id =>
-                        room.ready[id]
+                    id => room.ready[id]
                 )
                 .length;
 
-            io.to(roomCode).emit(
-                "readyUpdate",
-                {
-                    ready,
-                    total
+        io.to(socket.roomCode).emit(
+            "readyUpdate",
+            {
+                ready,
+                total
+            }
+        );
+
+        if (
+            ready >= 1 &&
+            total >= 1 &&
+            !room.started
+        ) {
+
+            room.started = true;
+
+            const groundY = 500;
+
+            Object.values(
+                room.players
+            ).forEach(
+                (p, index) => {
+
+                    p.x =
+                        250 +
+                        index * 100;
+
+                    p.y =
+                        groundY;
+
+                    p.health = 100;
+                    p.maxHealth = 100;
+
+                    p.level = 1;
+                    p.dead = false;
                 }
             );
 
+            broadcastPlayers(
+                socket.roomCode
+            );
 
-            if (
-                ready >= 1 &&
-                total >= 1 &&
-                !room.started
-            ) {
+            io.to(socket.roomCode).emit(
+                "startGame"
+            );
 
-                room.started = true;
-
-                const groundY = 500;
-
-                Object.values(
-                    room.players
-                ).forEach(
-                    (p,index) => {
-
-                        p.x =
-                            250 +
-                            index*100;
-
-                        p.y =
-                            groundY;
-
-                        p.health = 100;
-
-                        p.maxHealth = 100;
-
-                        p.level = 1;
-                    }
-                );
-
-                sendPlayers(roomCode);
-
-                io.to(roomCode).emit(
-                    "startGame"
-                );
-
-                console.log(
-                    `Game started in ${roomCode}`
-                );
-            }
+            console.log(
+                `Game started in room ${socket.roomCode}`
+            );
         }
-    );
+    });
 
-
-    /* =====================
-       MOVEMENT
-    ===================== */
+    /* =================================================
+       PLAYER MOVEMENT
+    ================================================= */
 
     socket.on(
         "playerMovement",
-        data => {
-
-            const roomCode =
-                socket.roomCode;
-
-            if (!roomCode) return;
+        (data) => {
 
             const room =
-                rooms[roomCode];
-
-            if (!room) return;
+                getRoom(socket);
 
             const player =
-                room.players[socket.id];
+                getPlayer(socket);
 
-            if (!player) return;
+            if (!room || !player) return;
 
             if (
                 !data ||
@@ -413,6 +346,8 @@ io.on("connection",socket => {
             ) {
                 return;
             }
+
+            if (player.dead) return;
 
             player.x =
                 Math.max(
@@ -432,401 +367,561 @@ io.on("connection",socket => {
                     )
                 );
 
-            socket.to(roomCode).emit(
+            socket.to(
+                socket.roomCode
+            ).emit(
                 "playerMoved",
                 player
             );
         }
     );
 
+    /* =================================================
+       PLAYER ATTACK
+    ================================================= */
 
-    /* =====================
-       NORMAL ABILITY
-    ===================== */
+    socket.on("attack", (data) => {
 
-    socket.on(
-        "useAbility",
-        data => {
+        const room =
+            getRoom(socket);
 
-            const roomCode =
-                socket.roomCode;
+        const attacker =
+            getPlayer(socket);
 
-            const room =
-                rooms[roomCode];
+        if (!room || !attacker) return;
 
-            if (!room) return;
+        if (attacker.dead) return;
 
-            const player =
-                room.players[socket.id];
-
-            if (!player) return;
-
-            const code =
-                String(
-                    data &&
-                    data.code
-                        ? data.code
-                        : ""
-                )
-                .trim()
-                .toLowerCase();
-
-
-            /*
-             * بازیکن عادی فقط خودش
-             */
-
-            const allowed = [
-                "speed",
-                "jump",
-                "fly",
-                "heal",
-                "god"
-            ];
-
-            if (!allowed.includes(code)) {
-
-                socket.emit(
-                    "abilityResult",
-                    {
-                        message:
-                            "❌ این کد قابلیت وجود ندارد."
-                    }
-                );
-
-                return;
-            }
-
-            applyAbility(
-                player,
-                code
-            );
-
-            socket.emit(
-                "abilityResult",
-                {
-                    message:
-                        "✅ " +
-                        code +
-                        " روی خودت فعال شد."
-                }
-            );
-
-            socket.emit(
-                "playerAbilityUpdate",
-                {
-                    player
-                }
-            );
-
-            socket.to(roomCode).emit(
-                "playerAbilityUpdate",
-                {
-                    player
-                }
-            );
+        if (
+            !data ||
+            typeof data.x !== "number"
+        ) {
+            return;
         }
-    );
 
+        const ATTACK_RANGE = 110;
+        const DAMAGE = 25;
 
-    /* =====================
-       ADMIN ABILITY
-    ===================== */
+        Object.values(
+            room.players
+        ).forEach(
+            (target) => {
+
+                if (
+                    target.id === attacker.id
+                ) {
+                    return;
+                }
+
+                if (target.dead) {
+                    return;
+                }
+
+                const distance =
+                    Math.abs(
+                        target.x -
+                        attacker.x
+                    );
+
+                if (
+                    distance <= ATTACK_RANGE
+                ) {
+
+                    target.health =
+                        Math.max(
+                            0,
+                            target.health - DAMAGE
+                        );
+
+                    if (
+                        target.health <= 0
+                    ) {
+
+                        target.health = 0;
+                        target.dead = true;
+
+                        target.y = 500;
+
+                        io.to(
+                            socket.roomCode
+                        ).emit(
+                            "playerDied",
+                            {
+                                id: target.id,
+                                attacker:
+                                    attacker.id
+                            }
+                        );
+
+                        setTimeout(
+                            () => {
+
+                                const currentRoom =
+                                    rooms[
+                                        socket.roomCode
+                                    ];
+
+                                if (!currentRoom) {
+                                    return;
+                                }
+
+                                const currentPlayer =
+                                    currentRoom.players[
+                                        target.id
+                                    ];
+
+                                if (!currentPlayer) {
+                                    return;
+                                }
+
+                                currentPlayer.health =
+                                    100;
+
+                                currentPlayer.dead =
+                                    false;
+
+                                currentPlayer.x =
+                                    300 +
+                                    Math.random() *
+                                    300;
+
+                                currentPlayer.y =
+                                    500;
+
+                                broadcastPlayers(
+                                    socket.roomCode
+                                );
+
+                            },
+                            2500
+                        );
+                    }
+
+                    io.to(
+                        socket.roomCode
+                    ).emit(
+                        "healthUpdate",
+                        {
+                            id: target.id,
+                            health:
+                                target.health
+                        }
+                    );
+                }
+            }
+        );
+    });
+
+    /* =================================================
+       ADMIN COMMAND
+    ================================================= */
 
     socket.on(
-        "adminAbility",
-        data => {
-
-            const roomCode =
-                socket.roomCode;
+        "adminCommand",
+        (data) => {
 
             const room =
-                rooms[roomCode];
-
-            if (!room) return;
+                getRoom(socket);
 
             const admin =
-                room.players[socket.id];
+                getPlayer(socket);
 
-            if (!admin) return;
+            if (!room || !admin) return;
 
-            if (!isAdmin(admin)) {
+            if (!admin.isAdmin) {
 
                 socket.emit(
-                    "abilityResult",
+                    "commandResult",
                     {
+                        success: false,
                         message:
-                            "❌ دسترسی ادمین نداری."
+                            "❌ اجازه دسترسی نداری."
                     }
                 );
 
                 return;
             }
 
-            const targetId =
-                data &&
-                data.targetId;
+            if (
+                !data ||
+                typeof data.command !== "string"
+            ) {
+                return;
+            }
 
-            const code =
-                String(
-                    data &&
-                    data.code
-                        ? data.code
-                        : ""
-                )
-                .trim()
-                .toLowerCase();
+            const command =
+                data.command
+                    .trim();
 
-            const target =
-                room.players[targetId];
+            if (!command) return;
 
-            if (!target) {
+            const parts =
+                command.split(/\s+/);
+
+            const cmd =
+                parts[0]
+                    .toLowerCase();
+
+            /* ================================
+               /heal
+            ================================= */
+
+            if (cmd === "/heal") {
+
+                admin.health =
+                    admin.maxHealth;
+
+                admin.dead = false;
+
+                broadcastPlayers(
+                    socket.roomCode
+                );
 
                 socket.emit(
-                    "abilityResult",
+                    "commandResult",
                     {
-                        admin:true,
+                        success: true,
                         message:
-                            "❌ بازیکن هدف پیدا نشد."
+                            "❤️ جانت کامل شد."
                     }
                 );
 
                 return;
             }
 
+            /* ================================
+               /kill NAME
+            ================================= */
 
-            const allowed = [
-                "speed",
-                "jump",
-                "fly",
-                "heal",
-                "god",
-                "kill",
-                "kick"
-            ];
+            if (cmd === "/kill") {
 
-            if (!allowed.includes(code)) {
+                const targetName =
+                    parts
+                        .slice(1)
+                        .join(" ");
 
-                socket.emit(
-                    "abilityResult",
-                    {
-                        admin:true,
-                        message:
-                            "❌ این کد وجود ندارد."
-                    }
-                );
+                if (!targetName) {
 
-                return;
-            }
+                    socket.emit(
+                        "commandResult",
+                        {
+                            success: false,
+                            message:
+                                "استفاده: /kill اسم"
+                        }
+                    );
 
-
-            /* KICK */
-
-            if (code === "kick") {
-
-                io.to(target.id).emit(
-                    "adminKicked"
-                );
-
-                return;
-            }
-
-
-            /* KILL */
-
-            if (code === "kill") {
-
-                if (!target.god) {
-                    target.health = 0;
+                    return;
                 }
 
-                sendAbilityUpdate(
-                    roomCode,
-                    target
+                const target =
+                    Object.values(
+                        room.players
+                    ).find(
+                        p =>
+                            p.name ===
+                            targetName
+                    );
+
+                if (!target) {
+
+                    socket.emit(
+                        "commandResult",
+                        {
+                            success: false,
+                            message:
+                                "❌ پلیر پیدا نشد."
+                        }
+                    );
+
+                    return;
+                }
+
+                target.health = 0;
+                target.dead = true;
+
+                io.to(
+                    socket.roomCode
+                ).emit(
+                    "playerDied",
+                    {
+                        id: target.id,
+                        attacker: admin.id
+                    }
+                );
+
+                broadcastPlayers(
+                    socket.roomCode
                 );
 
                 socket.emit(
-                    "abilityResult",
+                    "commandResult",
                     {
-                        admin:true,
+                        success: true,
                         message:
-                            "☠️ روی " +
-                            target.name +
-                            " اجرا شد."
+                            `💀 ${target.name} کشته شد.`
                     }
                 );
 
                 return;
             }
 
+            /* ================================
+               /monster
+            ================================= */
 
-            /* OTHER */
+            if (cmd === "/monster") {
 
-            applyAbility(
-                target,
-                code
-            );
+                const monsterId =
+                    "monster_" +
+                    Date.now() +
+                    "_" +
+                    Math.floor(
+                        Math.random() * 9999
+                    );
 
-            sendAbilityUpdate(
-                roomCode,
-                target
-            );
+                const monster = {
+
+                    id: monsterId,
+
+                    name: "هیولا",
+
+                    x:
+                        admin.x +
+                        250,
+
+                    y: 500,
+
+                    health: 150,
+
+                    maxHealth: 150,
+
+                    speed: 1.8,
+
+                    damage: 15
+                };
+
+                room.monsters[
+                    monsterId
+                ] = monster;
+
+                io.to(
+                    socket.roomCode
+                ).emit(
+                    "monsterSpawn",
+                    monster
+                );
+
+                socket.emit(
+                    "commandResult",
+                    {
+                        success: true,
+                        message:
+                            "👹 هیولا اسپان شد."
+                    }
+                );
+
+                return;
+            }
+
+            /* ================================
+               /give NAME ability
+            ================================= */
+
+            if (cmd === "/give") {
+
+                const targetName =
+                    parts[1];
+
+                const ability =
+                    parts[2];
+
+                if (
+                    !targetName ||
+                    !ability
+                ) {
+
+                    socket.emit(
+                        "commandResult",
+                        {
+                            success: false,
+                            message:
+                                "استفاده: /give اسم قابلیت"
+                        }
+                    );
+
+                    return;
+                }
+
+                const target =
+                    Object.values(
+                        room.players
+                    ).find(
+                        p =>
+                            p.name ===
+                            targetName
+                    );
+
+                if (!target) {
+
+                    socket.emit(
+                        "commandResult",
+                        {
+                            success: false,
+                            message:
+                                "❌ پلیر پیدا نشد."
+                        }
+                    );
+
+                    return;
+                }
+
+                io.to(
+                    target.id
+                ).emit(
+                    "abilityGranted",
+                    {
+                        ability
+                    }
+                );
+
+                socket.emit(
+                    "commandResult",
+                    {
+                        success: true,
+                        message:
+                            `✅ قابلیت ${ability} به ${target.name} داده شد.`
+                    }
+                );
+
+                return;
+            }
+
+            /* ================================
+               /speed
+            ================================= */
+
+            if (cmd === "/speed") {
+
+                const value =
+                    Number(parts[1]);
+
+                if (
+                    !Number.isFinite(value)
+                ) {
+
+                    socket.emit(
+                        "commandResult",
+                        {
+                            success: false,
+                            message:
+                                "استفاده: /speed عدد"
+                        }
+                    );
+
+                    return;
+                }
+
+                io.to(
+                    admin.id
+                ).emit(
+                    "abilityGranted",
+                    {
+                        ability:
+                            "speed",
+                        value:
+                            Math.max(
+                                1,
+                                Math.min(
+                                    20,
+                                    value
+                                )
+                            )
+                    }
+                );
+
+                socket.emit(
+                    "commandResult",
+                    {
+                        success: true,
+                        message:
+                            "⚡ سرعت تغییر کرد."
+                    }
+                );
+
+                return;
+            }
 
             socket.emit(
-                "abilityResult",
+                "commandResult",
                 {
-                    admin:true,
+                    success: false,
                     message:
-                        "✅ " +
-                        code +
-                        " روی " +
-                        target.name +
-                        " اجرا شد."
+                        "❓ دستور ناشناخته است."
                 }
             );
         }
     );
 
-
-    /* =====================
-       ATTACK
-    ===================== */
-
-    socket.on(
-        "attack",
-        data => {
-
-            const roomCode =
-                socket.roomCode;
-
-            const room =
-                rooms[roomCode];
-
-            if (!room) return;
-
-            const attacker =
-                room.players[socket.id];
-
-            if (!attacker) return;
-
-            /*
-             * آسیب آنلاین را اینجا
-             * عمداً به بازیکن دیگر نمی‌دهیم.
-             */
-
-        }
-    );
-
-
-    /* =====================
+    /* =================================================
        DISCONNECT
-    ===================== */
+    ================================================= */
 
-    socket.on(
-        "disconnect",
-        () => {
+    socket.on("disconnect", () => {
+
+        console.log(
+            "Player disconnected:",
+            socket.id
+        );
+
+        const roomCode =
+            socket.roomCode;
+
+        if (!roomCode) return;
+
+        const room =
+            rooms[roomCode];
+
+        if (!room) return;
+
+        delete room.players[
+            socket.id
+        ];
+
+        delete room.ready[
+            socket.id
+        ];
+
+        io.to(roomCode).emit(
+            "playerLeft",
+            socket.id
+        );
+
+        broadcastPlayers(
+            roomCode
+        );
+
+        const remaining =
+            Object.keys(
+                room.players
+            ).length;
+
+        if (remaining === 0) {
+
+            delete rooms[
+                roomCode
+            ];
 
             console.log(
-                "Player disconnected:",
-                socket.id
+                `Room ${roomCode} deleted`
             );
-
-            const roomCode =
-                socket.roomCode;
-
-            if (!roomCode) return;
-
-            const room =
-                rooms[roomCode];
-
-            if (!room) return;
-
-            delete room.players[
-                socket.id
-            ];
-
-            delete room.ready[
-                socket.id
-            ];
-
-            io.to(roomCode).emit(
-                "playerLeft",
-                socket.id
-            );
-
-            const remaining =
-                Object.keys(
-                    room.players
-                ).length;
-
-            if (remaining > 0) {
-
-                sendPlayers(roomCode);
-
-            } else {
-
-                delete rooms[roomCode];
-
-                console.log(
-                    `Room ${roomCode} deleted`
-                );
-            }
         }
-    );
-
+    });
 });
 
-
-/* =========================
-   ABILITY FUNCTIONS
-========================= */
-
-function applyAbility(player,code) {
-
-    if (!player) return;
-
-    switch(code) {
-
-        case "speed":
-            player.speedBoost = true;
-            break;
-
-        case "jump":
-            player.jumpBoost = true;
-            break;
-
-        case "fly":
-            player.fly = true;
-            break;
-
-        case "heal":
-            player.health = 100;
-            break;
-
-        case "god":
-            player.god = true;
-            break;
-    }
-}
-
-
-function sendAbilityUpdate(
-    roomCode,
-    player
-) {
-
-    io.to(roomCode).emit(
-        "playerAbilityUpdate",
-        {
-            player
-        }
-    );
-}
-
-
-/* =========================
+/* =====================================================
    START
-========================= */
+===================================================== */
 
 server.listen(
     PORT,
