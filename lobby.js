@@ -20,284 +20,59 @@ let aiVelocityY = 0;
 let aiOnGround = false;
 let aiDirectionTimer = 0;
 
-// ======================================================
-// MOB
-// ======================================================
-
-let mobs = [];
-let offlineMobs = [];
-let playerHealth = 100;
-let mobAttackCooldown = 0;
-
-function createOfflineMobs() {
-
-    offlineMobs = [
-        {
-            id: "offline_mob_1",
-            type: "monster",
-            x: 650,
-            y: 0,
-            health: 100,
-            maxHealth: 100,
-            dead: false,
-            respawnTimer: 0
-        },
-        {
-            id: "offline_mob_2",
-            type: "monster",
-            x: 950,
-            y: 0,
-            health: 100,
-            maxHealth: 100,
-            dead: false,
-            respawnTimer: 0
-        },
-        {
-            id: "offline_mob_3",
-            type: "monster",
-            x: 1250,
-            y: 0,
-            health: 100,
-            maxHealth: 100,
-            dead: false,
-            respawnTimer: 0
-        }
-    ];
-
-    offlineMobs.forEach(
-        mob => {
-            mob.y = getGroundY();
-        }
-    );
-}
-
-function updateOfflineMobs() {
-
-    if (!myPlayer) return;
-
-    const ground = getGroundY();
-
-    offlineMobs.forEach(
-        mob => {
-
-            if (mob.dead) {
-
-                mob.respawnTimer--;
-
-                if (mob.respawnTimer <= 0) {
-
-                    mob.dead = false;
-                    mob.health = 100;
-
-                    mob.x =
-                        500 +
-                        Math.random() * 1000;
-
-                    mob.y = ground;
-                }
-
-                return;
-            }
-
-            const distance =
-                myPlayer.x - mob.x;
-
-            if (
-                Math.abs(distance) > 45
-            ) {
-
-                if (distance > 0) {
-                    mob.x += 1.5;
-                } else {
-                    mob.x -= 1.5;
-                }
-            }
-
-            mob.x =
-                Math.max(
-                    40,
-                    Math.min(
-                        canvas.width - 40,
-                        mob.x
-                    )
-                );
-
-            mob.y = ground;
-
-            if (
-                Math.abs(distance) <= 55 &&
-                mobAttackCooldown <= 0
-            ) {
-
-                playerHealth =
-                    Math.max(
-                        0,
-                        playerHealth - 10
-                    );
-
-                mobAttackCooldown = 60;
-            }
-        }
-    );
-
-    if (mobAttackCooldown > 0) {
-        mobAttackCooldown--;
-    }
-}
-
-function attackMobs() {
-
-    if (!myPlayer) return;
-
-    if (gameMode === "ONLINE") {
-
-        let closestMob = null;
-        let closestDistance = Infinity;
-
-        mobs.forEach(
-            mob => {
-
-                if (mob.dead) return;
-
-                const distance =
-                    Math.abs(
-                        myPlayer.x - mob.x
-                    );
-
-                if (
-                    distance < closestDistance &&
-                    distance <= 120
-                ) {
-                    closestDistance = distance;
-                    closestMob = mob;
-                }
-            }
-        );
-
-        if (closestMob) {
-
-            socket.emit(
-                "attackMob",
-                {
-                    mobId: closestMob.id
-                }
-            );
-        }
-
-        return;
-    }
-
-    if (gameMode === "AI" || gameMode === "SOLO") {
-
-        offlineMobs.forEach(
-            mob => {
-
-                if (mob.dead) return;
-
-                const distance =
-                    Math.abs(
-                        myPlayer.x - mob.x
-                    );
-
-                if (distance <= 120) {
-
-                    mob.health =
-                        Math.max(
-                            0,
-                            mob.health - 25
-                        );
-
-                    if (mob.health <= 0) {
-
-                        mob.dead = true;
-                        mob.health = 0;
-                        mob.respawnTimer = 180;
-                    }
-                }
-            }
-        );
-    }
-}
-
-const nameScreen =
-    document.getElementById("nameScreen");
-
-const modeScreen =
-    document.getElementById("modeScreen");
-
-const offlineScreen =
-    document.getElementById("offlineScreen");
-
-const onlineScreen =
-    document.getElementById("onlineScreen");
-
-const roomScreen =
-    document.getElementById("roomScreen");
-
-const gameScreen =
-    document.getElementById("gameScreen");
-
-const nameInput =
-    document.getElementById("nameInput");
-
-const confirmName =
-    document.getElementById("confirmName");
-
-const onlineCard =
-    document.getElementById("onlineCard");
-
-const offlineCard =
-    document.getElementById("offlineCard");
-
-const aiCard =
-    document.getElementById("aiCard");
-
-const soloCard =
-    document.getElementById("soloCard");
-
-const backToModes =
-    document.getElementById("backToModes");
-
-const createRoom =
-    document.getElementById("createRoom");
-
-const showJoin =
-    document.getElementById("showJoin");
-
-const joinBox =
-    document.getElementById("joinBox");
-
-const roomInput =
-    document.getElementById("roomInput");
-
-const joinRoom =
-    document.getElementById("joinRoom");
-
-const readyButton =
-    document.getElementById("readyButton");
-
-const roomCodeElement =
-    document.getElementById("roomCode");
-
-const roomStatus =
-    document.getElementById("roomStatus");
-
-const backFromOnline =
-    document.getElementById("backFromOnline");
-
-const canvas =
-    document.getElementById("gameCanvas");
-
-const ctx =
-    canvas
-        ? canvas.getContext("2d")
-        : null;
-
-const attackButton =
-    document.getElementById("attackButton");
+let mobs = {};
 
 let attackCooldown = false;
 let attacking = false;
+
+let selectedAdminTarget = null;
+
+const nameScreen = document.getElementById("nameScreen");
+const modeScreen = document.getElementById("modeScreen");
+const offlineScreen = document.getElementById("offlineScreen");
+const onlineScreen = document.getElementById("onlineScreen");
+const roomScreen = document.getElementById("roomScreen");
+const gameScreen = document.getElementById("gameScreen");
+
+const nameInput = document.getElementById("nameInput");
+const confirmName = document.getElementById("confirmName");
+
+const onlineCard = document.getElementById("onlineCard");
+const offlineCard = document.getElementById("offlineCard");
+const aiCard = document.getElementById("aiCard");
+const soloCard = document.getElementById("soloCard");
+
+const backToModes = document.getElementById("backToModes");
+const createRoom = document.getElementById("createRoom");
+const showJoin = document.getElementById("showJoin");
+const joinBox = document.getElementById("joinBox");
+const roomInput = document.getElementById("roomInput");
+const joinRoom = document.getElementById("joinRoom");
+
+const readyButton = document.getElementById("readyButton");
+const roomCodeElement = document.getElementById("roomCode");
+const roomStatus = document.getElementById("roomStatus");
+const backFromOnline = document.getElementById("backFromOnline");
+
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas ? canvas.getContext("2d") : null;
+
+const attackButton = document.getElementById("attackButton");
+
+const codeButton = document.getElementById("codeButton");
+const codePanel = document.getElementById("codePanel");
+const closeCode = document.getElementById("closeCode");
+const codeInput = document.getElementById("codeInput");
+const runCode = document.getElementById("runCode");
+const codeResult = document.getElementById("codeResult");
+
+const adminPanel = document.getElementById("adminPanel");
+const closeAdmin = document.getElementById("closeAdmin");
+const adminCodeInput = document.getElementById("adminCodeInput");
+const runAdminCode = document.getElementById("runAdminCode");
+const adminResult = document.getElementById("adminResult");
+const adminPlayers = document.getElementById("adminPlayers");
+const adminTargetText = document.getElementById("adminTargetText");
 
 function showScreen(screen) {
 
@@ -307,13 +82,9 @@ function showScreen(screen) {
         offlineScreen,
         onlineScreen,
         roomScreen
-    ].forEach(
-        s => {
-            if (s) {
-                s.classList.add("hidden");
-            }
-        }
-    );
+    ].forEach(s => {
+        if (s) s.classList.add("hidden");
+    });
 
     if (screen) {
         screen.classList.remove("hidden");
@@ -331,30 +102,22 @@ function updateAttackButtonVisibility() {
         gameScreen &&
         gameScreen.style.display === "block";
 
-    if (inGame) {
-        attackButton.style.display = "block";
-        attackButton.disabled = false;
-    } else {
-        attackButton.style.display = "none";
-    }
+    attackButton.style.display =
+        inGame ? "block" : "none";
 }
 
 async function enterGameFullscreen() {
 
     try {
 
-        if (document.fullscreenElement) {
-            return;
-        }
+        if (document.fullscreenElement) return;
 
-        if (
-            document.documentElement.requestFullscreen
-        ) {
+        if (document.documentElement.requestFullscreen) {
 
-            await document.documentElement
-                .requestFullscreen({
-                    navigationUI: "hide"
-                });
+            await document.documentElement.requestFullscreen({
+                navigationUI: "hide"
+            });
+
         }
 
     } catch (error) {
@@ -363,6 +126,7 @@ async function enterGameFullscreen() {
             "Fullscreen unavailable:",
             error
         );
+
     }
 }
 
@@ -376,9 +140,7 @@ if (confirmName) {
         if (!name) {
 
             const error =
-                document.getElementById(
-                    "nameError"
-                );
+                document.getElementById("nameError");
 
             if (error) {
                 error.textContent =
@@ -399,75 +161,76 @@ if (nameInput) {
 
     nameInput.addEventListener(
         "keydown",
-        function (e) {
+        function(e) {
 
             if (e.key === "Enter") {
                 confirmName.click();
             }
+
         }
     );
 }
 
 if (onlineCard) {
 
-    onlineCard.onclick =
-        function () {
-            showScreen(onlineScreen);
-        };
+    onlineCard.onclick = function() {
+        showScreen(onlineScreen);
+    };
+
 }
 
 if (offlineCard) {
 
-    offlineCard.onclick =
-        function () {
-            showScreen(offlineScreen);
-        };
+    offlineCard.onclick = function() {
+        showScreen(offlineScreen);
+    };
+
 }
 
 if (backToModes) {
 
-    backToModes.onclick =
-        function () {
-            showScreen(modeScreen);
-        };
+    backToModes.onclick = function() {
+        showScreen(modeScreen);
+    };
+
 }
 
 if (backFromOnline) {
 
-    backFromOnline.onclick =
-        function () {
-            showScreen(modeScreen);
-        };
+    backFromOnline.onclick = function() {
+        showScreen(modeScreen);
+    };
+
 }
 
 if (aiCard) {
 
-    aiCard.onclick =
-        async function () {
+    aiCard.onclick = async function() {
 
-            await enterGameFullscreen();
+        await enterGameFullscreen();
 
-            startOfflineGame(true);
-        };
+        startOfflineGame(true);
+
+    };
+
 }
 
 if (soloCard) {
 
-    soloCard.onclick =
-        async function () {
+    soloCard.onclick = async function() {
 
-            await enterGameFullscreen();
+        await enterGameFullscreen();
 
-            startOfflineGame(false);
-        };
+        startOfflineGame(false);
+
+    };
+
 }
 
 function startOfflineGame(withAI) {
 
     gameMode =
-        withAI
-            ? "AI"
-            : "SOLO";
+        withAI ? "AI" : "SOLO";
 
     nameScreen.classList.add("hidden");
     modeScreen.classList.add("hidden");
@@ -475,15 +238,12 @@ function startOfflineGame(withAI) {
     onlineScreen.classList.add("hidden");
     roomScreen.classList.add("hidden");
 
-    gameScreen.style.display = "block";
+    gameScreen.style.display =
+        "block";
 
     gameRunning = true;
 
-    playerHealth = 100;
-
     setupOfflinePlayers(withAI);
-
-    createOfflineMobs();
 
     resizeCanvas();
 
@@ -495,21 +255,37 @@ function startOfflineGame(withAI) {
 function setupOfflinePlayers(withAI) {
 
     players = {};
+    mobs = {};
 
     myPlayer = {
 
         id: "player",
 
         name:
-            playerName ||
-            "Player",
+            playerName || "Player",
 
         x: 250,
 
-        y: getGroundY()
+        y: getGroundY(),
+
+        health: 100,
+
+        maxHealth: 100,
+
+        speed: SPEED,
+
+        jump: JUMP,
+
+        fly: false,
+
+        doubleJump: false,
+
+        color: "#22c55e"
+
     };
 
-    players.player = myPlayer;
+    players.player =
+        myPlayer;
 
     velocityY = 0;
     onGround = true;
@@ -533,8 +309,8 @@ function setupOfflinePlayers(withAI) {
             y: getGroundY(),
 
             health: 100,
-
             maxHealth: 100
+
         };
 
         aiVelocityY = 0;
@@ -544,79 +320,76 @@ function setupOfflinePlayers(withAI) {
     } else {
 
         ai = null;
+
     }
 
     const modeText =
-        document.getElementById(
-            "gameMode"
-        );
+        document.getElementById("gameMode");
 
     if (modeText) {
 
         modeText.textContent =
             withAI
-                ? "🤖 بازی با AI + 👹 هیولا"
-                : "👤 بازی تنهایی + 👹 هیولا";
+                ? "🤖 بازی با AI"
+                : "👤 بازی تنهایی";
+
     }
 }
 
 if (showJoin) {
 
-    showJoin.onclick =
-        function () {
+    showJoin.onclick = function() {
 
-            if (joinBox) {
-                joinBox.classList.toggle(
-                    "hidden"
-                );
-            }
-        };
+        if (joinBox) {
+            joinBox.classList.toggle("hidden");
+        }
+
+    };
+
 }
 
 if (roomInput) {
 
     roomInput.addEventListener(
         "input",
-        function () {
+        function() {
 
             roomInput.value =
                 roomInput.value
                     .replace(/\D/g, "")
                     .substring(0, 6);
+
         }
     );
+
 }
 
 if (createRoom) {
 
-    createRoom.onclick =
-        function () {
+    createRoom.onclick = function() {
 
-            createRoom.disabled = true;
+        createRoom.disabled = true;
+        createRoom.textContent =
+            "⏳ در حال ساخت...";
 
-            createRoom.textContent =
-                "⏳ در حال ساخت...";
+        socket.emit(
+            "createRoom",
+            {
+                name: playerName
+            }
+        );
 
-            socket.emit(
-                "createRoom",
-                {
-                    name: playerName
-                }
-            );
-        };
+    };
+
 }
 
 socket.on(
     "roomCreated",
-    function (data) {
+    function(data) {
 
         roomCode =
-            String(
-                data.roomCode
-            ).replace(
-                /\D/g,
-                ""
-            );
+            String(data.roomCode)
+                .replace(/\D/g, "");
 
         myPlayer =
             data.player;
@@ -631,75 +404,73 @@ socket.on(
         showScreen(roomScreen);
 
         if (roomCodeElement) {
-
             roomCodeElement.textContent =
                 roomCode;
         }
 
         if (createRoom) {
 
-            createRoom.disabled = false;
+            createRoom.disabled =
+                false;
 
             createRoom.textContent =
                 "🏠 ساخت اتاق";
+
         }
+
     }
 );
 
 if (joinRoom) {
 
-    joinRoom.onclick =
-        function () {
+    joinRoom.onclick = function() {
 
-            const code =
-                roomInput
-                    ? roomInput.value
-                        .replace(/\D/g, "")
-                        .substring(0, 6)
-                    : "";
+        const code =
+            roomInput
+                ? roomInput.value
+                    .replace(/\D/g, "")
+                    .substring(0, 6)
+                : "";
 
-            if (code.length !== 6) {
+        if (code.length !== 6) {
 
-                const error =
-                    document.getElementById(
-                        "onlineError"
-                    );
+            const error =
+                document.getElementById("onlineError");
 
-                if (error) {
+            if (error) {
 
-                    error.textContent =
-                        "کد باید ۶ رقمی باشد.";
-                }
+                error.textContent =
+                    "کد باید ۶ رقمی باشد.";
 
-                return;
             }
 
-            joinRoom.disabled = true;
+            return;
+        }
 
-            joinRoom.textContent =
-                "⏳ در حال ورود...";
+        joinRoom.disabled = true;
 
-            socket.emit(
-                "joinRoom",
-                {
-                    roomCode: code,
-                    name: playerName
-                }
-            );
-        };
+        joinRoom.textContent =
+            "⏳ در حال ورود...";
+
+        socket.emit(
+            "joinRoom",
+            {
+                roomCode: code,
+                name: playerName
+            }
+        );
+
+    };
+
 }
 
 socket.on(
     "roomJoined",
-    function (data) {
+    function(data) {
 
         roomCode =
-            String(
-                data.roomCode
-            ).replace(
-                /\D/g,
-                ""
-            );
+            String(data.roomCode)
+                .replace(/\D/g, "");
 
         myPlayer =
             data.player;
@@ -714,48 +485,52 @@ socket.on(
         showScreen(roomScreen);
 
         if (roomCodeElement) {
-
             roomCodeElement.textContent =
                 roomCode;
         }
 
         if (joinRoom) {
 
-            joinRoom.disabled = false;
+            joinRoom.disabled =
+                false;
 
             joinRoom.textContent =
                 "🚪 ورود";
+
         }
+
     }
 );
 
 if (readyButton) {
 
-    readyButton.onclick =
-        async function () {
+    readyButton.onclick = async function() {
 
-            await enterGameFullscreen();
+        await enterGameFullscreen();
 
-            readyButton.disabled = true;
+        readyButton.disabled = true;
 
-            readyButton.textContent =
-                "✅ آماده شدی";
+        readyButton.textContent =
+            "✅ آماده شدی";
 
-            if (roomStatus) {
+        if (roomStatus) {
 
-                roomStatus.textContent =
-                    "⏳ منتظر بازیکن دیگر...";
-            }
+            roomStatus.textContent =
+                "⏳ منتظر بازیکن دیگر...";
 
-            socket.emit(
-                "readyForGame"
-            );
-        };
+        }
+
+        socket.emit(
+            "readyForGame"
+        );
+
+    };
+
 }
 
 socket.on(
     "readyUpdate",
-    function (data) {
+    function(data) {
 
         if (!roomStatus) return;
 
@@ -764,72 +539,31 @@ socket.on(
             data.ready +
             " / " +
             data.total;
+
     }
 );
 
 socket.on(
     "startGame",
-    async function () {
+    async function() {
 
         await enterGameFullscreen();
 
         gameMode = "ONLINE";
 
-        roomScreen.classList.add(
-            "hidden"
-        );
+        roomScreen.classList.add("hidden");
 
         gameScreen.style.display =
             "block";
 
         gameRunning = true;
 
-        playerHealth = 100;
-
         resizeCanvas();
 
         updateAttackButtonVisibility();
 
         requestAnimationFrame(gameLoop);
-    }
-);
 
-// ======================================================
-// MOB SOCKET
-// ======================================================
-
-socket.on(
-    "mobsUpdate",
-    function (list) {
-
-        if (!Array.isArray(list)) {
-            return;
-        }
-
-        mobs = list.map(
-            mob => ({
-                ...mob
-            })
-        );
-    }
-);
-
-socket.on(
-    "playerHealth",
-    function (data) {
-
-        if (!data) return;
-
-        if (
-            data.id === socket.id
-        ) {
-
-            playerHealth =
-                Math.max(
-                    0,
-                    Number(data.health) || 0
-                );
-        }
     }
 );
 
@@ -846,31 +580,14 @@ function resizeCanvas() {
     const ground =
         getGroundY();
 
-    if (
-        myPlayer &&
-        onGround
-    ) {
-
-        myPlayer.y =
-            ground;
+    if (myPlayer && onGround) {
+        myPlayer.y = ground;
     }
 
-    if (
-        ai &&
-        aiOnGround
-    ) {
-
-        ai.y =
-            ground;
+    if (ai && aiOnGround) {
+        ai.y = ground;
     }
 
-    offlineMobs.forEach(
-        mob => {
-            if (!mob.dead) {
-                mob.y = ground;
-            }
-        }
-    );
 }
 
 window.addEventListener(
@@ -880,11 +597,10 @@ window.addEventListener(
 
 function getGroundY() {
 
-    if (!canvas) {
-        return 500;
-    }
+    if (!canvas) return 500;
 
     return canvas.height - 120;
+
 }
 
 function fixPlayerSpawn(player) {
@@ -903,81 +619,76 @@ function fixPlayerSpawn(player) {
         Number(player.y) <= 0
     ) {
 
-        player.y =
-            ground;
+        player.y = ground;
+
     }
+
 }
 
 socket.on(
     "playersUpdate",
-    function (list) {
+    function(list) {
 
         players = {};
 
-        if (!Array.isArray(list)) {
-            return;
-        }
+        if (!Array.isArray(list)) return;
 
-        list.forEach(
-            function (player) {
+        list.forEach(function(player) {
 
-                if (!player) return;
+            if (!player) return;
 
-                fixPlayerSpawn(player);
+            fixPlayerSpawn(player);
 
-                players[player.id] =
+            players[player.id] =
+                player;
+
+            if (player.id === socket.id) {
+
+                myPlayer =
                     player;
 
+                const ground =
+                    getGroundY();
+
                 if (
-                    player.id ===
-                    socket.id
+                    !Number.isFinite(
+                        Number(myPlayer.y)
+                    ) ||
+                    myPlayer.y <= 0
                 ) {
 
-                    myPlayer =
-                        player;
+                    myPlayer.y =
+                        ground;
 
-                    const ground =
-                        getGroundY();
-
-                    if (
-                        !Number.isFinite(
-                            Number(
-                                myPlayer.y
-                            )
-                        ) ||
-                        myPlayer.y <= 0
-                    ) {
-
-                        myPlayer.y =
-                            ground;
-                    }
-
-                    onGround =
-                        Math.abs(
-                            myPlayer.y -
-                            ground
-                        ) < 5;
-
-                    if (onGround) {
-                        velocityY = 0;
-                    }
                 }
+
+                onGround =
+                    Math.abs(
+                        myPlayer.y - ground
+                    ) < 5;
+
+                if (onGround) {
+                    velocityY = 0;
+                }
+
             }
-        );
+
+        });
+
+        updateAdminPlayers();
+
     }
 );
 
 socket.on(
     "playerMoved",
-    function (player) {
+    function(player) {
 
         if (!player) return;
 
         fixPlayerSpawn(player);
 
-        if (
-            !players[player.id]
-        ) {
+        if (!players[player.id]) {
 
             players[player.id] =
                 player;
@@ -992,21 +703,41 @@ socket.on(
 
             players[player.id].health =
                 player.health;
+
+            players[player.id].speed =
+                player.speed;
+
+            players[player.id].jump =
+                player.jump;
+
+            players[player.id].fly =
+                player.fly;
+
+            players[player.id].doubleJump =
+                player.doubleJump;
+
+            players[player.id].color =
+                player.color;
+
         }
+
     }
 );
 
 socket.on(
     "playerLeft",
-    function (id) {
+    function(id) {
 
         delete players[id];
+
+        updateAdminPlayers();
+
     }
 );
 
 socket.on(
     "roomError",
-    function (message) {
+    function(message) {
 
         const error =
             document.getElementById(
@@ -1015,21 +746,12 @@ socket.on(
 
         if (error) {
 
-            if (
-                typeof message ===
-                "object" &&
+            error.textContent =
+                typeof message === "object" &&
                 message !== null
-            ) {
+                    ? message.message || "خطا"
+                    : String(message);
 
-                error.textContent =
-                    message.message ||
-                    "خطا";
-
-            } else {
-
-                error.textContent =
-                    String(message);
-            }
         }
 
         if (joinRoom) {
@@ -1039,6 +761,7 @@ socket.on(
 
             joinRoom.textContent =
                 "🚪 ورود";
+
         }
 
         if (createRoom) {
@@ -1048,23 +771,130 @@ socket.on(
 
             createRoom.textContent =
                 "🏠 ساخت اتاق";
+
         }
+
     }
 );
 
-// ======================================================
-// CONTROLS
-// ======================================================
+socket.on(
+    "abilityResult",
+    function(data) {
+
+        if (!data) return;
+
+        if (data.player) {
+
+            players[data.player.id] =
+                data.player;
+
+            if (
+                data.player.id ===
+                socket.id
+            ) {
+
+                myPlayer =
+                    data.player;
+
+            }
+
+        }
+
+        if (codeResult) {
+
+            codeResult.style.color =
+                "#4ade80";
+
+            codeResult.textContent =
+                data.message ||
+                "قابلیت اعمال شد.";
+
+        }
+
+        if (adminResult) {
+
+            adminResult.style.color =
+                "#4ade80";
+
+            adminResult.textContent =
+                data.message ||
+                "قابلیت اعمال شد.";
+
+        }
+
+    }
+);
+
+socket.on(
+    "abilityError",
+    function(data) {
+
+        const message =
+            data && data.message
+                ? data.message
+                : "کد قابل اجرا نیست.";
+
+        if (codeResult) {
+            codeResult.textContent =
+                message;
+        }
+
+        if (adminResult) {
+            adminResult.textContent =
+                message;
+        }
+
+    }
+);
+
+socket.on(
+    "mobsUpdate",
+    function(list) {
+
+        mobs = {};
+
+        if (!Array.isArray(list)) {
+            return;
+        }
+
+        list.forEach(mob => {
+
+            if (mob && mob.id) {
+                mobs[mob.id] = mob;
+            }
+
+        });
+
+    }
+);
+
+socket.on(
+    "adminStatus",
+    function(data) {
+
+        if (
+            data &&
+            data.admin &&
+            playerName === "tahagamertnt"
+        ) {
+
+            console.log(
+                "Admin verified by server."
+            );
+
+        }
+
+    }
+);
 
 const keys = {};
 
 document.addEventListener(
     "keydown",
-    function (e) {
+    function(e) {
 
-        keys[
-            e.key.toLowerCase()
-        ] = true;
+        keys[e.key.toLowerCase()] =
+            true;
 
         if (e.code === "Space") {
             keys.space = true;
@@ -1076,28 +906,27 @@ document.addEventListener(
         ) {
 
             attack();
+
         }
+
     }
 );
 
 document.addEventListener(
     "keyup",
-    function (e) {
+    function(e) {
 
-        keys[
-            e.key.toLowerCase()
-        ] = false;
+        keys[e.key.toLowerCase()] =
+            false;
 
         if (e.code === "Space") {
             keys.space = false;
         }
+
     }
 );
 
-function setupMobileButton(
-    id,
-    key
-) {
+function setupMobileButton(id, key) {
 
     const button =
         document.getElementById(id);
@@ -1106,61 +935,64 @@ function setupMobileButton(
 
     button.addEventListener(
         "touchstart",
-        function (e) {
+        function(e) {
 
             e.preventDefault();
 
             keys[key] = true;
+
         },
-        {
-            passive: false
-        }
+        {passive:false}
     );
 
     button.addEventListener(
         "touchend",
-        function (e) {
+        function(e) {
 
             e.preventDefault();
 
             keys[key] = false;
+
         },
-        {
-            passive: false
-        }
+        {passive:false}
     );
 
     button.addEventListener(
         "touchcancel",
-        function () {
+        function() {
 
             keys[key] = false;
+
         }
     );
 
     button.addEventListener(
         "mousedown",
-        function () {
+        function() {
 
             keys[key] = true;
+
         }
     );
 
     button.addEventListener(
         "mouseup",
-        function () {
+        function() {
 
             keys[key] = false;
+
         }
     );
 
     button.addEventListener(
         "mouseleave",
-        function () {
+        function() {
 
             keys[key] = false;
+
         }
     );
+
 }
 
 setupMobileButton(
@@ -1178,10 +1010,6 @@ setupMobileButton(
     "mobileJump"
 );
 
-// ======================================================
-// ATTACK
-// ======================================================
-
 function attack() {
 
     if (!gameRunning) return;
@@ -1192,23 +1020,15 @@ function attack() {
     attacking = true;
 
     setTimeout(
-        function () {
-            attacking = false;
-        },
+        () => attacking = false,
         180
     );
 
     setTimeout(
-        function () {
-            attackCooldown = false;
-        },
+        () => attackCooldown = false,
         400
     );
 
-    // ضربه به MOB
-    attackMobs();
-
-    // قبلی AI
     if (
         gameMode === "AI" &&
         ai
@@ -1216,8 +1036,7 @@ function attack() {
 
         const distance =
             Math.abs(
-                myPlayer.x -
-                ai.x
+                myPlayer.x - ai.x
             );
 
         if (distance < 100) {
@@ -1245,15 +1064,15 @@ function attack() {
                 ai.health = 100;
 
                 aiVelocityY = 0;
-
                 aiOnGround = true;
+
             }
+
         }
+
     }
 
-    if (
-        gameMode === "ONLINE"
-    ) {
+    if (gameMode === "ONLINE") {
 
         socket.emit(
             "attack",
@@ -1262,7 +1081,9 @@ function attack() {
                 y: myPlayer.y
             }
         );
+
     }
+
 }
 
 if (attackButton) {
@@ -1272,7 +1093,7 @@ if (attackButton) {
 
     attackButton.addEventListener(
         "touchstart",
-        function (e) {
+        function(e) {
 
             e.preventDefault();
 
@@ -1283,16 +1104,16 @@ if (attackButton) {
             ) {
 
                 attack();
+
             }
+
         },
-        {
-            passive: false
-        }
+        {passive:false}
     );
 
     attackButton.addEventListener(
         "click",
-        function (e) {
+        function(e) {
 
             e.preventDefault();
 
@@ -1303,18 +1124,25 @@ if (attackButton) {
             ) {
 
                 attack();
+
             }
+
         }
     );
-}
 
-// ======================================================
-// PLAYER
-// ======================================================
+}
 
 function updatePlayer() {
 
     if (!myPlayer) return;
+
+    const speed =
+        Number(myPlayer.speed) ||
+        SPEED;
+
+    const jump =
+        Number(myPlayer.jump) ||
+        JUMP;
 
     let moving = false;
 
@@ -1324,8 +1152,9 @@ function updatePlayer() {
         keys.mobileLeft
     ) {
 
-        myPlayer.x -= SPEED;
+        myPlayer.x -= speed;
         moving = true;
+
     }
 
     if (
@@ -1334,8 +1163,9 @@ function updatePlayer() {
         keys.mobileRight
     ) {
 
-        myPlayer.x += SPEED;
+        myPlayer.x += speed;
         moving = true;
+
     }
 
     if (
@@ -1349,27 +1179,41 @@ function updatePlayer() {
     ) {
 
         velocityY =
-            -JUMP;
+            -jump;
 
         onGround = false;
+
     }
 
-    velocityY += GRAVITY;
+    if (myPlayer.fly) {
 
-    myPlayer.y += velocityY;
+        if (keys.w || keys.arrowup) {
+            myPlayer.y -= speed;
+        }
 
-    const ground =
-        getGroundY();
+        if (keys.s || keys.arrowdown) {
+            myPlayer.y += speed;
+        }
 
-    if (
-        myPlayer.y >= ground
-    ) {
+    } else {
 
-        myPlayer.y =
-            ground;
+        velocityY += GRAVITY;
 
-        velocityY = 0;
-        onGround = true;
+        myPlayer.y += velocityY;
+
+        const ground =
+            getGroundY();
+
+        if (myPlayer.y >= ground) {
+
+            myPlayer.y = ground;
+
+            velocityY = 0;
+
+            onGround = true;
+
+        }
+
     }
 
     if (myPlayer.x < 35) {
@@ -1384,6 +1228,7 @@ function updatePlayer() {
 
         myPlayer.x =
             canvas.width - 35;
+
     }
 
     if (
@@ -1398,12 +1243,10 @@ function updatePlayer() {
                 y: myPlayer.y
             }
         );
-    }
-}
 
-// ======================================================
-// AI
-// ======================================================
+    }
+
+}
 
 function updateAI() {
 
@@ -1415,15 +1258,14 @@ function updateAI() {
     const distance =
         myPlayer.x - ai.x;
 
-    if (
-        Math.abs(distance) > 30
-    ) {
+    if (Math.abs(distance) > 30) {
 
         if (distance > 0) {
             ai.x += 2.3;
         } else {
             ai.x -= 2.3;
         }
+
     }
 
     ai.x =
@@ -1436,24 +1278,21 @@ function updateAI() {
         );
 
     aiVelocityY += GRAVITY;
-
     ai.y += aiVelocityY;
 
     if (ai.y >= ground) {
 
-        ai.y =
-            ground;
+        ai.y = ground;
 
         aiVelocityY = 0;
 
         aiOnGround = true;
+
     }
 
     aiDirectionTimer--;
 
-    if (
-        aiDirectionTimer <= 0
-    ) {
+    if (aiDirectionTimer <= 0) {
 
         aiDirectionTimer =
             100 +
@@ -1470,13 +1309,42 @@ function updateAI() {
                 -JUMP * 0.85;
 
             aiOnGround = false;
+
         }
+
     }
+
 }
 
-// ======================================================
-// GAME UI
-// ======================================================
+function updateMobs() {
+
+    Object.values(mobs)
+        .forEach(mob => {
+
+            if (!mob) return;
+
+            const distance =
+                myPlayer
+                    ? myPlayer.x - mob.x
+                    : 0;
+
+            if (
+                Math.abs(distance) > 40
+            ) {
+
+                mob.x +=
+                    distance > 0
+                        ? mob.speed || 1
+                        : -(mob.speed || 1);
+
+            }
+
+            mob.y =
+                getGroundY();
+
+        });
+
+}
 
 function updateGameUI() {
 
@@ -1487,42 +1355,18 @@ function updateGameUI() {
 
     if (!score) return;
 
-    if (
-        gameMode === "AI" &&
-        ai &&
-        myPlayer
-    ) {
+    score.textContent =
+        "❤️ " +
+        Math.max(
+            0,
+            Math.round(
+                Number(
+                    myPlayer?.health || 100
+                )
+            )
+        );
 
-        const distance =
-            Math.abs(
-                myPlayer.x -
-                ai.x
-            );
-
-        if (distance < 75) {
-
-            score.textContent =
-                "🤖 حریف نزدیکته! ❤️ " +
-                playerHealth;
-
-        } else {
-
-            score.textContent =
-                "❤️ " +
-                playerHealth;
-        }
-
-    } else {
-
-        score.textContent =
-            "❤️ " +
-            playerHealth;
-    }
 }
-
-// ======================================================
-// DRAW SKY
-// ======================================================
 
 function drawSky() {
 
@@ -1546,8 +1390,7 @@ function drawSky() {
         "#bae6fd"
     );
 
-    ctx.fillStyle =
-        gradient;
+    ctx.fillStyle = gradient;
 
     ctx.fillRect(
         0,
@@ -1571,24 +1414,12 @@ function drawSky() {
 
     ctx.fill();
 
-    drawCloud(
-        130,
-        110,
-        1
-    );
+    drawCloud(130,110,1);
+    drawCloud(420,160,.8);
 
-    drawCloud(
-        420,
-        160,
-        0.8
-    );
 }
 
-function drawCloud(
-    x,
-    y,
-    scale
-) {
+function drawCloud(x,y,scale) {
 
     if (!ctx) return;
 
@@ -1629,11 +1460,8 @@ function drawCloud(
     );
 
     ctx.fill();
-}
 
-// ======================================================
-// GROUND
-// ======================================================
+}
 
 function drawGround() {
 
@@ -1692,12 +1520,10 @@ function drawGround() {
         );
 
         ctx.fill();
-    }
-}
 
-// ======================================================
-// STICKMAN
-// ======================================================
+    }
+
+}
 
 function drawStickman(
     player,
@@ -1717,7 +1543,7 @@ function drawStickman(
 
     const scale =
         Math.max(
-            0.8,
+            .8,
             Math.min(
                 1.15,
                 minScreen / 850
@@ -1726,10 +1552,13 @@ function drawStickman(
 
     const s = scale;
 
-    const bodyColor =
-        isAI
-            ? "#ef4444"
-            : "#2563eb";
+    const color =
+        player.color ||
+        (
+            isAI
+                ? "#ef4444"
+                : "#2563eb"
+        );
 
     const bodyDark =
         isAI
@@ -1742,29 +1571,24 @@ function drawStickman(
     const shoe =
         "#111827";
 
-    const shirt =
-        isAI
-            ? "#dc2626"
-            : "#22c55e";
-
     ctx.save();
 
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
     ctx.fillStyle =
-        "rgba(0,0,0,0.20)";
+        "rgba(0,0,0,.20)";
 
     ctx.beginPath();
 
     ctx.ellipse(
         x,
-        y + 62 * s,
-        32 * s,
-        8 * s,
+        y + 62*s,
+        32*s,
+        8*s,
         0,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fill();
@@ -1773,18 +1597,18 @@ function drawStickman(
         "#1f2937";
 
     ctx.lineWidth =
-        8 * s;
+        8*s;
 
     ctx.beginPath();
 
     ctx.moveTo(
         x,
-        y + 20 * s
+        y+20*s
     );
 
     ctx.lineTo(
-        x - 18 * s,
-        y + 53 * s
+        x-18*s,
+        y+53*s
     );
 
     ctx.stroke();
@@ -1793,12 +1617,12 @@ function drawStickman(
 
     ctx.moveTo(
         x,
-        y + 20 * s
+        y+20*s
     );
 
     ctx.lineTo(
-        x + 18 * s,
-        y + 53 * s
+        x+18*s,
+        y+53*s
     );
 
     ctx.stroke();
@@ -1807,47 +1631,34 @@ function drawStickman(
         shoe;
 
     roundRect(
-        x - 32 * s,
-        y + 49 * s,
-        25 * s,
-        10 * s,
-        5 * s
+        x-32*s,
+        y+49*s,
+        25*s,
+        10*s,
+        5*s
     );
 
     ctx.fill();
 
     roundRect(
-        x + 7 * s,
-        y + 49 * s,
-        25 * s,
-        10 * s,
-        5 * s
-    );
-
-    ctx.fill();
-
-    ctx.fillStyle =
-        shirt;
-
-    roundRect(
-        x - 19 * s,
-        y - 28 * s,
-        38 * s,
-        50 * s,
-        12 * s
+        x+7*s,
+        y+49*s,
+        25*s,
+        10*s,
+        5*s
     );
 
     ctx.fill();
 
     ctx.fillStyle =
-        bodyColor;
+        color;
 
     roundRect(
-        x - 13 * s,
-        y - 22 * s,
-        26 * s,
-        35 * s,
-        8 * s
+        x-19*s,
+        y-28*s,
+        38*s,
+        50*s,
+        12*s
     );
 
     ctx.fill();
@@ -1856,18 +1667,18 @@ function drawStickman(
         bodyDark;
 
     ctx.lineWidth =
-        8 * s;
+        8*s;
 
     ctx.beginPath();
 
     ctx.moveTo(
-        x - 16 * s,
-        y - 15 * s
+        x-16*s,
+        y-15*s
     );
 
     ctx.lineTo(
-        x - 38 * s,
-        y + 8 * s
+        x-38*s,
+        y+8*s
     );
 
     ctx.stroke();
@@ -1875,13 +1686,13 @@ function drawStickman(
     ctx.beginPath();
 
     ctx.moveTo(
-        x + 16 * s,
-        y - 15 * s
+        x+16*s,
+        y-15*s
     );
 
     ctx.lineTo(
-        x + 38 * s,
-        y + 8 * s
+        x+38*s,
+        y+8*s
     );
 
     ctx.stroke();
@@ -1892,11 +1703,11 @@ function drawStickman(
     ctx.beginPath();
 
     ctx.arc(
-        x - 40 * s,
-        y + 10 * s,
-        6 * s,
+        x-40*s,
+        y+10*s,
+        6*s,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fill();
@@ -1904,21 +1715,21 @@ function drawStickman(
     ctx.beginPath();
 
     ctx.arc(
-        x + 40 * s,
-        y + 10 * s,
-        6 * s,
+        x+40*s,
+        y+10*s,
+        6*s,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fill();
 
     roundRect(
-        x - 8 * s,
-        y - 40 * s,
-        16 * s,
-        14 * s,
-        5 * s
+        x-8*s,
+        y-40*s,
+        16*s,
+        14*s,
+        5*s
     );
 
     ctx.fill();
@@ -1927,10 +1738,10 @@ function drawStickman(
 
     ctx.arc(
         x,
-        y - 58 * s,
-        22 * s,
+        y-58*s,
+        22*s,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fill();
@@ -1942,10 +1753,10 @@ function drawStickman(
 
     ctx.arc(
         x,
-        y - 66 * s,
-        22 * s,
+        y-66*s,
+        22*s,
         Math.PI,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fill();
@@ -1953,11 +1764,11 @@ function drawStickman(
     ctx.beginPath();
 
     ctx.arc(
-        x - 8 * s,
-        y - 59 * s,
-        2.5 * s,
+        x-8*s,
+        y-59*s,
+        2.5*s,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fill();
@@ -1965,48 +1776,43 @@ function drawStickman(
     ctx.beginPath();
 
     ctx.arc(
-        x + 8 * s,
-        y - 59 * s,
-        2.5 * s,
+        x+8*s,
+        y-59*s,
+        2.5*s,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fill();
 
     const name =
         player.name ||
-        (isAI
-            ? "AI"
-            : "Player");
-
-    const fontSize =
-        Math.max(
-            12,
-            15 * s
-        );
+        (isAI ? "AI" : "Player");
 
     ctx.font =
-        `bold ${fontSize}px Arial`;
+        `bold ${Math.max(
+            12,
+            15*s
+        )}px Arial`;
 
     const textWidth =
         ctx.measureText(name).width;
 
     ctx.fillStyle =
-        "rgba(17,24,39,0.82)";
+        "rgba(17,24,39,.82)";
 
     roundRect(
-        x - textWidth / 2 - 8,
-        y - 105 * s,
-        textWidth + 16,
-        24 * s,
+        x-textWidth/2-8,
+        y-105*s,
+        textWidth+16,
+        24*s,
         8
     );
 
     ctx.fill();
 
     ctx.fillStyle =
-        "#ffffff";
+        "#fff";
 
     ctx.textAlign =
         "center";
@@ -2017,7 +1823,7 @@ function drawStickman(
     ctx.fillText(
         name,
         x,
-        y - 93 * s
+        y-93*s
     );
 
     if (isAI) {
@@ -2026,49 +1832,14 @@ function drawStickman(
             "#facc15";
 
         ctx.font =
-            `bold ${12 * s}px Arial`;
+            `bold ${12*s}px Arial`;
 
         ctx.fillText(
             "🤖",
             x,
-            y - 118 * s
+            y-118*s
         );
 
-        if (
-            typeof ai.health ===
-            "number"
-        ) {
-
-            const barWidth =
-                60 * s;
-
-            const barHeight =
-                7 * s;
-
-            ctx.fillStyle =
-                "#111827";
-
-            ctx.fillRect(
-                x - barWidth / 2,
-                y - 132 * s,
-                barWidth,
-                barHeight
-            );
-
-            ctx.fillStyle =
-                "#22c55e";
-
-            ctx.fillRect(
-                x - barWidth / 2,
-                y - 132 * s,
-                barWidth *
-                    Math.max(
-                        0,
-                        ai.health / 100
-                    ),
-                barHeight
-            );
-        }
     }
 
     if (
@@ -2080,357 +1851,121 @@ function drawStickman(
             "#facc15";
 
         ctx.lineWidth =
-            6 * s;
+            6*s;
 
         ctx.beginPath();
 
         ctx.arc(
             x,
-            y - 5 * s,
-            65 * s,
-            -0.8,
-            0.8
+            y-5*s,
+            65*s,
+            -.8,
+            .8
         );
 
         ctx.stroke();
+
+    }
+
+    if (player.fly) {
+
+        ctx.fillStyle =
+            "#38bdf8";
+
+        ctx.font =
+            `${18*s}px Arial`;
+
+        ctx.fillText(
+            "🪽",
+            x,
+            y-130*s
+        );
+
     }
 
     ctx.restore();
-}
 
-// ======================================================
-// MOB DRAW
-// ======================================================
+}
 
 function drawMob(mob) {
 
     if (!ctx || !mob) return;
 
-    if (mob.dead) return;
-
     const x = mob.x;
     const y = mob.y;
 
-    const s =
-        Math.max(
-            0.8,
-            Math.min(
-                1.15,
-                Math.min(
-                    canvas.width,
-                    canvas.height
-                ) / 850
-            )
-        );
-
     ctx.save();
 
-    // سایه
     ctx.fillStyle =
-        "rgba(0,0,0,0.25)";
-
-    ctx.beginPath();
-
-    ctx.ellipse(
-        x,
-        y + 45 * s,
-        34 * s,
-        8 * s,
-        0,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-    // بدن هیولا
-    ctx.fillStyle =
-        "#7c3aed";
-
-    roundRect(
-        x - 28 * s,
-        y - 50 * s,
-        56 * s,
-        75 * s,
-        15 * s
-    );
-
-    ctx.fill();
-
-    // سر
-    ctx.fillStyle =
-        "#9333ea";
+        mob.type === "zombie"
+            ? "#16a34a"
+            : "#7c3aed";
 
     ctx.beginPath();
 
     ctx.arc(
         x,
-        y - 60 * s,
-        30 * s,
+        y-35,
+        28,
         0,
-        Math.PI * 2
+        Math.PI*2
     );
 
     ctx.fill();
-
-    // شاخ
-    ctx.fillStyle =
-        "#4c1d95";
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        x - 20 * s,
-        y - 78 * s
-    );
-
-    ctx.lineTo(
-        x - 35 * s,
-        y - 105 * s
-    );
-
-    ctx.lineTo(
-        x - 7 * s,
-        y - 85 * s
-    );
-
-    ctx.fill();
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        x + 20 * s,
-        y - 78 * s
-    );
-
-    ctx.lineTo(
-        x + 35 * s,
-        y - 105 * s
-    );
-
-    ctx.lineTo(
-        x + 7 * s,
-        y - 85 * s
-    );
-
-    ctx.fill();
-
-    // چشم‌ها
-    ctx.fillStyle =
-        "#facc15";
-
-    ctx.beginPath();
-
-    ctx.arc(
-        x - 10 * s,
-        y - 63 * s,
-        6 * s,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-    ctx.beginPath();
-
-    ctx.arc(
-        x + 10 * s,
-        y - 63 * s,
-        6 * s,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-    // مردمک
-    ctx.fillStyle =
-        "#111827";
-
-    ctx.beginPath();
-
-    ctx.arc(
-        x - 10 * s,
-        y - 63 * s,
-        2 * s,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-    ctx.beginPath();
-
-    ctx.arc(
-        x + 10 * s,
-        y - 63 * s,
-        2 * s,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-    // دهان
-    ctx.strokeStyle =
-        "#111827";
-
-    ctx.lineWidth =
-        4 * s;
-
-    ctx.beginPath();
-
-    ctx.arc(
-        x,
-        y - 48 * s,
-        13 * s,
-        0,
-        Math.PI
-    );
-
-    ctx.stroke();
-
-    // دست‌ها
-    ctx.strokeStyle =
-        "#6d28d9";
-
-    ctx.lineWidth =
-        10 * s;
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        x - 25 * s,
-        y - 20 * s
-    );
-
-    ctx.lineTo(
-        x - 48 * s,
-        y + 5 * s
-    );
-
-    ctx.stroke();
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        x + 25 * s,
-        y - 20 * s
-    );
-
-    ctx.lineTo(
-        x + 48 * s,
-        y + 5 * s
-    );
-
-    ctx.stroke();
-
-    // پاها
-    ctx.beginPath();
-
-    ctx.moveTo(
-        x - 12 * s,
-        y + 20 * s
-    );
-
-    ctx.lineTo(
-        x - 20 * s,
-        y + 48 * s
-    );
-
-    ctx.stroke();
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        x + 12 * s,
-        y + 20 * s
-    );
-
-    ctx.lineTo(
-        x + 20 * s,
-        y + 48 * s
-    );
-
-    ctx.stroke();
-
-    // اسم
-    ctx.fillStyle =
-        "rgba(17,24,39,0.85)";
-
-    ctx.font =
-        `bold ${14 * s}px Arial`;
-
-    ctx.textAlign =
-        "center";
-
-    ctx.textBaseline =
-        "middle";
-
-    ctx.fillText(
-        "👹 هیولا",
-        x,
-        y - 115 * s
-    );
-
-    // نوار جان
-    const barWidth =
-        70 * s;
-
-    const barHeight =
-        8 * s;
 
     ctx.fillStyle =
         "#111827";
 
     ctx.fillRect(
-        x - barWidth / 2,
-        y - 103 * s,
-        barWidth,
-        barHeight
+        x-20,
+        y-10,
+        40,
+        45
     );
 
     ctx.fillStyle =
         "#ef4444";
 
-    ctx.fillRect(
-        x - barWidth / 2,
-        y - 103 * s,
-        barWidth *
-            Math.max(
-                0,
-                mob.health /
-                    mob.maxHealth
-            ),
-        barHeight
+    ctx.beginPath();
+
+    ctx.arc(
+        x-10,
+        y-40,
+        4,
+        0,
+        Math.PI*2
+    );
+
+    ctx.arc(
+        x+10,
+        y-40,
+        4,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+    ctx.fillStyle =
+        "#fff";
+
+    ctx.font =
+        "bold 13px Arial";
+
+    ctx.textAlign =
+        "center";
+
+    ctx.fillText(
+        mob.type === "zombie"
+            ? "Zombie"
+            : "Monster",
+        x,
+        y-70
     );
 
     ctx.restore();
+
 }
-
-function drawMobs() {
-
-    if (gameMode === "ONLINE") {
-
-        mobs.forEach(
-            mob => {
-                drawMob(mob);
-            }
-        );
-
-    } else {
-
-        offlineMobs.forEach(
-            mob => {
-                drawMob(mob);
-            }
-        );
-    }
-}
-
-// ======================================================
-// ROUND RECT
-// ======================================================
 
 function roundRect(
     x,
@@ -2445,68 +1980,61 @@ function roundRect(
     const r =
         Math.min(
             radius,
-            width / 2,
-            height / 2
+            width/2,
+            height/2
         );
 
     ctx.beginPath();
 
     ctx.moveTo(
-        x + r,
+        x+r,
         y
     );
 
     ctx.arcTo(
-        x + width,
+        x+width,
         y,
-        x + width,
-        y + height,
+        x+width,
+        y+height,
         r
     );
 
     ctx.arcTo(
-        x + width,
-        y + height,
+        x+width,
+        y+height,
         x,
-        y + height,
-        r
-    );
-
-    ctx.arcTo(
-        x,
-        y + height,
-        x,
-        y,
+        y+height,
         r
     );
 
     ctx.arcTo(
         x,
+        y+height,
+        x,
         y,
-        x + width,
+        r
+    );
+
+    ctx.arcTo(
+        x,
+        y,
+        x+width,
         y,
         r
     );
 
     ctx.closePath();
-}
 
-// ======================================================
-// DRAW GAME
-// ======================================================
+}
 
 function drawGame() {
 
     if (!ctx || !canvas) return;
 
     drawSky();
-
     drawGround();
 
-    drawMobs();
-
     if (myPlayer) {
-
         drawStickman(
             myPlayer,
             false
@@ -2514,62 +2042,44 @@ function drawGame() {
     }
 
     if (ai) {
-
         drawStickman(
             ai,
             true
         );
     }
 
-    if (
-        gameMode === "ONLINE"
-    ) {
+    Object.values(players)
+        .forEach(player => {
 
-        Object.values(
-            players
-        ).forEach(
-            function (player) {
-
-                if (
-                    player.id ===
-                    socket.id
-                ) {
-                    return;
-                }
-
-                drawStickman(
-                    player,
-                    false
-                );
+            if (
+                player.id === socket.id
+            ) {
+                return;
             }
-        );
-    }
-}
 
-// ======================================================
-// GAME LOOP
-// ======================================================
+            drawStickman(
+                player,
+                false
+            );
+
+        });
+
+    Object.values(mobs)
+        .forEach(drawMob);
+
+}
 
 function gameLoop() {
 
-    if (!gameRunning) {
-        return;
-    }
+    if (!gameRunning) return;
 
     updatePlayer();
 
-    if (
-        gameMode === "AI"
-    ) {
+    if (gameMode === "AI") {
         updateAI();
     }
 
-    if (
-        gameMode === "SOLO" ||
-        gameMode === "AI"
-    ) {
-        updateOfflineMobs();
-    }
+    updateMobs();
 
     updateGameUI();
 
@@ -2580,6 +2090,186 @@ function gameLoop() {
     requestAnimationFrame(
         gameLoop
     );
+
+}
+
+/* =====================================================
+   CODE SYSTEM
+===================================================== */
+
+if (codeButton) {
+
+    codeButton.onclick =
+        function() {
+
+            if (!gameRunning) return;
+
+            if (playerName === "tahagamertnt") {
+
+                adminPanel.classList.remove(
+                    "hidden"
+                );
+
+                updateAdminPlayers();
+
+            } else {
+
+                codePanel.classList.remove(
+                    "hidden"
+                );
+
+            }
+
+        };
+
+}
+
+if (closeCode) {
+
+    closeCode.onclick =
+        function() {
+
+            codePanel.classList.add(
+                "hidden"
+            );
+
+        };
+
+}
+
+if (closeAdmin) {
+
+    closeAdmin.onclick =
+        function() {
+
+            adminPanel.classList.add(
+                "hidden"
+            );
+
+        };
+
+}
+
+if (runCode) {
+
+    runCode.onclick =
+        function() {
+
+            if (!codeInput) return;
+
+            codeResult.textContent =
+                "⏳ در حال اجرا...";
+
+            socket.emit(
+                "runPlayerCode",
+                {
+                    code:
+                        codeInput.value
+                }
+            );
+
+        };
+
+}
+
+function updateAdminPlayers() {
+
+    if (!adminPlayers) return;
+
+    adminPlayers.innerHTML = "";
+
+    if (
+        playerName !==
+        "tahagamertnt"
+    ) {
+
+        return;
+
+    }
+
+    Object.values(players)
+        .forEach(player => {
+
+            const div =
+                document.createElement(
+                    "div"
+                );
+
+            div.className =
+                "adminPlayer";
+
+            if (
+                selectedAdminTarget ===
+                player.id
+            ) {
+
+                div.classList.add(
+                    "selected"
+                );
+
+            }
+
+            div.textContent =
+                "👤 " +
+                player.name;
+
+            div.onclick =
+                function() {
+
+                    selectedAdminTarget =
+                        player.id;
+
+                    if (adminTargetText) {
+
+                        adminTargetText.textContent =
+                            "هدف: " +
+                            player.name;
+
+                    }
+
+                    updateAdminPlayers();
+
+                };
+
+            adminPlayers.appendChild(
+                div
+            );
+
+        });
+
+}
+
+if (runAdminCode) {
+
+    runAdminCode.onclick =
+        function() {
+
+            if (
+                playerName !==
+                "tahagamertnt"
+            ) {
+
+                return;
+
+            }
+
+            adminResult.textContent =
+                "⏳ در حال اجرا...";
+
+            socket.emit(
+                "runAdminCode",
+                {
+                    targetId:
+                        selectedAdminTarget ||
+                        socket.id,
+
+                    code:
+                        adminCodeInput.value
+                }
+            );
+
+        };
+
 }
 
 updateAttackButtonVisibility();
