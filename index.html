@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -39,7 +40,7 @@ body{
 
 .box{
     width:92%;
-    max-width:480px;
+    max-width:560px;
     padding:30px;
     background:#111827;
     color:white;
@@ -158,13 +159,17 @@ button:active{
     margin-top:10px;
 }
 
-/* GAME */
+
+/* =========================
+   GAME
+========================= */
 
 #gameScreen{
     display:none;
     position:fixed;
     inset:0;
     background:#87ceeb;
+    z-index:10;
 }
 
 #gameCanvas{
@@ -174,6 +179,11 @@ button:active{
     height:100%;
     touch-action:none;
 }
+
+
+/* =========================
+   GAME TOP
+========================= */
 
 #gameTop{
     position:fixed;
@@ -185,6 +195,7 @@ button:active{
     justify-content:space-between;
     align-items:center;
     direction:ltr;
+    pointer-events:none;
 }
 
 .topBadge{
@@ -195,19 +206,42 @@ button:active{
     font-weight:bold;
 }
 
+
+/* =========================
+   MOBILE CONTROLS
+   فقط داخل بازی
+========================= */
+
 #mobileControls{
     position:fixed;
     left:0;
     right:0;
     bottom:25px;
     z-index:30;
+
     display:none;
+
     justify-content:space-between;
     align-items:flex-end;
+
     padding:0 20px;
+
     direction:ltr;
+
     pointer-events:none;
 }
+
+
+/* فقط وقتی بازی باز است */
+
+#gameScreen #mobileControls{
+    display:none;
+}
+
+
+/* =========================
+   CONTROL GROUP
+========================= */
 
 .controlGroup{
     display:flex;
@@ -215,17 +249,30 @@ button:active{
     pointer-events:auto;
 }
 
+
+/* =========================
+   MOBILE BUTTON
+========================= */
+
 .mobileButton{
     width:72px;
     height:72px;
+
     padding:0;
     margin:0;
+
     border-radius:20px;
+
     border:2px solid #ffffff55;
+
     background:#111827dd;
+
     color:white;
+
     font-size:28px;
+
     pointer-events:auto;
+
     touch-action:none;
 }
 
@@ -233,13 +280,62 @@ button:active{
     background:#16a34add;
 }
 
-@media(max-width:900px){
-    #mobileControls{
-        display:flex;
-    }
+
+/* =========================
+   ATTACK BUTTON
+   پیش‌فرض همیشه مخفی
+========================= */
+
+#attackButton{
+    display:none !important;
 }
 
+
+/* فقط در بازی */
+
+#gameScreen #attackButton{
+    display:block !important;
+    width:82px;
+    height:82px;
+    border-radius:22px;
+    background:#dc2626;
+    border:2px solid #ffffff66;
+    font-size:34px;
+}
+
+
+/* =========================
+   MOBILE GAME CONTROLS
+========================= */
+
+@media(max-width:900px){
+
+    #gameScreen #mobileControls{
+        display:flex;
+    }
+
+}
+
+
+/* =========================
+   DESKTOP
+========================= */
+
+@media(min-width:901px){
+
+    #gameScreen #mobileControls{
+        display:none !important;
+    }
+
+}
+
+
+/* =========================
+   SMALL SCREEN
+========================= */
+
 @media(max-width:600px){
+
     h1{
         font-size:34px;
     }
@@ -251,11 +347,23 @@ button:active{
     .modeCard{
         min-height:145px;
     }
+
+    .mobileButton{
+        width:65px;
+        height:65px;
+    }
+
+    #gameScreen #attackButton{
+        width:74px;
+        height:74px;
+    }
+
 }
 </style>
 </head>
 
 <body>
+
 
 <!-- =========================
      NAME
@@ -265,7 +373,7 @@ button:active{
 
     <div class="box">
 
-        <h1>🎮 STICKMAN</h1>
+        <h1>STICKMAN 🎮</h1>
 
         <p>اسمت رو وارد کن</p>
 
@@ -276,11 +384,17 @@ button:active{
             autocomplete="off"
         >
 
-        <button id="confirmName" class="green">
-            ✅ تأیید اسم
+        <button
+            id="confirmName"
+            class="green"
+        >
+            تأیید اسم ✅
         </button>
 
-        <div id="nameError" class="error"></div>
+        <div
+            id="nameError"
+            class="error"
+        ></div>
 
     </div>
 
@@ -291,7 +405,10 @@ button:active{
      MODE
 ========================= -->
 
-<div id="modeScreen" class="screen hidden">
+<div
+    id="modeScreen"
+    class="screen hidden"
+>
 
     <div class="box">
 
@@ -301,16 +418,31 @@ button:active{
 
         <div class="cardRow">
 
-            <div id="onlineCard" class="modeCard onlineCard">
+            <div
+                id="onlineCard"
+                class="modeCard onlineCard"
+            >
+
                 <div class="icon">🌐</div>
+
                 <h2>آنلاین</h2>
+
                 <p>بازی با دوستت</p>
+
             </div>
 
-            <div id="offlineCard" class="modeCard offlineCard">
+
+            <div
+                id="offlineCard"
+                class="modeCard offlineCard"
+            >
+
                 <div class="icon">📴</div>
+
                 <h2>آفلاین</h2>
+
                 <p>بدون اینترنت</p>
+
             </div>
 
         </div>
@@ -324,7 +456,10 @@ button:active{
      OFFLINE
 ========================= -->
 
-<div id="offlineScreen" class="screen hidden">
+<div
+    id="offlineScreen"
+    class="screen hidden"
+>
 
     <div class="box">
 
@@ -334,21 +469,40 @@ button:active{
 
         <div class="cardRow">
 
-            <div id="aiCard" class="modeCard offlineOption aiCard">
+            <div
+                id="aiCard"
+                class="modeCard offlineOption aiCard"
+            >
+
                 <div class="icon">🤖</div>
+
                 <h2>بازی با AI</h2>
+
                 <p>با حریف کامپیوتری بازی کن</p>
+
             </div>
 
-            <div id="soloCard" class="modeCard offlineOption soloCard">
+
+            <div
+                id="soloCard"
+                class="modeCard offlineOption soloCard"
+            >
+
                 <div class="icon">👤</div>
+
                 <h2>تنهایی</h2>
+
                 <p>فقط خودت در زمین</p>
+
             </div>
 
         </div>
 
-        <button id="backToModes" class="gray">
+
+        <button
+            id="backToModes"
+            class="gray"
+        >
             ↩️ برگشت
         </button>
 
@@ -358,24 +512,37 @@ button:active{
 
 
 <!-- =========================
-     ONLINE LOBBY
+     ONLINE
 ========================= -->
 
-<div id="onlineScreen" class="screen hidden">
+<div
+    id="onlineScreen"
+    class="screen hidden"
+>
 
     <div class="box">
 
         <h1>🌐 آنلاین</h1>
 
-        <button id="createRoom" class="blue">
+        <button
+            id="createRoom"
+            class="blue"
+        >
             🏠 ساخت اتاق
         </button>
 
-        <button id="showJoin" class="purple">
+        <button
+            id="showJoin"
+            class="purple"
+        >
             🔢 ورود به اتاق
         </button>
 
-        <div id="joinBox" class="hidden">
+
+        <div
+            id="joinBox"
+            class="hidden"
+        >
 
             <input
                 id="roomInput"
@@ -384,15 +551,26 @@ button:active{
                 placeholder="کد ۶ رقمی"
             >
 
-            <button id="joinRoom" class="purple">
+            <button
+                id="joinRoom"
+                class="purple"
+            >
                 🚪 ورود
             </button>
 
         </div>
 
-        <div id="onlineError" class="error"></div>
 
-        <button id="backFromOnline" class="gray">
+        <div
+            id="onlineError"
+            class="error"
+        ></div>
+
+
+        <button
+            id="backFromOnline"
+            class="gray"
+        >
             ↩️ برگشت
         </button>
 
@@ -405,7 +583,10 @@ button:active{
      ROOM
 ========================= -->
 
-<div id="roomScreen" class="screen hidden">
+<div
+    id="roomScreen"
+    class="screen hidden"
+>
 
     <div class="box">
 
@@ -413,22 +594,30 @@ button:active{
 
         <p>کد اتاق:</p>
 
-        <div id="roomCode" style="
-            direction:ltr;
-            font-size:48px;
-            font-weight:bold;
-            letter-spacing:8px;
-            color:#22c55e;
-            margin:25px 0;
-        ">
+        <div
+            id="roomCode"
+            style="
+                direction:ltr;
+                font-size:48px;
+                font-weight:bold;
+                letter-spacing:8px;
+                color:#22c55e;
+                margin:25px 0;
+            "
+        >
             ------
         </div>
+
 
         <p id="roomStatus">
             کد را به دوستت بده
         </p>
 
-        <button id="readyButton" class="green">
+
+        <button
+            id="readyButton"
+            class="green"
+        >
             🎮 بزن بریم تو بازی
         </button>
 
@@ -445,35 +634,81 @@ button:active{
 
     <canvas id="gameCanvas"></canvas>
 
+
     <div id="gameTop">
 
-        <div id="gameMode" class="topBadge">
+        <div
+            id="gameMode"
+            class="topBadge"
+        >
             🎮 Stickman
         </div>
 
-        <div id="gameScore" class="topBadge">
+
+        <div
+            id="gameScore"
+            class="topBadge"
+        >
             ❤️ 100
         </div>
 
     </div>
 
+
+    <!--
+        مهم:
+        دکمه‌ها داخل gameScreen هستند
+        بنابراین در منوی تأیید اسم
+        نمایش داده نمی‌شوند.
+    -->
+
     <div id="mobileControls">
 
         <div class="controlGroup">
 
-            <button id="leftButton" class="mobileButton">
+            <button
+                id="leftButton"
+                class="mobileButton"
+                type="button"
+            >
                 ⬅️
             </button>
 
-            <button id="rightButton" class="mobileButton">
+
+            <button
+                id="rightButton"
+                class="mobileButton"
+                type="button"
+            >
                 ➡️
             </button>
 
         </div>
 
-        <button id="jumpButton" class="mobileButton">
-            🦘
-        </button>
+
+        <div
+            class="controlGroup"
+            style="align-items:flex-end;"
+        >
+
+            <button
+                id="jumpButton"
+                class="mobileButton"
+                type="button"
+            >
+                🦘
+            </button>
+
+
+            <button
+                id="attackButton"
+                class="mobileButton"
+                type="button"
+            >
+                ⚔️
+            </button>
+
+        </div>
 
     </div>
 
@@ -485,3 +720,4 @@ button:active{
 
 </body>
 </html>
+```
